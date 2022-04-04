@@ -4,7 +4,7 @@ class Solver(metaclass=ABCMeta):
 	"""Interface class """
 
 	def __init__(self):
-		self.__callables = ['_load_settings','solve']
+		self.__callables = ['load_settings','solve']
 		self.__attributes = self.__callables + []
 
 	@property
@@ -32,7 +32,7 @@ class Solver(metaclass=ABCMeta):
 	    assert all(__reasons), "The specialization {} is not a proper subclass of {}!\nAll attributes defined {}, all callables defined {}".format(self.__name__,self.__bases__[0],__reasons[0],__reasons[1])
 
 	@abstractmethod
-	def _load_settings(self):
+	def load_settings(self, settings):
 		"""place holder"""
 		raise NotImplementedError
 

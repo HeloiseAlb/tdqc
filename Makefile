@@ -39,4 +39,6 @@ pytest:
 
 all: clean build
 
+install : all
+
 test: pytest
