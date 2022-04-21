@@ -9,8 +9,9 @@ def setup_logger(record_testsuite_property):
 
 @pytest.mark.fast
 def test_import():
-	assert True, "import worked"
+    assert True, "import worked"
 
 @pytest.mark.fast
 def test_import_ed_solver():
-	from tdqc.solver.ed import EDSolver
+    from tdqc.solver.ed import EDSolver
+    assert True, "import worked"

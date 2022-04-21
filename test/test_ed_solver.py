@@ -22,6 +22,14 @@ def test_ed_solver_load_settings():
 	solver = EDSolver()
 	solver.load_settings(settings)
 
+@pytest.mark.fast
+def test_ed_solver_structure():
+    from tdqc.solver.ed import EDSolver
+    assert callable(getattr(EDSolver, 'solve', None)), "EDSolver has a method solve"
+    # It must be possible to get the liste of amplitudes obtained from solved.
+    assert callable(getattr(State, 'get_time_evolution', None)), "EDSolver  has a method get_time_evolution"
+
+
 @pytest.mark.slow
 def test_ed_solver_solve():
 	pass

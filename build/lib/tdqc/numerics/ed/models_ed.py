@@ -10,6 +10,8 @@ import cmath
 
 h_bar = 1 # 1.054571817*10**(-34) # in J.s
 
+
+
 spin_op= {
     "I": np.array([[1+0j,0+0j],[0+0j,1+0j]],dtype = 'complex128'),
     "sigma_x": np.array([[0+0j,1+0j],[1+0j,0+0j]],dtype = 'complex128'),
@@ -43,9 +45,10 @@ def ground_states(eig_values,eig_vectors):
     return ground_states
 
 
+
 class Model(object):
     # Class attribute
-    
+
     def __init__(self, name, model_hamiltonian):
         self.name = name
         self.model_hamiltonian = model_hamiltonian
@@ -94,49 +97,44 @@ xxz_model = Model("xxz_model",hamiltonian_xxz)
 
 class State(object):
     '''
-    init_vec_state: type <class 'numpy.ndarray'>
+    initial_state: type <class 'numpy.ndarray'>
     '''
-    def __init__(self, init_vec_state):
-        self.vec_state = init_vec_state
-        self.dimension = init_vec_state.size
+    def __init__(self, initial_state):
+        self.amplitudes = initial_state
+        self.dimension = initial_state.size
         self.n_sites = log2(self.dimension)
-        self.vec_state_real = init_vec_state.real
-        self.vec_state_imag = init_vec_state.imag
-        self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
-    
-    @property
-    def vec_state(self):
-        return self._vec_state
-   
-    @vec_state.setter
-    def vec_state(self, value):
-        self._vec_state = value
-        # Also updates the density_mat an its real and imaginary parts.
-        self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
+        self.state_real = initial_state.real
+        self.state_imag = initial_state.imag
 
-    def time_step_ed(self, model, delta_t, h_bar=h_bar):
+
+    def get_amplitudes(self):
+        return self.amplitudes
+    
+    def time_step_ed(self,model,delta_t,h_bar=h_bar):
         '''
         Time evolution of a system after a quench using exact diagonalization. 
         It makes the state initial_state evolve according to the Hamiltonian of the model for a time delta_t.
         '''
-        init_vec_state = self.vec_state
+        initial_amplitudes = self.amplitudes
         eig_values,eig_vectors = model.eig_values, model.eig_vectors
-        new_vec_state = np.zeros(self.dimension,dtype='complex128')
+        new_amplitudes = np.zeros(self.dimension,dtype='complex128')
         for index, vector in enumerate(eig_vectors.T):
             energy = eig_values[index]
-            projection = np.dot(vector,np.transpose(init_vec_state))
-            new_vec_state += cmath.exp(-1j*energy*delta_t/h_bar)*projection*vector
-        norm = np.linalg.norm(new_vec_state)
+            projection = np.dot(vector,np.transpose(initial_amplitudes))
+            new_amplitudes += cmath.exp(-1j*energy*delta_t/h_bar)*projection*vector
+        norm = np.linalg.norm(new_amplitudes)
         if norm!=0:
-            new_vec_state = new_vec_state/norm
-        self.vec_state = new_vec_state
-        self.vec_state_real = new_vec_state.real
-        self.vec_state_imag = new_vec_state.imag
+            new_amplitudes = new_amplitudes/norm
+        self.amplitudes = new_amplitudes
+        self.state_real = new_amplitudes.real
+        self.state_imag = new_amplitudes.imag
 
-    
+
     def get_state_format_ml(self):
-        return self._density_mat.real, self._density_mat.imag
+        return self.state_real, self.state_imag
    
+    def get_density_matrix(self):
+        return np.tensordot(np.conjugate(self.amplitudes), self.amplitudes, axes=0)
 
 
     @classmethod
@@ -144,16 +142,18 @@ class State(object):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    
 
 
+
 """
-psi_0 = State(np.zeros([2**4],dtype='complex128'))
+psi_0 = state(np.zeros([2**4],dtype='complex128'))
 L = 4
 Jzz = 1.0
 Jxy = 1.0
 model = xxz_model
 model.parametrize_hamiltonian(*[L,Jxy,Jzz])
 
-print(type(psi_0.vec_state))
-psi_0.time_step_ed(xxz_model, 1)
-print(psi_0.vec_state)
-print(psi_0.get_state_format_ml())
+print(type(psi_0.state))
+psi_0.time_evolution_ed(xxz_model, 1)
+print(psi_0.state)
 """
+
+
