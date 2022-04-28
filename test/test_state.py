@@ -11,14 +11,15 @@ def setup_logger(record_testsuite_property):
 @pytest.mark.fast
 def test_state_structure():
     from tdqc.numerics.ed.models_ed import State
-    assert callable(getattr(State, 'get_amplitudes', None)), "State has a method get_amplitudes"
-    # The amplitudes must be an array from numpy.
+    # The vec_state must be an array from numpy.
     L = 4
-    initial_state = np.array(np.random.normal(size=(2**L,2**L))+1j*np.random.normal(size=(2**L,2**L)),dtype='complex128')
+    initial_state = np.array((np.random.normal(size=(2**L,2**L))+1j*np.random.normal(size=(2**L,2**L))),dtype='complex128')
     initial_state = initial_state/np.abs(initial_state)
     #initial_state = np.ones([2**L], dtype='complex128')/2**(L-1)
     state = State(initial_state)
-    amplitudes = state.get_amplitudes()
+    #assert hasattr(state, vec_state), "State has an attribute vec_state"
+    # The vec_state must be an array from numpy.
+    amplitudes = state.vec_state
     assert isinstance(amplitudes, np.ndarray), "Amplitudes given as an array from numpy"
     # It must be possible to get the amplitudes in the format of the code from Markus. 
     assert callable(getattr(State, 'get_state_format_ml', None)), "State has a method State has a method get_state_format_ml"

@@ -60,7 +60,7 @@ class Model(object):
         self.eig_values = eig_values
         self.eig_vectors = eig_vectors
         self.ground_states = ground_states(eig_values,eig_vectors)
-       
+
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of Hamiltonian."
@@ -97,9 +97,9 @@ class State(object):
     init_vec_state: type <class 'numpy.ndarray'>
     '''
     def __init__(self, init_vec_state):
-        self.vec_state = init_vec_state
+        self._vec_state = init_vec_state
         self.dimension = init_vec_state.size
-        self.n_sites = log2(self.dimension)
+        self.n_sites = int(log2(self.dimension))
         self.vec_state_real = init_vec_state.real
         self.vec_state_imag = init_vec_state.imag
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
@@ -114,11 +114,13 @@ class State(object):
         # Also updates the density_mat an its real and imaginary parts.
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
 
-    def time_step_ed(self, model, delta_t, h_bar=h_bar):
+    def time_step_ed(self, model, delta_t, imaginary=False, h_bar=h_bar):
         '''
         Time evolution of a system after a quench using exact diagonalization. 
         It makes the state initial_state evolve according to the Hamiltonian of the model for a time delta_t.
         '''
+        if imaginary:
+            delta_t = -1j*delta_t
         init_vec_state = self.vec_state
         eig_values,eig_vectors = model.eig_values, model.eig_vectors
         new_vec_state = np.zeros(self.dimension,dtype='complex128')
@@ -137,13 +139,9 @@ class State(object):
     def get_state_format_ml(self):
         return self._density_mat.real, self._density_mat.imag
    
-
-
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    
-
-
 """
 psi_0 = State(np.zeros([2**4],dtype='complex128'))
 L = 4
@@ -157,3 +155,5 @@ psi_0.time_step_ed(xxz_model, 1)
 print(psi_0.vec_state)
 print(psi_0.get_state_format_ml())
 """
+
+
