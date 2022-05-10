@@ -60,7 +60,7 @@ class Model(object):
         self.eig_values = eig_values
         self.eig_vectors = eig_vectors
         self.ground_states = ground_states(eig_values,eig_vectors)
-       
+
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of Hamiltonian."

@@ -66,10 +66,8 @@ class EDSolver(Solver):
         self.__final_state = state_t_n
 
 
-   def get_target_state(self):
-       if self.__final_state == None:
-           raise ValueError("The method solve need to be run before in order to get the target_state")
-       target = self.__final_state.get_state_format_ml()
-       return target
-
-
+    def get_target_state(self):
+        if (self.__final_state == None):
+            raise ValueError("The method solve need to be run before in order to get the target_state")
+        target = self.__final_state.get_state_format_ml()
+        return target

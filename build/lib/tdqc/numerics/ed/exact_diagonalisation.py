@@ -87,26 +87,6 @@ class ExactDiagonalization(object):
     def get_ground_state_energy_per_site(self):
         return min(self.eig_values)/self.n_sites
 
-    def run_time_evolution(self):
-        # This function run the time evolution and store the amplitudes in self.amplitudes. 
-        psi_t_n = models_ed.State(self.initial_state)
-        site_list = [l for l in range(1,self.n_sites,1)]
-        t_list = [t for t in np.arange(self.t_initial,self.t_final,self.step)]
-        amplitudes = np.zeros([int((self.t_final-self.t_initial)/self.step),2**self.n_sites],dtype='complex128') # [None] * int((t_max-t_min)/step) #np.zeros([int((t_max-t_min)/step)])
-        inv_temperature = 1 
-        for idx,t_n in enumerate(t_list):
-            amplitudes[idx,:] = psi_t_n.amplitudes
-            ### Time evolution
-            ### Imaginary time evolution 
-            psi_t_n.time_step_ed(self.model,-1j*self.step)
-        # Check of the sum of probabilities
-        #print(thermal_exp_value(eig_values,eig_vectors,H,0))
-        self.amplitudes = amplitudes
-
-    def get_time_evolution(self):
-        # This function returns the amplitudes of the time evolution.
-        return self.amplitudes
-
 """
 for _,l in enumerate(site_list):
     H = xxz_model(l,Jxy,Jzz,PDB=True)

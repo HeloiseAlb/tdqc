@@ -1,5 +1,5 @@
-from tdqc.interfaces.solver import Solver
 import numpy as np
+from tdqc.interfaces.solver import Solver
 
 class EDSolver(Solver):
     """
@@ -36,10 +36,11 @@ class EDSolver(Solver):
         else:
             self.__imaginary = settings["imaginary"]
         self.__time_evolution = None
-        
+        self.__final_state = None 
     
     @property
     def time_evolution(self):
+        # It returns the amplitudes of the time evolution.
         return self.__time_evolution
 
     def solve(self):
@@ -61,7 +62,12 @@ class EDSolver(Solver):
             state_t_n.time_step_ed(model,step,imaginary=imaginary)
         # Check of the sum of probabilities
         #print(thermal_exp_value(eig_values,eig_vectors,H,0))
-            self.__time_evolution = time_evolution 
+            self.__time_evolution = time_evolution
+        self.__final_state = state_t_n
 
 
-            
+    def get_target_state(self):
+        if (self.__final_state == None):
+            raise ValueError("The method solve need to be run before in order to get the target_state")
+        target = self.__final_state.get_state_format_ml()
+        return target

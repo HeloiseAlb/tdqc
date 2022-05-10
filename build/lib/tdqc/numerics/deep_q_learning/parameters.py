@@ -1,0 +1,139 @@
+#  import math
+#  import __main__
+
+parameters = {
+    # =======================================================================
+    # physical system
+    # =======================================================================
+    'n_sites':  10,
+    #  'n_sites':  6,
+    #  'n_steps': 3,
+    'n_steps': 5,
+    'time_segment': 1.0,
+    #  'time_segment': 0.4,
+    #  'time_segment': 2.8,
+    #  'time_segment': 0.4,
+    #  'periodic_boundary_conditions': True,
+    'periodic_boundary_conditions': False,
+    #  'system_class': 'SpSm',
+    #  'system_class': 'LongRangeIsing',
+    'system_class': 'Schwinger',
+    #  also sets entangling gate alpha
+    'ham_params': {
+        #  'J': 1.0,
+        #  #  #  g: x, h: z
+        #  'g': 2.0,
+        #  'h': 2.0,
+        #  'alpha': 3.0,
+        #  'alpha': 0.0,
+        'alpha': 1.0,
+        'm_c': 0.5,
+        'w_c': 1.0,
+        'j_c': 1.0
+    },
+    #  'initial_state': 'random_product_state',
+    'initial_state': 'antiferro',
+    #  'initial_state': 'ferro',
+    'seed_initial_state': 42,
+
+    #  digital simulator:
+    'n_directions': 2,  # also affect LRI Hamiltonian
+    'gate_order': 'zx',
+    'entangling_gates_dir': 'jx',
+
+    # =======================================================================
+    # environment and reinforcement learning
+    # =======================================================================
+
+    #  'env_type': 'DynamicalEvolution',
+    'env_type': 'DynamicalEvolution_cpp',
+    'algorithm': 'DQN_ReplayMemory',
+
+    'range_all': 0.2,
+    'range_one': 0.4,
+    'exploration': 'gaussian',
+    #  'exploration': 'uniform'
+
+    #  type of reward
+    #  'measurement': 'fidelity',
+    'measurement': 'relative_entropy',
+    'average_exponent': 0.5,
+
+    # q_learning parameters:
+    'n_episodes': int(5e4),
+    #  'n_episodes': 100,
+
+    'epsilon_max': 1.0,
+    'epsilon_min': 0.005,
+    # corresponds to pp=0.9 with n_episode = 1e5
+    'epsilon_decay': 0.9999411315398542,
+    'capacity': 50,
+    'sampling_size': 50,
+    'n_epochs': 1,
+    'model_update_spacing': 20,
+
+    # =======================================================================
+    # neural networks
+    # =======================================================================
+    #  'network_type': 'MultiInterStep',
+    #  'network_type': 'MultiIntraStep',
+    'network_type': 'SingleDense',
+    'architectures': [[(150, 'tanh'),
+                       (40, 'relu'),
+                       #  (20, 'relu'),
+                       (1, 'sigmoid')]],
+    #  'architectures': [[(50, 'tanh'),
+    #                     (20, 'relu'),
+    #                     #  (20, 'relu'),
+    #                     (1, 'sigmoid')]],
+    #  'architectures': [[(40, 'tanh'),
+    #                     (40, 'relu'),
+    #                     #  (20, 'relu'),
+    #                     (1, 'sigmoid')],
+    #                    [(40, 'tanh'),
+    #                     (40, 'relu'),
+    #                     #  (20, 'relu'),
+    #                     (1, 'sigmoid')],
+    #                    [(60, 'tanh'),
+    #                     (40, 'relu'),
+    #                     #  (20, 'relu'),
+    #                     (1, 'sigmoid')]],
+    'NN_optimizer': 'adam',
+    #  'max_q_optimizer': {
+    #      'algorithm': 'NAG',
+    #      'momentum': 0.9,
+    #      'learning_rate': 0.6,
+    #      #  'learning_rate': 0.2,
+    #      #  'n_initial_actions': 5,
+    #      'n_initial_actions': 15,
+    #      #  'n_initial_actions': 30,
+    #      #  'n_iterations': 20,
+    #      #  'n_iterations': 500,
+    #      'n_iterations': 20,
+    #      #  'n_iterations': 5001,
+    #      #  'n_iterations': 100,
+    #      #  'n_iterations': 6,
+    #      'convergence_threshold': 0.005,
+    #      #  'convergence_threshold': 0.01,
+    #      #  'action_initialization': 'random'
+    #      'action_initialization': 'uniform'
+    #      #  'action_initialization': 'fixed random'
+    #  },
+
+    'max_q_optimizer': {
+        'algorithm': 'adam',
+        # learning rate
+        'learning_rate': 0.005,
+        'beta_1': 0.9,
+        'beta_2': 0.999,
+        'epsilon': 1e-8,
+        #  'n_initial_actions': 5,
+        'n_initial_actions': 5,
+        'n_iterations': 1000,
+        #  'n_iterations': 500,
+        'convergence_threshold': 0.005,
+        'action_initialization': 'random'
+        #  'action_initialization': 'uniform'
+        #  'action_initialization': 'fixed random'
+    }
+}
