@@ -16,7 +16,7 @@ import sys
 import numpy as np
 import cmath
 from math import pi, log2, sqrt
-#import system_cpp.system.cpp as sy
+import tdqc.numerics.deep_q_learning.system_cpp.system.cpp as sy
 
 class QuantumEnv():
     """ Quantum environment using QuDyn (cpp) for time evolution.
@@ -31,7 +31,6 @@ class QuantumEnv():
                  time_segment,
                  initial_state,
                  seed_initial_state,
-                 calculate_target_state,
                  range_one,
                  range_all,
                  measurement,
@@ -44,7 +43,7 @@ class QuantumEnv():
         
         """Define the model of the system. The Hamiltonian of a system is defined in the system.cpp..
         """
-        '''
+        
         if system_class == 'LongRangeIsing':
             self.system = sy.LongRangeIsing(False)
             self.system.set_system(
@@ -60,7 +59,7 @@ class QuantumEnv():
                 average_exponent=average_exponent,
                 periodic_boundary_conditions=periodic_boundary_conditions
             )
-
+        
         elif system_class == 'Schwinger':
             self.system = sy.Schwinger(False)
             self.system.set_system(
@@ -78,7 +77,7 @@ class QuantumEnv():
         else:
             raise ValueError('The system_class is not implemented')
 
-        '''
+        
         self.ham_params = ham_params
         self.system_class = system_class
         self.time_segment = time_segment
@@ -97,8 +96,7 @@ class QuantumEnv():
         
         self.measurement = measurement
         self.set_initial_state(seed_initial_state,
-                               initial_state,
-                               calculate_target_state)
+                               initial_state)
         self.reset()
 
     def get_action_dim(self):
@@ -107,7 +105,7 @@ class QuantumEnv():
     def get_n_sites(self):
         return self.n_sites
 
-    def set_initial_state(self, seed, initial_state, calculate_target_state):
+    def set_initial_state(self, seed, initial_state):
         if initial_state == 'random_product_state':
             np.random.seed(seed)
             #  randomly directed vector on the unit sphere
@@ -143,9 +141,11 @@ class QuantumEnv():
         state_imag = np.flip(self.state_imag, axis=0)
         
         # I NEED TO CHECK AND MODIFY THE CODE TO SUPPRESS THE NEXT FEW LINES.
+        '''
         if calculate_target_state:
             set_rho_target = (self.measurement == 'trace_distance' or
                               self.measurement == 'relative_entropy')
+        '''
         #    self.system.set_target_state(set_rho_target=set_rho_target)
 
 
@@ -194,7 +194,7 @@ class QuantumEnv():
         self.current_state, done = self.get_transition(self.current_state,
                                                        action)
         if done:
-            reward = self.reward(self.current_state)
+            reward = self.reward(self.current_state,rho_target=self.__rho_target)
         else:
             reward = 0.0
         return (self.current_state, reward, done, {})
@@ -212,6 +212,8 @@ class QuantumEnv():
         return np.random.uniform(-1, 1, size=self.action_dim)
 
 
+
+
 class DynamicalEvolution(QuantumEnv):
 
     def __init__(self, measurement, **other_params):
@@ -219,24 +221,19 @@ class DynamicalEvolution(QuantumEnv):
                          calculate_target_state=True,
                          **other_params)
 
-    def reward(self,action_sequence):
-        # DO BE FINISHED ABSOLUTLY !!!!!
-        n = len(action_sequence)
+    def reward(self,action_sequence,rho_target):
+        n_qubits = self.n_sites
         j_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
+        # self.system.set_gates(j_gates, hx_gates, hz_gates)
+        # No sure about the following line!! Checked the nature of the object
+        print("self.current_state:{}".format(self.current_state))
         self.system.set_gates(j_gates, hx_gates, hz_gates)
-        print(self.system)
-        #return local_reward(rho_DQS,rho_target)
+        rho_DQS_real, rho_DQS_im = self.current_state
+        rho_DQS = rho_DQS_real + 1j*rho_DQS_im
+        print(rho_DQS) 
+        return local_reward(rho_DQS,rho_target,n_qubits)
 
-    '''
-    def reward(self, action_sequence):
-        j_gates, hx_gates, hz_gates = \
-            self.decode_action_sequence(action_sequence)
-        self.system.set_gates(j_gates, hx_gates, hz_gates)
-
-        reward = self.system.start(measurement=self.measurement)
-        return reward
-    '''
     def measurement_from_gates(self, jx_gates, hx_gates, hz_gates,
                                measurement=None):
 
@@ -327,8 +324,6 @@ def local_reward(rho1,rho2,n_qubits=None):
     sum_measures = 0
     for j in range(0,n_qubits-1):
         for k in range(j+1,n_qubits):
-            #print("reduced_density_matrix(rho1,j,k):{}".format(reduced_density_matrix(rho1,j,k)))
-            #print("relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)):{}".format(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k))))
             sum_measures += cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))
     r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
     return r_local

@@ -135,10 +135,9 @@ class State(object):
         self.vec_state_real = new_vec_state.real
         self.vec_state_imag = new_vec_state.imag
 
+    def get_density_matrix(self):
+        return self._density_mat
     
-    def get_state_format_ml(self):
-        return self._density_mat.real, self._density_mat.imag
-   
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    

@@ -30,7 +30,7 @@ Update:
     This is a more efficient because the max Q operation can be quite heavy.
 
 """
-
+from abc import ABCMeta, abstractmethod
 import random
 from collections import namedtuple
 import numpy as np
@@ -96,7 +96,7 @@ class DeepQLearning(Solver):
         if not "ham_params" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'ham_params' parameter not found")
         self.ham_params = settings["ham_params"]
-
+        self.__target_params = settings["target_params"]
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
@@ -158,7 +158,7 @@ class DeepQLearning(Solver):
                              'EnergyMinimizer_cpp']:
             self.best_encountered_rewards = (
                 [0]*(len(self.best_encountered_actions) - 1)
-                + [self.env.reward(self.best_encountered_actions)]
+                + [self.env.reward(self.best_encountered_actions,self.__rho_target)]
             )
 
         print('Final reward of the initial action sequence'
@@ -194,10 +194,11 @@ class DeepQLearning(Solver):
     def run_episode(self, verbose=False, mode='explore'):
         raise NotImplementedError('Vanilla DQL has no implementation without'
                                   'ReplayMemory.')
+    @abstractmethod
     def solve(self):
         raise NotImplementedError('Vanilla DQL has no implementation without'
                                   'ReplayMemory.')
-
+    
 
     def select_action(self, mode, state, step=0):
         action, _ = self.model.get_max_output(step=step,
@@ -244,7 +245,15 @@ class DeepQLearning(Solver):
             except Exception as e:
                 print(f'`{filename}` could not be saved.')
                 print('--> ', e)
-
+    
+    def get_rho_target_from_other_solver(self,):
+        target_params = self.__target_params
+        solver = target_params['solver']
+        solver.load_settings(target_params)
+        solver.solve()
+        rho_target = solver.get_rho_target()
+        self.__rho_target = rho_target
+        return rho_target 
 
 class DQLWithReplayMemory(DeepQLearning):
     """DQN with the addition of a replay memory."""
@@ -252,7 +261,7 @@ class DQLWithReplayMemory(DeepQLearning):
     def __init__(self,):
         super().__init__()
         self.seetings_replay_memory_loaded = False    
-    
+        
     def load_seetings_replay_memory(self,capacity, sampling_size, NN_optimizer, n_epochs,loss='logcosh', *args, **kwargs):
 
         self.model.compile(optimizer=NN_optimizer, loss=loss,
@@ -264,7 +273,7 @@ class DQLWithReplayMemory(DeepQLearning):
         self.sampling_size = sampling_size
         #  self.batch_size = sampling_size * self.env.n_steps
         self.seetings_replay_memory_loaded = True
-
+        
     def run_episode(self, verbose=False, mode='explore'):
         done = False
         #  Not using TD anymore: q_target_sequence is obsolete
@@ -329,15 +338,16 @@ class DQLWithReplayMemory(DeepQLearning):
 
         self.model.fit(action_sequences, ys, sampling_size, epochs)
 
-    def _DeepQLearning__solve(self):
+    def solve(self):
         if not self.seetings_replay_memory_loaded:
             raise RuntimeError("The seetings of the replay memory need to be loaded: run self.load_seetings_replay_memory().")
         # This method runs the deep Q-learning algorithm with experience replay memory. 
         start_time = time.time()        
+        rho_target = self.get_rho_target_from_other_solver()
         #  Get the initial reward (useful to get the Trotter reward).
         #  note: when the initial actions are random, the seed is not the same.
         initial_action_sequence = self.env.initial_action_sequence(False)
-        initial_reward = self.env.reward(action_sequence=initial_action_sequence)
+        initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
         #  print("The initial reward is (Trotter or random) ", initial_reward)
 
         #  Run the simulation and get a history of the rewards for each episode.

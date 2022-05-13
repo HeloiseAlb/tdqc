@@ -1,6 +1,17 @@
 import pytest
 import tdqc
 import numpy as np
+import sys 
+import cmath
+import math
+from tdqc.numerics.ed.exact_diagonalisation import *
+"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+"""
+
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_logger(record_testsuite_property):
@@ -59,7 +70,15 @@ def test_ed_solver_structure():
     assert hasattr(solver, 'time_evolution'), "EDSolver has an attribut time_evolution"
     solver.solve()
     assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
+    rho_target = solver.get_rho_target()
+    assert isinstance(rho_target,np.ndarray), "EDSolver method 'get_target_state' returns an array"
+
 
 @pytest.mark.slow
 def test_ed_solver_solve():
+    import tdqc.numerics.ed.models_ed
+    from tdqc.numerics.ed.parameters_ed import parameters_ed
     pass
+
+
+

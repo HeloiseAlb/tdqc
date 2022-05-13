@@ -66,8 +66,9 @@ class EDSolver(Solver):
         self.__final_state = state_t_n
 
 
-    def get_target_state(self):
+    def get_rho_target(self,):
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
-        target = self.__final_state.get_state_format_ml()
+        target = self.__final_state.get_density_matrix()
         return target
+

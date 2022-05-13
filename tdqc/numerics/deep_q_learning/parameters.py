@@ -1,5 +1,21 @@
 #  import math
 #  import __main__
+import numpy as np
+from tdqc.numerics.ed.models_ed import Model, xxz_model
+from tdqc.numerics.ed.models_ed import State
+from tdqc.solver.ed import EDSolver
+
+
+# Initializing model
+L = 4
+Jzz = 1.0
+Jxy = 1.0
+model = xxz_model
+model.parametrize_hamiltonian(*[L,Jxy,Jzz])
+# Initializing state
+init_vec_state = np.zeros([2**4],dtype='complex128')
+init_vec_state[0] = 1
+
 
 parameters = {
     # =======================================================================
@@ -16,8 +32,8 @@ parameters = {
     #  'periodic_boundary_conditions': True,
     'periodic_boundary_conditions': False,
     #  'system_class': 'SpSm',
-    #  'system_class': 'LongRangeIsing',
-    'system_class': 'Schwinger',
+     'system_class': 'LongRangeIsing',
+    # 'system_class': 'Schwinger',
     #  also sets entangling gate alpha
     'ham_params': {
         #  'J': 1.0,
@@ -67,8 +83,6 @@ parameters = {
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
     'epsilon_decay': 0.9999411315398542,
-    'capacity': 50,
-    'sampling_size': 50,
     'n_epochs': 1,
     'model_update_spacing': 20,
 
@@ -98,7 +112,6 @@ parameters = {
     #                     (40, 'relu'),
     #                     #  (20, 'relu'),
     #                     (1, 'sigmoid')]],
-    'NN_optimizer': 'adam',
     #  'max_q_optimizer': {
     #      'algorithm': 'NAG',
     #      'momentum': 0.9,
@@ -135,5 +148,25 @@ parameters = {
         'action_initialization': 'random'
         #  'action_initialization': 'uniform'
         #  'action_initialization': 'fixed random'
+    },
+
+    'target_params':{
+            'solver': EDSolver(),
+            'steps': 3,
+            'model': model,
+            'state': State(init_vec_state),
+            't_initial':0.0,
+            't_final':1.0,
+            'step':0.001
+            }
+
+
     }
-}
+
+parameters_replay_memory = {
+    'capacity': 50,
+    'sampling_size': 50,
+    'NN_optimizer': 'adam',
+    'n_epochs': 1
+   }
+

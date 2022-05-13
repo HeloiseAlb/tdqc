@@ -36,6 +36,7 @@ They are all built on the class StateActionNeuralNetwork.
 """
 import numpy as np
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import tensorflow.keras as keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, InputLayer
@@ -145,7 +146,7 @@ class MultiDeepQNetwork():
                  **other_params
                  ):
         tf.random.set_seed(tf_seed)
-        self.sess = K.get_session()
+        self.sess = tf.compat.v1.keras.backend.get_session()
         self.max_q_optimizer = max_q_optimizer
 
     def build_networks(self):
@@ -351,7 +352,7 @@ class SingleDeepQNetwork():
         self.state_dim = n_steps + action_dim
         self.n_steps = n_steps
 
-        self.sess = K.get_session()
+        self.sess = tf.compat.v1.keras.backend.get_session()
         self.build_networks()
         self.target_network.model.summary()
 

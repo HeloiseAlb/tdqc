@@ -8,7 +8,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 #import import_ipynb
-import models_ed
+import tdqc.numerics.ed.models_ed
 
 
 
