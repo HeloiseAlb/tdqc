@@ -248,6 +248,9 @@ class DeepQLearning(Solver):
     
     def get_rho_target_from_other_solver(self,):
         target_params = self.__target_params
+        target_params['t_initial'] = parameters['t_initial']
+        target_params['t_final'] = parameters['t_final']
+        target_params['n_steps'] = parameters['n_steps']
         solver = target_params['solver']
         solver.load_settings(target_params)
         solver.solve()

@@ -16,7 +16,8 @@ import sys
 import numpy as np
 import cmath
 from math import pi, log2, sqrt
-import tdqc.numerics.deep_q_learning.system_cpp.system.cpp as sy
+import system_cpp as sy
+#import tdqc.numerics.deep_q_learning.system_mps.system as sy
 
 class QuantumEnv():
     """ Quantum environment using QuDyn (cpp) for time evolution.
@@ -28,7 +29,8 @@ class QuantumEnv():
                  gate_order,
                  system_class,
                  ham_params,
-                 time_segment,
+                 t_initial,
+                 t_final,
                  initial_state,
                  seed_initial_state,
                  range_one,
@@ -43,7 +45,7 @@ class QuantumEnv():
         
         """Define the model of the system. The Hamiltonian of a system is defined in the system.cpp..
         """
-        
+        """
         if system_class == 'LongRangeIsing':
             self.system = sy.LongRangeIsing(False)
             self.system.set_system(
@@ -53,7 +55,7 @@ class QuantumEnv():
                 hx=ham_params['g'],
                 hz=ham_params['h'],
                 alpha=ham_params['alpha'],
-                time_segment=time_segment,
+                time_segment=t_final-t_initial,
                 gate_order=gate_order,
                 entangling_gates_dir=entangling_gates_dir,
                 average_exponent=average_exponent,
@@ -69,18 +71,18 @@ class QuantumEnv():
                 w=ham_params['w_c'],
                 j=ham_params['j_c'],
                 alpha=ham_params['alpha'],
-                time_segment=time_segment,
+                time_segment=t_final-t_initial,
                 gate_order=gate_order,
                 entangling_gates_dir=entangling_gates_dir,
                 average_exponent=average_exponent,
             )
         else:
             raise ValueError('The system_class is not implemented')
-
+        """
         
         self.ham_params = ham_params
         self.system_class = system_class
-        self.time_segment = time_segment
+        self.time_segment = t_final - t_initial
 
         self.n_steps = n_steps
         self.n_sites = n_sites
@@ -228,7 +230,7 @@ class DynamicalEvolution(QuantumEnv):
         # self.system.set_gates(j_gates, hx_gates, hz_gates)
         # No sure about the following line!! Checked the nature of the object
         print("self.current_state:{}".format(self.current_state))
-        self.system.set_gates(j_gates, hx_gates, hz_gates)
+        #self.system.set_gates(j_gates, hx_gates, hz_gates)
         rho_DQS_real, rho_DQS_im = self.current_state
         rho_DQS = rho_DQS_real + 1j*rho_DQS_im
         print(rho_DQS) 

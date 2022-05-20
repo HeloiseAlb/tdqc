@@ -25,28 +25,34 @@ parameters = {
     #  'n_sites':  6,
     #  'n_steps': 3,
     'n_steps': 5,
-    'time_segment': 1.0,
-    #  'time_segment': 0.4,
-    #  'time_segment': 2.8,
-    #  'time_segment': 0.4,
+    't_initial': 0.0,
+    't_final': 1.0,
     #  'periodic_boundary_conditions': True,
+    
+    
+    
+    ### Need to be supress since the deep_q_learning solver does not need the parameters of the models.
     'periodic_boundary_conditions': False,
     #  'system_class': 'SpSm',
      'system_class': 'LongRangeIsing',
     # 'system_class': 'Schwinger',
     #  also sets entangling gate alpha
     'ham_params': {
-        #  'J': 1.0,
-        #  #  #  g: x, h: z
-        #  'g': 2.0,
-        #  'h': 2.0,
-        #  'alpha': 3.0,
-        #  'alpha': 0.0,
+        'J': 1.0,
+        #  #  g: x, h: z
+        'g': 2.0,
+        'h': 2.0,
+        'alpha': 3.0,
+        'alpha': 0.0,
         'alpha': 1.0,
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0
     },
+    
+    
+    
+    
     #  'initial_state': 'random_product_state',
     'initial_state': 'antiferro',
     #  'initial_state': 'ferro',
@@ -154,10 +160,7 @@ parameters = {
             'solver': EDSolver(),
             'steps': 3,
             'model': model,
-            'state': State(init_vec_state),
-            't_initial':0.0,
-            't_final':1.0,
-            'step':0.001
+            'state': State(init_vec_state)
             }
 
 

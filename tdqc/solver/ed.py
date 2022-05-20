@@ -27,9 +27,9 @@ class EDSolver(Solver):
             raise ValueError("Error loading ed-solver settings, 't_final' parameter not found")
         self.__t_final = settings["t_final"]
         # step is the space between the values.
-        if not "step" in settings:
+        if not "n_steps" in settings:
             raise ValueError("Error loading ed-solver settings, 'step' parameter not found")
-        self.__step = settings["step"]
+        self.__n_steps = settings["n_steps"]
         if not "imaginary" in settings:
             # Is the time evolution an imaginary time evolution?
             self.__imaginary = False
@@ -49,12 +49,14 @@ class EDSolver(Solver):
         model = self.__model
         t_initial = self.__t_initial
         t_final = self.__t_final
-        step = self.__step
+        n_steps = self.__n_steps
+        step = (t_final-t_initial)/n_steps
+        print('step:{}'.format(step))
         imaginary = self.__imaginary
         n_sites = state_t_n.n_sites
         site_list = [l for l in range(1,n_sites,1)]
         t_list = [t for t in np.arange(t_initial,t_final,step)]
-        time_evolution = np.zeros([int((t_final-t_initial)/step),2**n_sites],dtype='complex128') # [None] * int((t_max-t_min)/step) #np.zeros([int((t_max-t_min)/step)])
+        time_evolution = np.zeros([n_steps,2**n_sites],dtype='complex128') # [None] * int((t_max-t_min)/step) #np.zeros([int((t_max-t_min)/step)])
         inv_temperature = 1
         for idx,t_n in enumerate(t_list):
             time_evolution[idx,:] = state_t_n.vec_state

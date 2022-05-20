@@ -37,7 +37,7 @@ def test_ed_solver_load_settings():
     settings["state"] = State(init_vec_state)
     settings["t_initial"] = 0.0
     settings["t_final"] = 1.0
-    settings["step"] = 0.001
+    settings["n_steps"] = int(1/0.001)
 
     solver = EDSolver()
     solver.load_settings(settings)
@@ -61,7 +61,7 @@ def test_ed_solver_structure():
     settings["state"] = State(init_vec_state)
     settings["t_initial"] = 0.0
     settings["t_final"] = 1.0
-    settings["step"] = 0.001
+    settings["n_steps"] = int(1/0.001)
 
     solver = EDSolver()
     solver.load_settings(settings)

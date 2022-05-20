@@ -1,5 +1,5 @@
 #!/bin/bash
-FLAGS="-I/home/bolensadrien/.local/include -I/home/bolensadrien/.local/include/armadillo_bits
+FLAGS="-I/home/bolensadrien/.local/include /software/opt/focal/x86_64/spack/2021.12/spack/opt/spack/linux-ubuntu20.04-x86_64_v4/gcc-11.2.0/armadillo-10.5.0-2pvxpl64zfewz2le75qzaef3awkr5mql/include/armadillo
 -I/home/bolensadrien/.local/include/QuDyn1 -lqudyn1 -lpthread -O3 -larmadillo -std=c++11 -mtune=native -msse3 -Wall"
 
 FLAGS2="-Wall -shared -fPIC `python3 -m pybind11 --includes` "
