@@ -97,6 +97,9 @@ class DeepQLearning(Solver):
             raise ValueError("Error loading deep_q_learning-solver settings, 'ham_params' parameter not found")
         self.ham_params = settings["ham_params"]
         self.__target_params = settings["target_params"]
+        self.__target_params["t_initial"] = settings["t_initial"]
+        self.__target_params['t_final'] = settings['t_final']
+        self.__target_params['n_steps'] = settings['n_steps']
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
@@ -158,7 +161,7 @@ class DeepQLearning(Solver):
                              'EnergyMinimizer_cpp']:
             self.best_encountered_rewards = (
                 [0]*(len(self.best_encountered_actions) - 1)
-                + [self.env.reward(self.best_encountered_actions,self.__rho_target)]
+                + [self.env.reward(self.best_encountered_actions,self.rho_target)]
             )
 
         print('Final reward of the initial action sequence'
@@ -248,14 +251,11 @@ class DeepQLearning(Solver):
     
     def get_rho_target_from_other_solver(self,):
         target_params = self.__target_params
-        target_params['t_initial'] = parameters['t_initial']
-        target_params['t_final'] = parameters['t_final']
-        target_params['n_steps'] = parameters['n_steps']
         solver = target_params['solver']
         solver.load_settings(target_params)
         solver.solve()
         rho_target = solver.get_rho_target()
-        self.__rho_target = rho_target
+        self.rho_target = rho_target
         return rho_target 
 
 class DQLWithReplayMemory(DeepQLearning):
@@ -292,7 +292,7 @@ class DQLWithReplayMemory(DeepQLearning):
             action_sequence.append(action)
             # env.step modifies env.current_state
             # (state is env.current_state)
-            state, reward, done, _ = self.env.step(action)
+            state, reward, done, _ = self.env.step(action,rho_target=self.rho_target)
             reward_sequence.append(reward)
             step += 1
             if not done:

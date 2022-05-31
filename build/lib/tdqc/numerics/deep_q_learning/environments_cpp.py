@@ -16,7 +16,7 @@ import sys
 import numpy as np
 import cmath
 from math import pi, log2, sqrt
-import system_cpp as sy
+import tdqc.numerics.deep_q_learning.system_py.system as sy
 #import tdqc.numerics.deep_q_learning.system_mps.system as sy
 
 class QuantumEnv():
@@ -45,42 +45,22 @@ class QuantumEnv():
         
         """Define the model of the system. The Hamiltonian of a system is defined in the system.cpp..
         """
-        """
-        if system_class == 'LongRangeIsing':
-            self.system = sy.LongRangeIsing(False)
-            self.system.set_system(
-                n_sites=n_sites,
-                n_steps=n_steps,
-                jx=ham_params['J'],
-                hx=ham_params['g'],
-                hz=ham_params['h'],
-                alpha=ham_params['alpha'],
-                time_segment=t_final-t_initial,
-                gate_order=gate_order,
-                entangling_gates_dir=entangling_gates_dir,
-                average_exponent=average_exponent,
-                periodic_boundary_conditions=periodic_boundary_conditions
-            )
         
-        elif system_class == 'Schwinger':
-            self.system = sy.Schwinger(False)
-            self.system.set_system(
-                n_sites=n_sites,
-                n_steps=n_steps,
-                m=ham_params['m_c'],
-                w=ham_params['w_c'],
-                j=ham_params['j_c'],
-                alpha=ham_params['alpha'],
-                time_segment=t_final-t_initial,
-                gate_order=gate_order,
-                entangling_gates_dir=entangling_gates_dir,
-                average_exponent=average_exponent,
-            )
-        else:
-            raise ValueError('The system_class is not implemented')
-        """
+        self.system = sy.SpinSystem()
         
         self.ham_params = ham_params
+        self.alpha = self.ham_params['alpha']
+        self.system.set_system(
+                n_sites=n_sites,
+                n_steps=n_steps,
+                t_initial = t_initial,
+                t_final = t_final,
+                gate_order=gate_order,
+                alpha=self.alpha,
+                #entangling_gates_dir=entangling_gates_dir, #Check if we keep it
+                #average_exponent=average_exponent, #Check if we keep it
+                )
+
         self.system_class = system_class
         self.time_segment = t_final - t_initial
 
@@ -99,6 +79,8 @@ class QuantumEnv():
         self.measurement = measurement
         self.set_initial_state(seed_initial_state,
                                initial_state)
+        self.state = self.state_real+1j*self.state_imag
+        self._initial_rho = np.tensordot(np.conjugate(self.state), self.state, axes=0)
         self.reset()
 
     def get_action_dim(self):
@@ -136,9 +118,10 @@ class QuantumEnv():
         else:
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
-        
+        self.initial_state = self.state_real + 1j*self.state_imag
         #  the flip is used to be consitent with how states are encoded in
-        #  the QuDyn library.
+        #  the QuDyn library. 
+        # Since I don't used QuDyn library anymore, I don't do that on the state I use. 
         state_real = np.flip(self.state_real, axis=0)
         state_imag = np.flip(self.state_imag, axis=0)
         
@@ -192,11 +175,11 @@ class QuantumEnv():
             )
             outfile.write('\n')
 
-    def step(self, action):
+    def step(self, action, rho_target):
         self.current_state, done = self.get_transition(self.current_state,
                                                        action)
         if done:
-            reward = self.reward(self.current_state,rho_target=self.__rho_target)
+            reward = self.reward(self.current_state,rho_target=rho_target)
         else:
             reward = 0.0
         return (self.current_state, reward, done, {})
@@ -227,14 +210,14 @@ class DynamicalEvolution(QuantumEnv):
         n_qubits = self.n_sites
         j_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
-        # self.system.set_gates(j_gates, hx_gates, hz_gates)
+        self.system.set_gates(j_gates, hx_gates, hz_gates)
         # No sure about the following line!! Checked the nature of the object
         print("self.current_state:{}".format(self.current_state))
-        #self.system.set_gates(j_gates, hx_gates, hz_gates)
-        rho_DQS_real, rho_DQS_im = self.current_state
-        rho_DQS = rho_DQS_real + 1j*rho_DQS_im
-        print(rho_DQS) 
-        return local_reward(rho_DQS,rho_target,n_qubits)
+        #rho_DQS = apply_gate(self.current_state)
+        #rho_DQS_real, rho_DQS_im = self.current_state
+        #rho_DQS = rho_DQS_real + 1j*rho_DQS_im
+        #print("rho_DQS:{}".format(rho_DQS))
+        return 0# local_reward(rho_DQS,rho_target,n_qubits)
 
     def measurement_from_gates(self, jx_gates, hx_gates, hz_gates,
                                measurement=None):
@@ -333,6 +316,7 @@ def local_reward(rho1,rho2,n_qubits=None):
 def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
     # Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. 
     rho = rho_init
+    print('rho_init size; {}'.format(np.shape(rho)))
     if n_qubits == None:
         n_qubits = int(log2(rho.shape[0]))
     n = n_qubits
@@ -356,6 +340,15 @@ def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
     rho = rho.reshape([4,4])
     return rho
 
+def apply_gate_sequence(gate_sequence,initital_state):
+    # DO BE FINISHED
+    state = initital_state
+    for gate in gate_sequence:
+        print(gate)
+        pass 
+        #state = 
+    #rho = 
+    return state 
 
 def relative_entropy(rho1,rho2):
     return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
