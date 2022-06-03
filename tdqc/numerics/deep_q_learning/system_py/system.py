@@ -3,6 +3,7 @@ import subprocess
 
 
 class SpinSystem():
+    # Why was this object called by the Markus and Adrien SPINSystem ?
     def __init__(self,):
         pass
 
@@ -19,23 +20,24 @@ class SpinSystem():
         self.set_coupling_matrix()
 
     def set_gates(self, jx_angle_list, hx_angle_list, hz_angle_list):
-        hx_gates = np.zeros([self.n_steps,self.n_sites,self.n_sites], dtype=complex)
-        hz_gates = np.zeros([self.n_steps,self.n_sites,self.n_sites], dtype=complex)
-        jx_gates = np.zeros([self.n_steps,self.n_sites,self.n_sites], dtype=complex)
+        jx_gates = np.zeros([self.n_steps],dtype=complex)#,self.n_sites,self.n_sites], dtype=complex)
+        hz_gates = np.zeros([self.n_steps,self.n_sites],dtype=complex)#,self.n_sites], dtype=complex)
+        hx_gates = np.zeros([self.n_steps,self.n_sites],dtype=complex)#,self.n_sites], dtype=complex)
         for step in range(0, self.n_steps,1):
-            jx_gates[step] = jx_angle_list[step] * self.coupling_matrix
+            jx_gates[step] = jx_angle_list[step]# * self.coupling_matrix
             vhx = np.zeros(self.n_sites)
             vhz = np.zeros(self.n_sites)
+            '''
             for site in range(0,self.n_sites,1):
-                vhx[site] = 2.0 *hx_angle_list[step,self.n_sites-1-site]
-                vhz[site] = 2.0 *hz_angle_list[step,self.n_sites-1-site]
+                vhx[site] = 2.0 *hx_angle_list[step][self.n_sites-1-site]
+                vhz[site] = 2.0 *hz_angle_list[step][self.n_sites-1-site]
             hx_gates[step] = vhx 
             hz_gates[step] = vhz
-
-        # The following np.arrays are as of size [n_steps, n_sites, n_sites]. They store the matrices to apply on the initial state.
-        self.jx_gate_list = jx_gate_list
-        self.hx_gate_list = hx_gate_list
-        self.hz_gate_list = hz_gate_list
+            '''
+        # The following np.arrays are as of size [n_steps, n_sites, n_sites]. They store the angles of the ie the parameters of the three kind of gates that are apply here. 
+        self.jx_gate_list = jx_gates
+        self.hx_gate_list = hx_gates
+        self.hz_gate_list = hz_gates
 
     def set_coupling_matrix(self,):
         coupling_matrix = np.zeros((self.n_sites,self.n_sites))

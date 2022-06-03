@@ -180,6 +180,8 @@ class DeepQLearning(Solver):
 
             reward_sequence, action_sequence = self.run_episode(verbose,
                                                                 mode=mode)
+            print('reward_sequence[-1]:{} '.format(reward_sequence[-1]) )
+            print('self.best_encountered_rewards[-1]:{} '.format(self.best_encountered_rewards[-1]) )
             if reward_sequence[-1] > self.best_encountered_rewards[-1]:
                 self.best_encountered_rewards = reward_sequence
                 self.best_encountered_actions = action_sequence
@@ -255,6 +257,7 @@ class DeepQLearning(Solver):
         solver.load_settings(target_params)
         solver.solve()
         rho_target = solver.get_rho_target()
+        print('rho_target:{}'.format(rho_target))
         self.rho_target = rho_target
         return rho_target 
 

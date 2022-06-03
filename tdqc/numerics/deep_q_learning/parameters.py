@@ -7,13 +7,13 @@ from tdqc.solver.ed import EDSolver
 
 
 # Initializing model
-L = 4
+L = 10
 Jzz = 1.0
 Jxy = 1.0
 model = xxz_model
 model.parametrize_hamiltonian(*[L,Jxy,Jzz])
 # Initializing state
-init_vec_state = np.zeros([2**4],dtype='complex128')
+init_vec_state = np.zeros([2**L],dtype='complex128')
 init_vec_state[0] = 1
 
 
@@ -49,8 +49,6 @@ parameters = {
         'w_c': 1.0,
         'j_c': 1.0
     },
-    
-    
     
     
     #  'initial_state': 'random_product_state',

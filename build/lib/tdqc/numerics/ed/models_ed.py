@@ -20,8 +20,8 @@ spin_op= {
 
 def globalize_op(local_op,site,L):
     '''
-    Return the tensor product of the local operator and identity operators such that the local operator applies
-    on site.
+    Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
+    L is the total number of sites in the system on which we want to apply the global operator.
     '''
     tensor_0 = np.identity(1,dtype = 'complex128')
     for i in range(0,site,1):

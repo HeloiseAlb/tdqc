@@ -16,8 +16,30 @@ import sys
 import numpy as np
 import cmath
 from math import pi, log2, sqrt
-import tdqc.numerics.deep_q_learning.system_py.system as sy
+from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
 #import tdqc.numerics.deep_q_learning.system_mps.system as sy
+
+spin_op= {
+    "I": np.array([[1+0j,0+0j],[0+0j,1+0j]],dtype = 'complex128'),
+    "sigma_x": np.array([[0+0j,1+0j],[1+0j,0+0j]],dtype = 'complex128'),
+    "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
+    "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
+    "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
+    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+
+def globalize_op(local_op,site,L):
+    '''
+    Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
+    L is the total number of sites in the system on which we want to apply the global operator.
+    '''
+    tensor_0 = np.identity(1,dtype = 'complex128')
+    for i in range(0,site,1):
+        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+    tensor_0 = np.kron(tensor_0,local_op)
+    for i in range(site+1,L,1):
+        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+    return tensor_0
+
 
 class QuantumEnv():
     """ Quantum environment using QuDyn (cpp) for time evolution.
@@ -46,8 +68,7 @@ class QuantumEnv():
         """Define the model of the system. The Hamiltonian of a system is defined in the system.cpp..
         """
         
-        self.system = sy.SpinSystem()
-        
+        self.system = sy()        
         self.ham_params = ham_params
         self.alpha = self.ham_params['alpha']
         self.system.set_system(
@@ -63,24 +84,20 @@ class QuantumEnv():
 
         self.system_class = system_class
         self.time_segment = t_final - t_initial
-
         self.n_steps = n_steps
         self.n_sites = n_sites
         self.n_directions = n_directions
         self.range_one = range_one
         self.range_all = range_all
-
         self.action_dim = 2 * n_sites + 1
-
         if self.n_directions != 2:
             raise NotImplementedError(f'not implemented for n_directions = '
                                       f'{self.n_directions}.')
-        
+    
         self.measurement = measurement
         self.set_initial_state(seed_initial_state,
                                initial_state)
         self.state = self.state_real+1j*self.state_imag
-        self._initial_rho = np.tensordot(np.conjugate(self.state), self.state, axes=0)
         self.reset()
 
     def get_action_dim(self):
@@ -150,7 +167,7 @@ class QuantumEnv():
             jx_gates.append(action[0])
             hz_gates.append(action[1:n + 1])
             hx_gates.append(action[n + 1:2 * n + 1])
-
+        # The following 3 lines just multiply the arrays by a number. 
         jx_gates = np.array(jx_gates) * self.range_all
         hz_gates = np.array(hz_gates) * self.range_one
         hx_gates = np.array(hx_gates) * self.range_one
@@ -196,7 +213,42 @@ class QuantumEnv():
     def random_action(self):
         return np.random.uniform(-1, 1, size=self.action_dim)
 
+    def apply_gate_sequence(self):
+        # Define the universal quantum gate set used in Markus article. 
+        U_x = lambda theta : np.exp(-1j*theta*spin_op['sigma_x'])
+        U_z = lambda theta : np.exp(-1j*theta*spin_op['sigma_z'])
+        dim = int(2**self.n_sites)
+        sum_U_xx = np.zeros((dim,dim),dtype='complex128')
+        for l in range(0,self.n_sites,1):
+            matrix_1 = globalize_op(spin_op['sigma_x'],l,self.n_sites)
+            for k in range(l+1,self.n_sites,1):
+                matrix_2 = globalize_op(spin_op['sigma_x'],k,self.n_sites)
+                sum_U_xx += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+        U_xx = lambda theta : np.exp(-1j*theta*sum_U_xx)
 
+        # Apply the sequence of gates to have the final state. 
+        state = self.initial_state
+        # Those gate lists are in fact list of angles.
+        jx_angle_list = self.system.jx_gate_list
+        hx_angle_list = self.system.hx_gate_list
+        hz_angle_list = self.system.hz_gate_list
+        print('jx_angle_list:{}'.format(jx_angle_list))
+        print('np.shape(jx_angle_list):{}'.format(np.shape(jx_angle_list)))
+        for step in range(0,self.n_steps,1):
+            print(jx_angle_list[step])
+            state = np.dot(U_xx(jx_angle_list[step]),state)
+            for site in range(0,self.n_sites,1):
+                if self.system.gate_order == "xz":
+                    U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
+                    state = np.dot(U_x_site,state)
+                    U_z_site = globalize_op(U_z(hz_angle_list[step][site]),site,self.n_sites)
+                    state = np.dot(U_z_site,state)
+                elif self.system.gate_order == "zx":
+                    U_z_site = globalize_op(U_z(hz_angle_list[step][site]),site,self.n_sites)
+                    state = np.dot(U_z_site,state)
+                    U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
+                    state = np.dot(U_x_site,state)
+        return state
 
 
 class DynamicalEvolution(QuantumEnv):
@@ -211,13 +263,12 @@ class DynamicalEvolution(QuantumEnv):
         j_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(j_gates, hx_gates, hz_gates)
-        # No sure about the following line!! Checked the nature of the object
+        
         print("self.current_state:{}".format(self.current_state))
-        #rho_DQS = apply_gate(self.current_state)
-        #rho_DQS_real, rho_DQS_im = self.current_state
-        #rho_DQS = rho_DQS_real + 1j*rho_DQS_im
-        #print("rho_DQS:{}".format(rho_DQS))
-        return 0# local_reward(rho_DQS,rho_target,n_qubits)
+        final_state = self.apply_gate_sequence()
+        rho_DQS = np.tensordot(np.conjugate(final_state), final_state, axes=0) 
+        print("rho_DQS:{}".format(rho_DQS))
+        return local_reward(rho_DQS,rho_target,n_qubits)
 
     def measurement_from_gates(self, jx_gates, hx_gates, hz_gates,
                                measurement=None):
@@ -340,15 +391,20 @@ def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
     rho = rho.reshape([4,4])
     return rho
 
-def apply_gate_sequence(gate_sequence,initital_state):
-    # DO BE FINISHED
-    state = initital_state
-    for gate in gate_sequence:
-        print(gate)
-        pass 
-        #state = 
-    #rho = 
-    return state 
+def globalize_op(local_op,site,L):
+    '''
+    Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
+    L is the total number of sites in the system on which we want to apply the global operator.
+    '''
+    tensor_0 = np.identity(1,dtype = 'complex128')
+    for i in range(0,site,1):
+        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+    tensor_0 = np.kron(tensor_0,local_op)
+    for i in range(site+1,L,1):
+        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+    return tensor_0
+
+
 
 def relative_entropy(rho1,rho2):
     return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
