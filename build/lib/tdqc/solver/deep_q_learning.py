@@ -99,7 +99,6 @@ class DeepQLearning(Solver):
         self.__target_params = settings["target_params"]
         self.__target_params["t_initial"] = settings["t_initial"]
         self.__target_params['t_final'] = settings['t_final']
-        self.__target_params['n_steps'] = settings['n_steps']
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
@@ -180,9 +179,13 @@ class DeepQLearning(Solver):
 
             reward_sequence, action_sequence = self.run_episode(verbose,
                                                                 mode=mode)
-            if reward_sequence[-1] > self.best_encountered_rewards[-1]:
+            reward_sequence = np.real(reward_sequence)
+            print('reward_sequence[-1]:{} '.format(reward_sequence[-1]) )
+            print('self.best_encountered_rewards[-1]:{} '.format(self.best_encountered_rewards[-1]) )
+            if reward_sequence[-1] >self.best_encountered_rewards[-1]:
                 self.best_encountered_rewards = reward_sequence
                 self.best_encountered_actions = action_sequence
+            print('rewards[episode, :]:{},reward_sequence:{}'.format(rewards[episode, :],reward_sequence))
             rewards[episode, :] = reward_sequence
 
             if self.epsilon >= self.epsilon_min:
@@ -251,11 +254,13 @@ class DeepQLearning(Solver):
     
     def get_rho_target_from_other_solver(self,):
         target_params = self.__target_params
-        solver = target_params['solver']
-        solver.load_settings(target_params)
-        solver.solve()
-        rho_target = solver.get_rho_target()
+        solver_for_target = target_params['solver']
+        target_params.pop('solver', None)
+        solver_for_target.load_settings(target_params)
+        solver_for_target.solve()
+        rho_target = solver_for_target.get_rho_target()
         self.rho_target = rho_target
+        print(rho_target)
         return rho_target 
 
 class DQLWithReplayMemory(DeepQLearning):

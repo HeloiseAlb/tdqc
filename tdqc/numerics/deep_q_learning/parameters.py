@@ -7,21 +7,24 @@ from tdqc.solver.ed import EDSolver
 
 
 # Initializing model
-L = 10
+L = 2 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 Jzz = 1.0
 Jxy = 1.0
 model = xxz_model
 model.parametrize_hamiltonian(*[L,Jxy,Jzz])
 # Initializing state
-init_vec_state = np.zeros([2**L],dtype='complex128')
-init_vec_state[0] = 1
+init_vec_state = np.ones([2**L],dtype='complex128')
+norm = np.linalg.norm(init_vec_state)
+init_vec_state = init_vec_state / norm
+#init_vec_state = np.zeros([2**L],dtype='complex128')
+#init_vec_state[0] = 1
 
 
 parameters = {
     # =======================================================================
     # physical system
     # =======================================================================
-    'n_sites':  10,
+    'n_sites':  L,
     #  'n_sites':  6,
     #  'n_steps': 3,
     'n_steps': 5,
@@ -146,8 +149,8 @@ parameters = {
         'epsilon': 1e-8,
         #  'n_initial_actions': 5,
         'n_initial_actions': 5,
-        'n_iterations': 1000,
-        #  'n_iterations': 500,
+        #'n_iterations': 1000,
+        'n_iterations': 50, #500
         'convergence_threshold': 0.005,
         'action_initialization': 'random'
         #  'action_initialization': 'uniform'
@@ -156,7 +159,7 @@ parameters = {
 
     'target_params':{
             'solver': EDSolver(),
-            'steps': 3,
+            'n_steps': int(1/0.001), # time steps 
             'model': model,
             'state': State(init_vec_state)
             }

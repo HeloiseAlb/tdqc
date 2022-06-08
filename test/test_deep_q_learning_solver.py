@@ -17,12 +17,10 @@ def test_deep_q_learning_solver_load_settings():
     '''
     settings = dict()
     settings["steps"] = 3
-    L = 4
+    L = 10
     Jzz = 1.0
     Jxy = 1.0
     model = xxz_model
-    model.parametrize_hamiltonian(*[L,Jxy,Jzz])
-    settings["model"] = model
     init_vec_state = np.zeros([2**4],dtype='complex128')
     init_vec_state[0] = 1
     settings["state"] = State(init_vec_state)
@@ -43,10 +41,20 @@ def test_deep_q_learning_solver_structure():
     from tdqc.numerics.ed.models_ed import State
     from tdqc.numerics.ed.models_ed import xxz_model
     from tdqc.numerics.deep_q_learning.parameters import parameters, parameters_replay_memory
+    pass
+
+
+
+@pytest.mark.slow
+def test_deep_q_learning_solver_solve():
+    from tdqc.solver.deep_q_learning import DeepQLearning, DQLWithReplayMemory
+    from tdqc.numerics.ed.models_ed import State
+    from tdqc.numerics.ed.models_ed import xxz_model
+    from tdqc.numerics.deep_q_learning.parameters import parameters, parameters_replay_memory
     '''
     settings = dict()
     settings["steps"] = 3
-    L = 4
+    L = 2
     Jzz = 1.0
     Jxy = 1.0
     model = xxz_model
@@ -86,6 +94,4 @@ def test_deep_q_learning_solver_structure():
     solver.solve()
     #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
 
-@pytest.mark.slow
-def test_deep_q_learning_solver_solve():
-    pass
+#test_deep_q_learning_solver_solve()

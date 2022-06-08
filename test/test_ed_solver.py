@@ -25,19 +25,19 @@ def test_ed_solver_load_settings():
     from tdqc.numerics.ed.models_ed import Model, xxz_model
     from tdqc.numerics.ed.models_ed import State
     settings = dict()
-    settings["steps"] = 3
-    L = 4
+    #settings["steps"] = 3
+    L = 4 #10
     Jzz = 1.0
     Jxy = 1.0
     model = xxz_model
     model.parametrize_hamiltonian(*[L,Jxy,Jzz])
     settings["model"] = model
-    init_vec_state = np.zeros([2**4],dtype='complex128')
+    init_vec_state = np.zeros([2**L],dtype='complex128')
     init_vec_state[0] = 1
     settings["state"] = State(init_vec_state)
     settings["t_initial"] = 0.0
     settings["t_final"] = 1.0
-    settings["n_steps"] = int(1/0.001)
+    settings["n_steps"] = int(1/0.001) # Number of time steps
 
     solver = EDSolver()
     solver.load_settings(settings)
@@ -48,7 +48,6 @@ def test_ed_solver_structure():
     from tdqc.numerics.ed.models_ed import State
     from tdqc.numerics.ed.models_ed import xxz_model
     settings = dict()
-    settings["steps"] = 3
     L = 4
     Jzz = 1.0
     Jxy = 1.0
@@ -56,7 +55,7 @@ def test_ed_solver_structure():
     model.parametrize_hamiltonian(*[L,Jxy,Jzz])
     
     settings["model"] = model
-    init_vec_state = np.zeros([2**4],dtype='complex128')
+    init_vec_state = np.zeros([2**L],dtype='complex128')
     init_vec_state[0] = 1
     settings["state"] = State(init_vec_state)
     settings["t_initial"] = 0.0
@@ -73,12 +72,36 @@ def test_ed_solver_structure():
     rho_target = solver.get_rho_target()
     assert isinstance(rho_target,np.ndarray), "EDSolver method 'get_target_state' returns an array"
 
-
 @pytest.mark.slow
 def test_ed_solver_solve():
-    import tdqc.numerics.ed.models_ed
-    from tdqc.numerics.ed.parameters_ed import parameters_ed
-    pass
+    from tdqc.solver.ed import EDSolver
+    from tdqc.numerics.ed.models_ed import State
+    from tdqc.numerics.ed.models_ed import xxz_model
+    settings = dict()
+    L = 10
+    Jzz = 1.0
+    Jxy = 1.0
+    model = xxz_model
+    model.parametrize_hamiltonian(*[L,Jxy,Jzz])
+    settings["model"] = model
+    init_vec_state = np.zeros([2**L],dtype='complex128')
+    init_vec_state[0] = 1
+    settings["state"] = State(init_vec_state)
+    settings["t_initial"] = 0.0
+    settings["t_final"] = 1.0
+    settings["n_steps"] = int(1/0.001)
 
+    solver = EDSolver()
+    solver.load_settings(settings)
+    assert callable(getattr(solver, 'solve', None)), "EDSolver has a method solve"
+    # It must be possible to get the list of amplitudes obtained from solved.
+    assert hasattr(solver, 'time_evolution'), "EDSolver has an attribut time_evolution"
+    solver.solve()
+    assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
+    rho_target = solver.get_rho_target()
+    assert isinstance(rho_target,np.ndarray), "EDSolver method 'get_target_state' returns an array"
 
+    print('rho_target:{}'.format(rho_target))
+
+test_ed_solver_solve()
 

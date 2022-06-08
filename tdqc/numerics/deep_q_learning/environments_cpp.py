@@ -11,6 +11,7 @@ NN model used, coded in models.py.
 """
 
 import sys
+from scipy.linalg import logm, expm
 #for p in sys.path:
 #    print(str('p'),p)
 import numpy as np
@@ -68,7 +69,7 @@ class QuantumEnv():
         """Define the model of the system. The Hamiltonian of a system is defined in the system.cpp..
         """
         
-        self.system = sy()        
+        self.system = sy()
         self.ham_params = ham_params
         self.alpha = self.ham_params['alpha']
         self.system.set_system(
@@ -261,16 +262,11 @@ class DynamicalEvolution(QuantumEnv):
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(j_gates, hx_gates, hz_gates)
         final_state = self.apply_gate_sequence()
-        print('Final state:{}'.format(final_state))
-        print('Final state shape:{}'.format(np.shape(final_state)))
         # Normalizaton of the final state
         norm_final_state = np.linalg.norm(final_state)
         if norm_final_state != 0:
             final_state = final_state / norm_final_state
         rho_DQS = np.tensordot(np.conjugate(final_state), final_state, axes=0) 
-        print("rho_DQS:{}".format(rho_DQS))
-        print("rho_taregt:{}".format(rho_target))
-        print("rho_taregt shape:{}".format(np.shape(rho_target)))
         return local_reward(rho_DQS,rho_target,n_qubits)
 
     def measurement_from_gates(self, jx_gates, hx_gates, hz_gates,
@@ -358,16 +354,16 @@ class DynamicalEvolution(QuantumEnv):
                                                   self.action_dim))
 
 def local_reward(rho1,rho2,n_qubits=None):
+    
     if n_qubits == None:
         n_qubits = int(log2(rho1.shape[0]))
     sum_measures = 0
     for j in range(0,n_qubits-1):
         for k in range(j+1,n_qubits):
-            print('sum_measures:{}'.format(sum_measures))
-            print('relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)):{}'.format(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k))))
             sum_measures += cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))
     r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
-    print('n_qubits*(n_qubits-1):{},sum_measures:{}'.format(n_qubits*(n_qubits-1),sum_measures))
+    
+    #r_local = 0.5 * np.trace(np.absolute(rho1-rho2))
     print('r_local:{}'.format(r_local))
     return r_local
 
@@ -411,9 +407,8 @@ def globalize_op(local_op,site,L):
     return tensor_0
 
 def relative_entropy(rho1,rho2):
-    print('np.log(rho1):{}'.format(np.log(rho1)))
-    print('np.log(rho2):{}'.format(np.log(rho2)))
-    return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
+    #return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
+    return np.trace(rho1*(logm(rho1)-logm(rho2)))
 
 def tensor_prod(*arg):
     """
