@@ -81,7 +81,7 @@ class ExactDiagonalization(object):
 
     def get_ground_state(self):
         if self.ground_state == None:
-            set_ground_state()
+            self.set_ground_state()
         return self.ground_state
 
     def get_ground_state_energy_per_site(self):

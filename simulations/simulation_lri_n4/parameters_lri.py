@@ -7,11 +7,13 @@ from tdqc.solver.ed import EDSolver
 
 
 # Initializing model
-L = 16 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
-Jzz = 1.0
-Jxy = 1.0
-model = xxz_model
-model.parametrize_hamiltonian(*[L,Jxy,Jzz])
+L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+J = 1.0
+m_x = 2.0
+m_z = 2.0
+alpha = int(3)
+model = lri_model
+model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
 # Initializing state
 init_vec_state = np.ones([2**L],dtype='complex128')
 norm = np.linalg.norm(init_vec_state)
@@ -36,7 +38,7 @@ parameters = {
         #  #  g: x, h: z
         'g': 2.0,
         'h': 2.0,
-        'alpha': 1.0,
+        'alpha': 2.0,
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0
@@ -70,6 +72,8 @@ parameters = {
 
     # q_learning parameters:
     'n_episodes': int(5e4),
+    #  'n_episodes': 100,
+
     'epsilon_max': 1.0,
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
@@ -147,6 +151,8 @@ parameters = {
             'model': model,
             'state': State(init_vec_state)
             }
+
+
     }
 
 parameters_replay_memory = {

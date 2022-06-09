@@ -90,7 +90,19 @@ def hamiltonian_xxz(L,Jxy,Jzz,PDB=True):
     return H
 xxz_model = Model("xxz_model",hamiltonian_xxz)
 
-
+def hamiltonian_lri(L,J,alpha,m_x,m_z):
+    list_glob_operators =  [None] * L
+    # Create the list of global operators
+    for site in range(0,L,1):
+        list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site,L)    
+    H = np.zeros((2**(L),2**(L)),dtype='complex128')
+    for j in range(0,L-1):
+        for k in range(j+1,L):
+            H += J*((k-j)**(-alpha)) *np.dot(list_glob_operators[j],list_glob_operators[k])
+    for j in range(0,L,1):
+        H += m_x * list_glob_operators[j] + m_z * globalize_op(spin_op["sigma_z"],j,L)
+    return H
+lri_model = Model("lri_model",hamiltonian_lri)
 
 class State(object):
     '''
@@ -141,7 +153,21 @@ class State(object):
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    
+
 """
+L = 2
+init_state = np.zeros([2**L],dtype='complex128')
+init_state[0] = 1
+psi_0 = State(init_state)
+J = 1
+m_x = 2
+m_z = 2
+alpha = 3
+model = lri_model
+model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
+print(type(psi_0.vec_state))
+psi_0.time_step_ed(model, 1)
+print(psi_0.vec_state)
 psi_0 = State(np.zeros([2**4],dtype='complex128'))
 L = 4
 Jzz = 1.0

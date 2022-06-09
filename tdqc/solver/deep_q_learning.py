@@ -77,9 +77,6 @@ class DeepQLearning(Solver):
         if not "model_update_spacing" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'model_update_spacing' parameter not found")
         self.model_update_spacing = settings["model_update_spacing"]
-        if not "system_class" in settings:
-            raise ValueError("Error loading deep_q_learning-solver settings, 'system_class' parameter not found")
-        self.system_class = settings["system_class"]
         if not "network_type" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'network_type' parameter not found")
         self.network_type = settings["network_type"]

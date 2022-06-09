@@ -58,7 +58,7 @@ class QuantumEnv():
                  seed_initial_state,
                  range_one,
                  range_all,
-                 measurement,
+                 measurement=None,
                  bulk_size=0,
                  entangling_gates_dir='jx',
                  #  weighted_average=False,
@@ -95,7 +95,6 @@ class QuantumEnv():
             raise NotImplementedError(f'not implemented for n_directions = '
                                       f'{self.n_directions}.')
     
-        self.measurement = measurement
         self.set_initial_state(seed_initial_state,
                                initial_state)
         self.state = self.state_real+1j*self.state_imag
@@ -143,14 +142,6 @@ class QuantumEnv():
         state_real = np.flip(self.state_real, axis=0)
         state_imag = np.flip(self.state_imag, axis=0)
         
-        # I NEED TO CHECK AND MODIFY THE CODE TO SUPPRESS THE NEXT FEW LINES.
-        '''
-        if calculate_target_state:
-            set_rho_target = (self.measurement == 'trace_distance' or
-                              self.measurement == 'relative_entropy')
-        '''
-        #    self.system.set_target_state(set_rho_target=set_rho_target)
-
 
     def decode_action_sequence(self, action_sequence):
         """ Given [..., ai, ...], the list of actions, return list of gates jx, [.., hx_i, ...],
@@ -251,9 +242,8 @@ class QuantumEnv():
 
 class DynamicalEvolution(QuantumEnv):
 
-    def __init__(self, measurement, **other_params):
-        super().__init__(measurement=measurement,
-                         calculate_target_state=True,
+    def __init__(self, **other_params):
+        super().__init__(calculate_target_state=True,
                          **other_params)
 
     def reward(self,action_sequence,rho_target):
@@ -268,52 +258,6 @@ class DynamicalEvolution(QuantumEnv):
             final_state = final_state / norm_final_state
         rho_DQS = np.tensordot(np.conjugate(final_state), final_state, axes=0) 
         return local_reward(rho_DQS,rho_target,n_qubits)
-
-    def measurement_from_gates(self, jx_gates, hx_gates, hz_gates,
-                               measurement=None):
-
-        self.system.set_gates(jx_gates, hx_gates, hz_gates)
-        if measurement is None:
-            measurement = self.measurement
-        #  if measurement == "energy_contributions":
-        #      return self.system.get_energy_contributions()
-        #  elif measurement == "local_energy":
-        #      return self.system.get_local_energy()
-
-        meas = self.system.start(measurement=measurement)
-        #  if measurement == "spin_correlations":
-        #      return self.system.get_spin_correlations()
-        #  elif measurement == "local_fluctuations_zz":
-        #      return self.system.get_local_fluctuations_zz()
-        return meas
-
-    def measurement_target_state(self, measurement=None):
-        if measurement is None:
-            measurement = self.measurement
-        #  if measurement == "energy_contributions":
-        #      return self.system.get_target_energy_contributions()
-        #  elif measurement == "local_energy":
-        #      return self.system.get_target_local_energy()
-
-        meas = self.system.measurement_target_state(measurement)
-        #  if measurement == "spin_correlations":
-        #      return self.system.get_target_spin_correlations()
-        #  elif measurement == "local_fluctuations_zz":
-        #      return self.system.get_target_local_fluctuations_zz()
-        return meas
-
-    def measurement_trotter(self, measurement=None):
-        if self.system_class != 'LongRangeIsing':
-            return None
-            #  raise ValueError('Trotter decomposition only defined for LRI.')
-        trotter_action_sequence = self.initial_action_sequence()
-        jx_gates, hx_gates, hz_gates = \
-            self.decode_action_sequence(trotter_action_sequence)
-
-        return self.measurement_from_gates(jx_gates=jx_gates,
-                                           hx_gates=hx_gates,
-                                           hz_gates=hz_gates,
-                                           measurement=measurement)
 
     def get_ground_state_energy(self, return_eigenvectors=False):
         """Return the ground state energy."""

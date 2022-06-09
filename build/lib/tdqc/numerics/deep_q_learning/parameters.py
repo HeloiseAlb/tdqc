@@ -7,7 +7,7 @@ from tdqc.solver.ed import EDSolver
 
 
 # Initializing model
-L = 2 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 16 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 Jzz = 1.0
 Jxy = 1.0
 model = xxz_model
@@ -25,34 +25,22 @@ parameters = {
     # physical system
     # =======================================================================
     'n_sites':  L,
-    #  'n_sites':  6,
-    #  'n_steps': 3,
-    'n_steps': 5,
+    'n_steps': 3,
     't_initial': 0.0,
-    't_final': 1.0,
+    't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    
-    
-    
-    ### Need to be supress since the deep_q_learning solver does not need the parameters of the models.
-    'periodic_boundary_conditions': False,
-    #  'system_class': 'SpSm',
-     'system_class': 'LongRangeIsing',
-    # 'system_class': 'Schwinger',
+    'system_class': 'LongRangeIsing',
     #  also sets entangling gate alpha
     'ham_params': {
         'J': 1.0,
         #  #  g: x, h: z
         'g': 2.0,
         'h': 2.0,
-        'alpha': 3.0,
-        'alpha': 0.0,
         'alpha': 1.0,
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0
     },
-    
     
     #  'initial_state': 'random_product_state',
     'initial_state': 'antiferro',
@@ -71,7 +59,6 @@ parameters = {
     #  'env_type': 'DynamicalEvolution',
     'env_type': 'DynamicalEvolution_cpp',
     'algorithm': 'DQN_ReplayMemory',
-
     'range_all': 0.2,
     'range_one': 0.4,
     'exploration': 'gaussian',
@@ -79,13 +66,10 @@ parameters = {
 
     #  type of reward
     #  'measurement': 'fidelity',
-    'measurement': 'relative_entropy',
     'average_exponent': 0.5,
 
     # q_learning parameters:
     'n_episodes': int(5e4),
-    #  'n_episodes': 100,
-
     'epsilon_max': 1.0,
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
@@ -163,8 +147,6 @@ parameters = {
             'model': model,
             'state': State(init_vec_state)
             }
-
-
     }
 
 parameters_replay_memory = {
