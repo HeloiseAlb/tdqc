@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-
+from scipy.linalg import expm
+import scipy as sci
 import numpy as np
 from math import log2
 import cmath
@@ -56,7 +56,7 @@ class Model(object):
     def parametrize_hamiltonian(self, *parameter):
         fonction = self.model_hamiltonian
         self.hamiltonian = fonction(*parameter)
-        eig_values,eig_vectors = np.linalg.eig(self.hamiltonian)
+        eig_values,eig_vectors = np.linalg.eigh(self.hamiltonian) 
         self.eig_values = eig_values
         self.eig_vectors = eig_vectors
         self.ground_states = ground_states(eig_values,eig_vectors)
@@ -109,45 +109,42 @@ class State(object):
     init_vec_state: type <class 'numpy.ndarray'>
     '''
     def __init__(self, init_vec_state):
-        self._vec_state = init_vec_state
+        self.vec_state = init_vec_state
         self.dimension = init_vec_state.size
         self.n_sites = int(log2(self.dimension))
         self.vec_state_real = init_vec_state.real
         self.vec_state_imag = init_vec_state.imag
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
-    
+    """
     @property
     def vec_state(self):
-        return self._vec_state
+        return self.vec_state
    
     @vec_state.setter
     def vec_state(self, value):
         self._vec_state = value
         # Also updates the density_mat an its real and imaginary parts.
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
+    """
 
     def time_step_ed(self, model, delta_t, imaginary=False, h_bar=h_bar):
         '''
         Time evolution of a system after a quench using exact diagonalization. 
         It makes the state initial_state evolve according to the Hamiltonian of the model for a time delta_t.
         '''
+        # Input to simulate the imaginary time evolution, by default, it is the real time evolution.
         if imaginary:
             delta_t = -1j*delta_t
         init_vec_state = self.vec_state
         eig_values,eig_vectors = model.eig_values, model.eig_vectors
-        new_vec_state = np.zeros(self.dimension,dtype='complex128')
-        for index, vector in enumerate(eig_vectors.T):
-            energy = eig_values[index]
-            projection = np.dot(vector,np.transpose(init_vec_state))
-            new_vec_state += cmath.exp(-1j*energy*delta_t/h_bar)*projection*vector
-        norm = np.linalg.norm(new_vec_state)
-        if norm!=0:
-            new_vec_state = new_vec_state/norm
+        
+        new_vec_state = np.dot(expm(-1j*delta_t*model.hamiltonian),init_vec_state)
         self.vec_state = new_vec_state
         self.vec_state_real = new_vec_state.real
         self.vec_state_imag = new_vec_state.imag
 
     def get_density_matrix(self):
+        self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
         return self._density_mat
     
     @classmethod
@@ -180,5 +177,3 @@ psi_0.time_step_ed(xxz_model, 1)
 print(psi_0.vec_state)
 print(psi_0.get_state_format_ml())
 """
-
-

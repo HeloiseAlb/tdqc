@@ -49,3 +49,4 @@ def test_set_gates():
 def test_start():
     
     pass
+test_set_coupling_matrix()

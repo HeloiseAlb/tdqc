@@ -43,6 +43,8 @@ class EDSolver(Solver):
         # It returns the amplitudes of the time evolution.
         return self.__time_evolution
 
+
+    
     def solve(self):
         # This method runs the time evolution and stores the list of the vec_state in self.__time_evolution.  
         state_t_n = self.__state
@@ -62,12 +64,13 @@ class EDSolver(Solver):
             time_evolution[idx,:] = state_t_n.vec_state
             # Time evolution
             state_t_n.time_step_ed(model,step,imaginary=imaginary)
-        # Check of the sum of probabilities
-        #print(thermal_exp_value(eig_values,eig_vectors,H,0))
-            self.__time_evolution = time_evolution
+        self.__time_evolution = time_evolution
         self.__final_state = state_t_n
 
-
+    @property
+    def final_state(self):
+        return self.__final_state
+        
     def get_rho_target(self,):
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
