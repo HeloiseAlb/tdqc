@@ -16,7 +16,7 @@ from scipy.linalg import logm, expm
 #    print(str('p'),p)
 import numpy as np
 import cmath
-from math import pi, log2, sqrt
+from math import pi, log2, sqrt, isnan
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
 #import tdqc.numerics.deep_q_learning.system_mps.system as sy
 
@@ -98,7 +98,26 @@ class QuantumEnv():
         self.set_initial_state(seed_initial_state,
                                initial_state)
         self.state = self.state_real+1j*self.state_imag
+        self.set_coupling_matrix()
         self.reset()
+
+    def set_coupling_matrix(self,):
+        dim = int(2**self.n_sites)
+        coupling_matrix = np.zeros((dim,dim),dtype='complex128')
+        """
+        for i in range(0,dim,1):
+            for j in range(i+1,dim,1):
+                coupling_matrix[i,j] = 4.0/((j-i)**self.alpha)
+                # Not needed but to be sure.
+                coupling_matrix[j,i] = 4.0/((j-i)**self.alpha)
+        self.coupling_matrix = coupling_matrix
+        """
+        for l in range(0,self.n_sites,1):
+            matrix_1 = globalize_op(spin_op['sigma_x'],l,self.n_sites)
+            for k in range(l+1,self.n_sites,1):
+                matrix_2 = globalize_op(spin_op['sigma_x'],k,self.n_sites)
+                coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+        self.coupling_matrix = coupling_matrix
 
     def get_action_dim(self):
         return self.action_dim
@@ -210,12 +229,7 @@ class QuantumEnv():
         U_x = lambda theta : np.exp(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : np.exp(-1j*theta*spin_op['sigma_z'])
         dim = int(2**self.n_sites)
-        sum_U_xx = np.zeros((dim,dim),dtype='complex128')
-        for l in range(0,self.n_sites,1):
-            matrix_1 = globalize_op(spin_op['sigma_x'],l,self.n_sites)
-            for k in range(l+1,self.n_sites,1):
-                matrix_2 = globalize_op(spin_op['sigma_x'],k,self.n_sites)
-                sum_U_xx += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+        sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : np.exp(-1j*theta*sum_U_xx)
 
         # Apply the sequence of gates to have the final state. 
@@ -304,11 +318,17 @@ def local_reward(rho1,rho2,n_qubits=None):
     sum_measures = 0
     for j in range(0,n_qubits-1):
         for k in range(j+1,n_qubits):
+            #print('j,k={},{}'.format(j,k))
             sum_measures += cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))
-    r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
+            #print("sqrt(relative_entropy({},{}))={}".format(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k),cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))))
+    #print('sum_measures:{}'.format(sum_measures))
+    if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
+        r_local = 0
+    else:
+        r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
     
     #r_local = 0.5 * np.trace(np.absolute(rho1-rho2))
-    print('r_local:{}'.format(r_local))
+    #print('r_local:{}'.format(r_local))
     return r_local
 
 def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
@@ -351,8 +371,27 @@ def globalize_op(local_op,site,L):
     return tensor_0
 
 def relative_entropy(rho1,rho2):
+    return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
+    #return np.trace(rho1*(logm(rho1)-logm(rho2)))
+    '''
+    rel_entropy = 0
+    for qubit in range(n_qubits):
+        p_qubit = rho1[qubit,qubit]
+        q_qubit = rho2[qubit,qubit]
+        if (p_qubit!=0) and (q_qubit !=0):
+            rel_entropy += p_qubit * (log2(p_qubit)-log2(q_qubit))
+        elif (p_qubit!=0) and (q_qubit ==0):
+            rel_emtropy = float('inf')
+        #elif rho1[qubit,qubit]==0 then add nothing.
+
+    return rel_entropy    
+    '''    
     #return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
-    return np.trace(rho1*(logm(rho1)-logm(rho2)))
+    #return np.trace(np.multiply(rho1,np.log(rho1)-np.log(rho2)))
+    #return rel_entr(rho1, rho2)
+    #print("np.trace(rho1*(logm(rho1)-logm(rho2))):{}".format(np.trace(rho1*(logm(rho1)-logm(rho2)))))
+    #return np.trace(rho1*(logm(rho1)-logm(rho2)))
+
 
 def tensor_prod(*arg):
     """

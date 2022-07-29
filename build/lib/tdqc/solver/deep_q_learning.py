@@ -252,7 +252,7 @@ class DeepQLearning(Solver):
     def get_rho_target_from_other_solver(self,):
         target_params = self.__target_params
         solver_for_target = target_params['solver']
-        target_params.pop('solver', None)
+        #target_params.pop('solver', None)
         solver_for_target.load_settings(target_params)
         solver_for_target.solve()
         rho_target = solver_for_target.get_rho_target()
