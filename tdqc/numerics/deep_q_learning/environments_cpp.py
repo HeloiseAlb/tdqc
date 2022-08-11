@@ -11,12 +11,12 @@ NN model used, coded in models.py.
 """
 
 import sys
-from scipy.linalg import logm, expm
+from scipy.linalg import logm, expm, eigh, inv
 #for p in sys.path:
 #    print(str('p'),p)
 import numpy as np
 import cmath
-from math import pi, log2, sqrt, isnan
+from math import pi, log2, sqrt, isnan, log
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
 #import tdqc.numerics.deep_q_learning.system_mps.system as sy
 
@@ -228,7 +228,6 @@ class QuantumEnv():
         # Define the universal quantum gate set used in Markus article. 
         U_x = lambda theta : np.exp(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : np.exp(-1j*theta*spin_op['sigma_z'])
-        dim = int(2**self.n_sites)
         sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : np.exp(-1j*theta*sum_U_xx)
 
@@ -311,14 +310,12 @@ class DynamicalEvolution(QuantumEnv):
             return np.random.uniform(-1, 1, size=(self.n_steps,
                                                   self.action_dim))
 
-def local_reward(rho1,rho2,n_qubits=None):
-    
+def local_reward(rho1,rho2,n_qubits=None): 
     if n_qubits == None:
         n_qubits = int(log2(rho1.shape[0]))
     sum_measures = 0
     for j in range(0,n_qubits-1):
         for k in range(j+1,n_qubits):
-            #print('j,k={},{}'.format(j,k))
             sum_measures += cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))
             #print("sqrt(relative_entropy({},{}))={}".format(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k),cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))))
     #print('sum_measures:{}'.format(sum_measures))
@@ -370,9 +367,23 @@ def globalize_op(local_op,site,L):
         tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
     return tensor_0
 
-def relative_entropy(rho1,rho2):
-    return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
-    #return np.trace(rho1*(logm(rho1)-logm(rho2)))
+def relative_entropy(rho1,rho2,positiveDefinite=0):
+    if positiveDefinite:
+        # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
+        eVals1, eVecs1 = eigh(rho1) 
+        eVals2, eVecs2 = eigh(rho2)
+        relativeEntropy = 0
+        for index1, value1 in enumerate(eVals1):
+            subsum_index1 = 0
+            if value1 > 0:
+                relativeEntropy += value1 * (log(value1))
+                for index2, value2 in enumerate(eVals2):
+                    if value2 > 0 :
+                        subsum_index1 += abs( np.dot(eVecs2[:, index2],eVecs1[:, index1]))**2 * log(value2)
+                relativeEntropy -= value1 * subsum_index1
+        return np.real(relativeEntropy)
+    else:
+        return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
     '''
     rel_entropy = 0
     for qubit in range(n_qubits):
@@ -386,12 +397,6 @@ def relative_entropy(rho1,rho2):
 
     return rel_entropy    
     '''    
-    #return np.trace(rho1*(np.log(rho1)-np.log(rho2)))
-    #return np.trace(np.multiply(rho1,np.log(rho1)-np.log(rho2)))
-    #return rel_entr(rho1, rho2)
-    #print("np.trace(rho1*(logm(rho1)-logm(rho2))):{}".format(np.trace(rho1*(logm(rho1)-logm(rho2)))))
-    #return np.trace(rho1*(logm(rho1)-logm(rho2)))
-
 
 def tensor_prod(*arg):
     """
