@@ -82,7 +82,7 @@ def test_deep_q_learning_solver_solve():
     solver = DQLWithReplayMemory()
     solver.load_settings(settings=parameters)
     solver.load_seetings_replay_memory(**parameters_replay_memory)
-    assert callable(getattr(solver, 'solve', None)), "DQLWithReplayMemory has a method solve"
+    #assert callable(getattr(solver, 'solve', None)), "DQLWithReplayMemory has a method solve"
     #rho_target = solver.get_rho_target_from_other_solver()
     #assert isinstance(rho_target,np.ndarray), "DQLWithReplayMemory can get the target_state"
 
@@ -92,4 +92,4 @@ def test_deep_q_learning_solver_solve():
     solver.solve()
     #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
 
-#test_deep_q_learning_solver_solve()
+test_deep_q_learning_solver_solve()

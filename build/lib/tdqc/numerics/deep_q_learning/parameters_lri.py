@@ -19,7 +19,7 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 16 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
@@ -63,7 +63,7 @@ parameters = {
     #  'initial_state': 'random_product_state',
     'initial_state': 'antiferro',
     #  'initial_state': 'ferro',
-    'seed_initial_state': 42,
+    'seed_initial_state': None, # 42,
 
     #  digital simulator:
     'n_directions': 2,  # also affect LRI Hamiltonian
@@ -87,7 +87,7 @@ parameters = {
     'average_exponent': 0.5,
 
     # q_learning parameters:
-    'n_episodes': int(5e4),
+    'n_episodes': 10000,#int(5e4),
     #  'n_episodes': 100,
 
     'epsilon_max': 1.0,
@@ -147,7 +147,7 @@ parameters = {
     'max_q_optimizer': {
         'algorithm': 'adam',
         # learning rate
-        'learning_rate': 0.005,
+        'learning_rate': 0.6,#005,
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8,

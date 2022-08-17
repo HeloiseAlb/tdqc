@@ -104,14 +104,6 @@ class QuantumEnv():
     def set_coupling_matrix(self,):
         dim = int(2**self.n_sites)
         coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-        """
-        for i in range(0,dim,1):
-            for j in range(i+1,dim,1):
-                coupling_matrix[i,j] = 4.0/((j-i)**self.alpha)
-                # Not needed but to be sure.
-                coupling_matrix[j,i] = 4.0/((j-i)**self.alpha)
-        self.coupling_matrix = coupling_matrix
-        """
         for l in range(0,self.n_sites,1):
             matrix_1 = globalize_op(spin_op['sigma_x'],l,self.n_sites)
             for k in range(l+1,self.n_sites,1):
@@ -226,10 +218,10 @@ class QuantumEnv():
 
     def apply_gate_sequence(self):
         # Define the universal quantum gate set used in Markus article. 
-        U_x = lambda theta : np.exp(-1j*theta*spin_op['sigma_x'])
-        U_z = lambda theta : np.exp(-1j*theta*spin_op['sigma_z'])
+        U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
+        U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
-        U_xx = lambda theta : np.exp(-1j*theta*sum_U_xx)
+        U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
 
         # Apply the sequence of gates to have the final state. 
         state = self.initial_state
@@ -239,6 +231,7 @@ class QuantumEnv():
         hz_angle_list = self.system.hz_gate_list
         for step in range(0,self.n_steps,1):
             state = np.dot(U_xx(jx_angle_list[step]),state)
+            #print('state after U_xx:{} is {}'.format(U_xx(jx_angle_list[step]),state))
             for site in range(0,self.n_sites,1):
                 if self.system.gate_order == "xz":
                     U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
@@ -248,8 +241,10 @@ class QuantumEnv():
                 elif self.system.gate_order == "zx":
                     U_z_site = globalize_op(U_z(hz_angle_list[step][site]),site,self.n_sites)
                     state = np.dot(U_z_site,state)
+                    #print('state after U_z on site:{} is {}'.format(U_z_site,state))
                     U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
                     state = np.dot(U_x_site,state)
+                    #print('state after U_x on site:{} is {}'.format(U_x_site,state))
         return state
 
 
@@ -261,9 +256,9 @@ class DynamicalEvolution(QuantumEnv):
 
     def reward(self,action_sequence,rho_target):
         n_qubits = self.n_sites
-        j_gates, hx_gates, hz_gates = \
+        jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
-        self.system.set_gates(j_gates, hx_gates, hz_gates)
+        self.system.set_gates(jx_gates, hx_gates, hz_gates)
         final_state = self.apply_gate_sequence()
         # Normalizaton of the final state
         norm_final_state = np.linalg.norm(final_state)
@@ -323,10 +318,10 @@ def local_reward(rho1,rho2,n_qubits=None):
         r_local = 0
     else:
         r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
-    
     #r_local = 0.5 * np.trace(np.absolute(rho1-rho2))
     #print('r_local:{}'.format(r_local))
-    return r_local
+    r_local = r_local.real
+    return max(0,r_local)
 
 def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
     # Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. 
@@ -384,19 +379,6 @@ def relative_entropy(rho1,rho2,positiveDefinite=0):
         return np.real(relativeEntropy)
     else:
         return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
-    '''
-    rel_entropy = 0
-    for qubit in range(n_qubits):
-        p_qubit = rho1[qubit,qubit]
-        q_qubit = rho2[qubit,qubit]
-        if (p_qubit!=0) and (q_qubit !=0):
-            rel_entropy += p_qubit * (log2(p_qubit)-log2(q_qubit))
-        elif (p_qubit!=0) and (q_qubit ==0):
-            rel_emtropy = float('inf')
-        #elif rho1[qubit,qubit]==0 then add nothing.
-
-    return rel_entropy    
-    '''    
 
 def tensor_prod(*arg):
     """

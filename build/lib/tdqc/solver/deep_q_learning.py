@@ -166,6 +166,7 @@ class DeepQLearning(Solver):
 
             if episode % self.model_update_spacing == 0:
                 self.model.update_target()
+                print("self.model.update_target() is done")
 
             verbose = False
             if episode % (self.n_episodes//10) == 0:

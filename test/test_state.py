@@ -22,6 +22,6 @@ def test_state_structure():
     amplitudes = state.vec_state
     assert isinstance(amplitudes, np.ndarray), "Amplitudes given as an array from numpy"
     # It must be possible to get the amplitudes in the format of the code from Markus. 
-    assert callable(getattr(State, 'get_state_format_ml', None)), "State has a method State has a method get_state_format_ml"
+    assert callable(getattr(State, 'get_state_format_ml', None)), "State has method method get_state_format_ml"
     state_real, state_imag = state.get_state_format_ml()
     assert isinstance(state_real, np.ndarray) and isinstance(state_imag, np.ndarray), "Amplitudes format ml given as two arrays from numpy"

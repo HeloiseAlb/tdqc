@@ -7,7 +7,7 @@ from tdqc.solver.ed import EDSolver
 
 
 # Initializing model
-L = 16 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 3 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 Jzz = 1.0
 Jxy = 1.0
 model = xxz_model
@@ -69,7 +69,7 @@ parameters = {
     'average_exponent': 0.5,
 
     # q_learning parameters:
-    'n_episodes': int(5e4),
+    'n_episodes': 10000,# int(5e4),
     'epsilon_max': 1.0,
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
@@ -127,7 +127,7 @@ parameters = {
     'max_q_optimizer': {
         'algorithm': 'adam',
         # learning rate
-        'learning_rate': 0.005,
+        'learning_rate': 0.6,#005,
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8,

@@ -21,19 +21,18 @@ class SpinSystem():
         #self.set_coupling_matrix()
 
     def set_gates(self, jx_angle_list, hx_angle_list, hz_angle_list):
-        jx_gates = np.zeros([self.n_steps],dtype=complex) #,self.n_sites,self.n_sites], dtype=complex)
-        hz_gates = np.zeros([self.n_steps,self.n_sites],dtype=complex) #,self.n_sites], dtype=complex)
-        hx_gates = np.zeros([self.n_steps,self.n_sites],dtype=complex) #,self.n_sites], dtype=complex)
-        for step in range(0, self.n_steps,1):
-            jx_gates[step] = jx_angle_list[step]# * self.coupling_matrix
-            vhx = np.zeros(self.n_sites)
-            vhz = np.zeros(self.n_sites)
-        # The following np.arrays are as of size [n_steps, n_sites, n_sites]. They store the angles of the ie the parameters of the three kind of gates that are apply here. 
-        self.jx_gate_list = jx_gates
-        self.hx_gate_list = hx_gates
-        self.hz_gate_list = hz_gates
-        #print(' self.jx_gate_list = {} and jx_gates = {}'.format(self.jx_gate_list,jx_gates))
-        #print(' self.hx_gate_list = {} and hx_gates = {}'.format(self.hx_gate_list, hx_gates))
+        # The function sets the attributs 'jx_gate_list', 'hx_gate_list' and 'hz_gate_list' to the object.
+        
+        # The arrays do not need to be reshaped and do not need to contain complex values.
+        #jx_gates = np.array(jx_angle_list.reshape((self.n_steps)),dtype=complex) #,self.n_sites,self.n_sites], 
+        #hz_gates = np.array(hz_angle_list.reshape((self.n_steps,self.n_sites)),dtype=complex)
+        #hx_gates = np.array(hx_angle_list.reshape((self.n_steps,self.n_sites)),dtype=complex)
+        self.jx_gate_list = jx_angle_list
+        self.hx_gate_list = hx_angle_list
+        self.hz_gate_list = hz_angle_list
+        #print(' self.jx_gate_list = {} and jx_angle_list = {}'.format(self.jx_gate_list,jx_angle_list))
+        #print(' self.hx_gate_list = {} and hx_angle_list = {}'.format(self.hx_gate_list, hx_angle_list))
+        #print(' self.hz_gate_list = {} and hz_angle_list = {}'.format(self.hz_gate_list, hz_angle_list))
 
     def start(self, measurement):
         # Here we need to run the simulation of the gate sequence.
