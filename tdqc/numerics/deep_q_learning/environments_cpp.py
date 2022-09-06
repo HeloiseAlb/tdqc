@@ -14,6 +14,7 @@ import sys
 from scipy.linalg import logm, expm, eigh, inv
 #for p in sys.path:
 #    print(str('p'),p)
+from numpy import linalg
 import numpy as np
 import cmath
 from math import pi, log2, sqrt, isnan, log
@@ -27,6 +28,10 @@ spin_op= {
     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+
+def is_pos_def(x):
+    print(np.linalg.eigvalsh(x))
+    return(np.all(np.linalg.eigvalsh(x) >= 0))
 
 def globalize_op(local_op,site,L):
     '''
@@ -253,18 +258,81 @@ class DynamicalEvolution(QuantumEnv):
     def __init__(self, **other_params):
         super().__init__(calculate_target_state=True,
                          **other_params)
+    def __isPD(self,B):
+        """Returns true when input is positive-definite, via Cholesky"""
+        try:
+            _ = linalg.cholesky(B)
+            return True
+        except linalg.LinAlgError:
+            return False
 
-    def reward(self,action_sequence,rho_target):
+    def __nearestPD(self,A):
+        """Find the nearest positive-definite matrix to input
+        A Python/Numpy port of John D'Errico's `nearestSPD` MATLAB code [1], which
+        credits [2].
+        [1] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd
+        [2] N.J. Higham, "Computing a nearest symmetric positive semidefinite
+        matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
+        """
+        B = (A + A.T) / 2
+        _, s, V = linalg.svd(B)
+        H = np.dot(V.T, np.dot(np.diag(s), V))
+        A2 = (B + H) / 2
+        A3 = (A2 + A2.T) / 2
+        if self.__isPD(A3):
+            return A3
+        spacing = np.spacing(linalg.norm(A))
+        # The above is different from [1]. It appears that MATLAB's `chol` Cholesky
+        # decomposition will accept matrixes with exactly 0-eigenvalue, whereas
+        # Numpy's will not. So where [1] uses `eps(mineig)` (where `eps` is Matlab
+        # for `np.spacing`), we use the above definition. CAVEAT: our `spacing`
+        # will be much larger than [1]'s `eps(mineig)`, since `mineig` is usually on
+        # the order of 1e-16, and `eps(1e-16)` is on the order of 1e-34, whereas
+        # `spacing` will, for Gaussian random matrixes of small dimension, be on
+        # othe order of 1e-16. In practice, both ways converge, as the unit test
+        # below suggests.
+        I = np.eye(A.shape[0])
+        k = 1
+        while not self.__isPD(A3):
+            mineig = np.min(np.real(linalg.eigvals(A3)))
+            A3 += I * (-mineig * k**2 + spacing)
+            k += 1
+        return A3
+
+    def reward(self,action_sequence,rho_target):        
+        # Return the reward of the action_sequence computed according to rho_target.
         n_qubits = self.n_sites
         jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(jx_gates, hx_gates, hz_gates)
         final_state = self.apply_gate_sequence()
-        # Normalizaton of the final state
-        norm_final_state = np.linalg.norm(final_state)
-        if norm_final_state != 0:
-            final_state = final_state / norm_final_state
-        rho_DQS = np.tensordot(np.conjugate(final_state), final_state, axes=0) 
+        rho_DQS = np.tensordot(np.conjugate(final_state), final_state, axes=0)        
+
+        # The density matrix is a normalized, positive definite matrix.
+        rho_DQS = self.__nearestPD(rho_DQS)
+        trace_rho_DQS = np.trace(rho_DQS)
+        if trace_rho_DQS != 0:
+            rho_DQS = rho_DQS/trace_rho_DQS # Normalizaton of the final state. 
+
+        '''
+        # To check if the matrices are Hermitian:
+                
+        rho_DQS_mat = np.matrix(rho_DQS)
+        rho_target_mat = np.matrix(rho_target)
+        #print('rho_DQS_mat diff :{}'.format(rho_DQS_mat-rho_DQS_mat.getH()))
+        #print('rho_target_mat diff :{}'.format(rho_target_mat-rho_target_mat.getH()))
+        assert (np.all(rho_DQS_mat-rho_DQS_mat.getH() < 0.000000001)), 'rho_DQS_mat hermitian'
+        assert (np.all(rho_target_mat-rho_target_mat.getH() < 0.000000001)), 'rho_target hermitian'
+        
+        # To check if the matrices are P:
+        #print('np.linalg.eigvalsh():{}'.format(np.linalg.eigvalsh(rho_DQS)))
+        #assert self.__isPD(rho_DQS),'rho_DQS is ps'
+        #assert is_pos_def(rho_DQS),'NOT PD rho_DQS:{},np.linalg.eigvalsh(rho_DQS):{}'.format( rho_DQS,np.linalg.eigvalsh(rho_DQS)) 
+
+        #print('np.linalg.eigvalsh(rho_target):{}'.format(np.linalg.eigvalsh(rho_target)))
+        #assert isPD(rho_target),'NOT PD : rho_target:{},np.linalg.eigvalsh(rho_target):{}'.format(rho_target,np.linalg.eigvalsh(rho_target)) 
+        # Artificial fixation of the PS instability problem.
+        '''
         return local_reward(rho_DQS,rho_target,n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors=False):
@@ -306,6 +374,7 @@ class DynamicalEvolution(QuantumEnv):
                                                   self.action_dim))
 
 def local_reward(rho1,rho2,n_qubits=None): 
+    #print(' rho 1:{}, and  rho2:{} '.format(rho1,rho2))
     if n_qubits == None:
         n_qubits = int(log2(rho1.shape[0]))
     sum_measures = 0
@@ -313,18 +382,21 @@ def local_reward(rho1,rho2,n_qubits=None):
         for k in range(j+1,n_qubits):
             sum_measures += cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))
             #print("sqrt(relative_entropy({},{}))={}".format(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k),cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))))
-    #print('sum_measures:{}'.format(sum_measures))
     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
         r_local = 0
+        print("sum_measures was Nan, r_local taken to be 0")
     else:
         r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
+        #if r_local.real <=0:
+            #print('r_local is negative and is:{}'.format(r_local.real))
     #r_local = 0.5 * np.trace(np.absolute(rho1-rho2))
-    #print('r_local:{}'.format(r_local))
     r_local = r_local.real
+    #print('r_local:{}'.format(r_local))
     return max(0,r_local)
+    #return r_local
 
 def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
-    # Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. 
+    # Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix.
     rho = rho_init
     if n_qubits == None:
         n_qubits = int(log2(rho.shape[0]))
@@ -347,7 +419,9 @@ def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
         rho = rho.reshape([4,n2,4,n2])
         rho = np.trace(rho,axis1=1,axis2=3)
     rho = rho.reshape([4,4])
-    return rho
+    #rho_mat = np.matrix(rho)
+    #print('rho diff:{}'.format(rho_mat-rho_mat.getH()))
+    return np.matrix(rho)
 
 def globalize_op(local_op,site,L):
     '''
@@ -362,11 +436,14 @@ def globalize_op(local_op,site,L):
         tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
     return tensor_0
 
-def relative_entropy(rho1,rho2,positiveDefinite=0):
+def relative_entropy(rho1,rho2,positiveDefinite=1):
     if positiveDefinite:
         # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
         eVals1, eVecs1 = eigh(rho1) 
+        eVals1 = np.maximum(eVals1,0)
         eVals2, eVecs2 = eigh(rho2)
+        eVals2 = np.maximum(eVals2,0)
+        print('eVals1:{},eVals2:{}'.format(eVals1,eVals2))
         relativeEntropy = 0
         for index1, value1 in enumerate(eVals1):
             subsum_index1 = 0
@@ -392,3 +469,4 @@ def tensor_prod(*arg):
     #  for i in range(1, len(arg)):
     #      res = np.kron(res, arg[len(arg) - i - 1])
     return res
+

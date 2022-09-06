@@ -257,8 +257,8 @@ class DeepQLearning(Solver):
         solver_for_target.load_settings(target_params)
         solver_for_target.solve()
         rho_target = solver_for_target.get_rho_target()
+        #rho_target = np.array(rho_target/np.trace(rho_target),dtype="complex128")
         self.rho_target = rho_target
-        print(rho_target)
         return rho_target 
 
 class DQLWithReplayMemory(DeepQLearning):
@@ -308,6 +308,7 @@ class DQLWithReplayMemory(DeepQLearning):
 
         if verbose:
             print(f'\n----------Total Reward: {reward_sequence[-1]:.2f}')
+
 
         episode = Episode(action_sequence,
                           reward_sequence)
@@ -359,13 +360,15 @@ class DQLWithReplayMemory(DeepQLearning):
         #  Run the simulation and get a history of the rewards for each episode.
         rewards = self.run()
         end_time = time.time()
+        parametername = 'N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)
         self.save_best_encountered_actions('json',
-                                                 'best_gate_sequence.json')
+                                                 'best_gate_sequence'+parametername+'.json')
         try:
-            with open('rewards.npy', 'wb') as f:
+            reward_filename = 'rewards'+parametername+'.npy'
+            with open(reward_filename, 'wb') as f:
                 np.save(f, rewards)
         except Exception as e:
-            print('`rewards.npy` could not be saved.')
+            print(reward_filename+' could not be saved.')
             print('--->', e)
         info_dic = {
             #  'parameters': parameters,
@@ -376,11 +379,12 @@ class DQLWithReplayMemory(DeepQLearning):
             'total_time': end_time - start_time
             }   
         try:
-            with open('results_info.json', 'w') as f:
+            result_info_filename = 'results_info'+parametername+'.json'
+            with open(result_info_filename, 'w') as f:
                 json.dump(info_dic, f, indent=2)
-            print("results_info.json written.")
+            print(result_info_filename+' written.')
         except Exception as e:
-            print('`results_info.json` could not be saved.')
+            print(result_info_filename+' could not be saved.')
             print('--->', e)
 
 

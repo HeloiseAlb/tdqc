@@ -87,7 +87,7 @@ parameters = {
     'average_exponent': 0.5,
 
     # q_learning parameters:
-    'n_episodes': 10000,#int(5e4),
+    'n_episodes': 50000,#int(5e4),
     #  'n_episodes': 100,
 
     'epsilon_max': 1.0,
