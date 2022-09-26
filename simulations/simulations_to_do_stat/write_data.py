@@ -31,7 +31,7 @@ print('Best reward: {}'.format(max(data_array_last_rewards)))
 #print("\nData summary:\n", data_array_last_rewards)
 print("\nData shape:\n", data_array_last_rewards.shape)
 
-#"""
+"""
 xaxis = np.arange(data_array.shape[0])
 plt.show()
 #plt.title("Evolution of the local reward during training for a 4-qubit system.")
@@ -64,4 +64,4 @@ plt.ylabel('average Rewards over 100')
 
 plt.plot(xaxis_ave,data_average, marker = '+', c = 'g')
 plt.savefig('local_rewards_ave.png')
-"""
+#"""
