@@ -3,6 +3,16 @@ import tdqc
 import numpy as np
 from math import log2, sqrt
 
+def tensor_prod(*arg):
+    """
+    tensor_prod(a1, a2) = np.kron(a1, a2).
+    tensor_prod(a1, a2, ..., an) = np.kron(tensor_prod(a1, ..., an-1), an)
+    """
+    res = arg[0]
+    for i in range(1, len(arg)):
+        res = np.kron(res, arg[i])
+    return res
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_logger(record_testsuite_property):
     import logging
@@ -10,7 +20,7 @@ def setup_logger(record_testsuite_property):
     LOGGER.debug((' ' +__name__ + ' ').center(100,'-'))
 
 @pytest.mark.fast
-def test_reward1():
+def test_reward_fixation_infinity_problem():
     from tdqc.numerics.deep_q_learning.environments_cpp import reduced_density_matrix, local_reward
     psi1 = np.array([0,1,0,0],dtype=np.complex128) #|01>
     psi2 = np.array([1,0,0,0],dtype=np.complex128) #|00>
@@ -19,7 +29,7 @@ def test_reward1():
     assert local_reward(rho1,rho2)==0.0, "The local reward between matrices such as supp ( ρ ) ∩ ker ( σ ) ≠ 0 is zero."
 
 @pytest.mark.fast
-def test_reward2():
+def test_reward_identical_matrices():
     from tdqc.numerics.deep_q_learning.environments_cpp import local_reward, reduced_density_matrix, globalize_op, relative_entropy
     # It is a case where the quantum relative entropy should be 0 according to 11.3.1 of Nielsen and Chuang.
     psi1 = np.array([0,1,0,0],dtype='complex128') #|01>
@@ -33,7 +43,8 @@ def test_reward2():
     assert local_reward(rho_rand,rho_rand,n_qubits=None)==1.0, "The local reward between 2 identical matrix is 1."
 
 @pytest.mark.fast
-def test_reward3():
+def test_reward_correctness_of_the_value():
+    # I printed it and checked the values.
     from tdqc.numerics.deep_q_learning.environments_cpp import reduced_density_matrix, local_reward
     np.random.seed(seed=None)
     rho1 = np.matrix(np.random.rand(4,4))    
@@ -73,27 +84,117 @@ def test_relative_entropy():
     print("relative_entropy_instable:{}".format(relative_entropy_instable))
     print("relative_entropy_instable2:{}".format(relative_entropy_instable2))
     print("relative_entropy_instable3:{}".format(relative_entropy_instable3))
-    relative_entropy_stable = relative_entropy(rho1,rho2)
+    relative_entropy_stable = relative_entropy(rho1,rho2,1)
     print("relative_entropy_stable:{}".format(relative_entropy_stable))
     assert abs(relative_entropy_stable-relative_entropy_instable2)<= 0.01, "The relative_entropy is computed correctly."
 
 
-#test_reward1()    
-#test_reward2()
-test_reward3()
-test_relative_entropy()
-"""
-    relative_entropy(rho1,rho2)
-    local_reward(rho1,rho2,n_qubits=None)
-    #educed_density_matrix(rho_init,site1,site2,n_qubits=None)
-    relative_entropy(rho1,rho2)
-    rho1 = 
-    #assert hasattr(state, vec_state), "State has an attribute vec_state"
-    # The vec_state must be an array from numpy.
-    amplitudes = state.vec_state
-    assert isinstance(amplitudes, np.ndarray), "Amplitudes given as an array from numpy"
-    # It must be possible to get the amplitudes in the format of the code from Markus. 
-    assert callable(getattr(State, 'get_state_format_ml', None)), "State has a method State has a method get_state_format_ml"
-    state_real, state_imag = state.get_state_format_ml()
-    assert isinstance(state_real, np.ndarray) and isinstance(state_imag, np.ndarray), "Amplitudes format ml given as two arrays from numpy"
-"""
+@pytest.mark.fast
+def test_reward_negativity():
+    # To use it one need to change the line "return max(0,r_local)" with "return r_local" in the function local_reward() in environments_cpp.py.
+    #from tdqc.numerics.deep_q_learning.environments_cpp import reduced_density_matrix, local_reward, relative_entropy
+    from tdqc.solver.deep_q_learning import DeepQLearning, DQLWithReplayMemory
+    from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model
+    from tdqc.numerics.ed.models_ed import State
+    from tdqc.solver.ed import EDSolver
+    #from tdqc.numerics.deep_q_learning.parameters_lri import parameters
+    # Initializing model
+    L = 2 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+    J = 1.0
+    m_x = 2.0
+    m_z = 2.0
+    alpha = int(3)
+    model = lri_model
+    model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
+    # Initializing state
+    state_imag = np.zeros(2**L,dtype='complex128')
+    spinors = [np.array([1.0, 0.0],dtype='complex128') if _ % 2 == 0
+            else np.array([0.0, 1.0],dtype='complex128') for _ in range(L)]
+    state_real = tensor_prod(*spinors)
+    init_vec_state = state_real + 1j*state_imag
+    norm = np.linalg.norm(init_vec_state)
+    init_vec_state = init_vec_state / norm
+
+    parameters = {
+    # =======================================================================
+    # physical system
+    # =======================================================================
+    'n_sites':  L,
+    'n_steps': 3,
+    't_initial': 0.0,
+    't_final': 1.0, # This is the tau in the article.
+    'system_class': 'LongRangeIsing',
+    #  also sets entangling gate alpha
+    'ham_params': {
+        'J': 1.0,
+        'g': 2.0,
+        'h': 2.0,
+        'alpha': 2.0,
+        'm_c': 0.5,
+        'w_c': 1.0,
+        'j_c': 1.0
+    },
+    'initial_state': 'antiferro',
+    'seed_initial_state': None, # 42,
+    'n_directions': 2,  # also affect LRI Hamiltonian
+    'gate_order': 'zx',
+    'entangling_gates_dir': 'jx',
+    'env_type': 'DynamicalEvolution_cpp',
+    'algorithm': 'DQN_ReplayMemory',
+    'range_all': 0.2,
+    'range_one': 0.4,
+    'exploration': 'gaussian',
+    'average_exponent': 0.5, #  type of reward
+    'n_episodes': 10,# q_learning parameters:
+
+    'epsilon_max': 1.0,
+    'epsilon_min': 0.005, # corresponds to pp=0.9 with n_episode = 1e5
+    'epsilon_decay': 0.9999411315398542,
+    'n_epochs': 1,
+    'model_update_spacing': 20, # what is that ?
+    'network_type': 'SingleDense',
+    'architectures': [[(150, 'tanh'),
+                       (40, 'relu'),
+                       #  (20, 'relu'),
+                       (1, 'sigmoid')]],
+    'max_q_optimizer': {
+        'algorithm': 'adam',
+        'learning_rate': 0.6,#005,
+        'beta_1': 0.9,
+        'beta_2': 0.999,
+        'epsilon': 1e-8,
+        'n_initial_actions': 5,
+        'n_iterations': 50, #500
+        'convergence_threshold': 0.005,
+        'action_initialization': 'random'
+    },
+
+    'target_params':{
+            'solver': EDSolver(),
+            'n_steps': int(1/0.001), # time steps 
+            'model': model,
+            'state': State(init_vec_state)
+            }
+    }
+    parameters_replay_memory = {
+    'capacity': 50,
+    'sampling_size': 50,
+    'NN_optimizer': 'adam',
+    'n_epochs': 1
+    }
+    solver = DQLWithReplayMemory()
+    solver.load_settings(settings=parameters)
+    solver.load_seetings_replay_memory(**parameters_replay_memory)
+    solver.solve()
+    
+
+
+
+
+
+
+
+test_reward_negativity() 
+
+
+

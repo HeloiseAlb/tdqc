@@ -29,10 +29,6 @@ spin_op= {
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
 
-def is_pos_def(x):
-    print(np.linalg.eigvalsh(x))
-    return(np.all(np.linalg.eigvalsh(x) >= 0))
-
 def globalize_op(local_op,site,L):
     '''
     Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
@@ -181,7 +177,7 @@ class QuantumEnv():
         hx_gates = np.array(hx_gates) * self.range_one
         return jx_gates, hx_gates, hz_gates
 
-    def render(self, action_sequence, outfile=sys.stdout):
+    def render(self, action_sequence, best_final_state, outfile=sys.stdout):
         jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
         outfile.write('\n')
@@ -199,7 +195,9 @@ class QuantumEnv():
                 ) + ']\n'
             )
             outfile.write('\n')
-
+        outfile.write(f'Best final state: {best_final_state}\n')
+        outfile.write('\n')
+        
     def step(self, action, rho_target):
         self.current_state, done = self.get_transition(self.current_state,
                                                        action)
@@ -265,33 +263,14 @@ class DynamicalEvolution(QuantumEnv):
         jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(jx_gates, hx_gates, hz_gates)
-        final_state = self.apply_gate_sequence()
-        rho_DQS = np.tensordot(np.conjugate(final_state), final_state, axes=0)        
+        self.final_state = self.apply_gate_sequence()
+         
+        rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)        
 
         # The density matrix is a normalized, positive definite matrix.
         trace_rho_DQS = np.trace(rho_DQS)
         if trace_rho_DQS != 0:
             rho_DQS = rho_DQS/trace_rho_DQS # Normalizaton of the final state. 
-
-        '''
-        # To check if the matrices are Hermitian:
-                
-        rho_DQS_mat = np.matrix(rho_DQS)
-        rho_target_mat = np.matrix(rho_target)
-        #print('rho_DQS_mat diff :{}'.format(rho_DQS_mat-rho_DQS_mat.getH()))
-        #print('rho_target_mat diff :{}'.format(rho_target_mat-rho_target_mat.getH()))
-        assert (np.all(rho_DQS_mat-rho_DQS_mat.getH() < 0.000000001)), 'rho_DQS_mat hermitian'
-        assert (np.all(rho_target_mat-rho_target_mat.getH() < 0.000000001)), 'rho_target hermitian'
-        
-        # To check if the matrices are P:
-        #print('np.linalg.eigvalsh():{}'.format(np.linalg.eigvalsh(rho_DQS)))
-        #assert self.__isPD(rho_DQS),'rho_DQS is ps'
-        #assert is_pos_def(rho_DQS),'NOT PD rho_DQS:{},np.linalg.eigvalsh(rho_DQS):{}'.format( rho_DQS,np.linalg.eigvalsh(rho_DQS)) 
-
-        #print('np.linalg.eigvalsh(rho_target):{}'.format(np.linalg.eigvalsh(rho_target)))
-        #assert isPD(rho_target),'NOT PD : rho_target:{},np.linalg.eigvalsh(rho_target):{}'.format(rho_target,np.linalg.eigvalsh(rho_target)) 
-        # Artificial fixation of the PS instability problem.
-        '''
         return local_reward(rho_DQS,rho_target,n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors=False):
@@ -402,7 +381,6 @@ def relative_entropy(rho1,rho2,positiveDefinite=1):
         eVals1 = np.maximum(eVals1,0)
         eVals2, eVecs2 = eigh(rho2)
         eVals2 = np.maximum(eVals2,0)
-        print('eVals1:{},eVals2:{}'.format(eVals1,eVals2))
         relativeEntropy = 0
         for index1, value1 in enumerate(eVals1):
             subsum_index1 = 0

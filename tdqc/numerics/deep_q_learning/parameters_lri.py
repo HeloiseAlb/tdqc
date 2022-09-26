@@ -19,7 +19,7 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 6 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
@@ -73,7 +73,6 @@ parameters = {
     # =======================================================================
     # environment and reinforcement learning
     # =======================================================================
-
     #  'env_type': 'DynamicalEvolution',
     'env_type': 'DynamicalEvolution_cpp',
     'algorithm': 'DQN_ReplayMemory',
@@ -95,8 +94,8 @@ parameters = {
     # corresponds to pp=0.9 with n_episode = 1e5
     'epsilon_decay': 0.9999411315398542,
     'n_epochs': 1,
-    'model_update_spacing': 20,
-
+    'model_update_spacing': 20, #20
+    'n_simulations': 1,
     # =======================================================================
     # neural networks
     # =======================================================================
@@ -144,7 +143,7 @@ parameters = {
     #      #  'action_initialization': 'fixed random'
     #  },
 
-    'max_q_optimizer': {
+    'max_q_optimizer': { # To perform backpropagation on Q_behavior
         'algorithm': 'adam',
         # learning rate
         'learning_rate': 0.6,#005,

@@ -77,3 +77,9 @@ class EDSolver(Solver):
         target = self.__final_state.get_density_matrix()
         return target
 
+    def get_state_target(self,):
+        if (self.__final_state == None):
+            raise ValueError("The method solve need to be run before in order to get the target_state")
+        target = self.__final_state.get_vector_state()
+        return target
+    

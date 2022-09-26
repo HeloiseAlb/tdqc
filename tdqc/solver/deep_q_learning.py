@@ -31,6 +31,7 @@ Update:
 
 """
 from abc import ABCMeta, abstractmethod
+from locale import ERA_D_T_FMT
 import random
 from collections import namedtuple
 import numpy as np
@@ -62,6 +63,10 @@ class DeepQLearning(Solver):
         """
         Initialize settings stored in local variable self.__settings
         """
+        if not "n_simulations" in settings:
+            self.n_simulations = 1
+        else: 
+            self.n_simulations = settings["n_simulations"]
         if not "n_episodes" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'n_episodes' parameter not found")
         self.n_episodes = settings["n_episodes"]
@@ -139,8 +144,9 @@ class DeepQLearning(Solver):
         # (np.random.choice does not like the list of Episode namedtuples)
         random.seed(self.seed)
         np.random.seed(self.seed)
-        self.best_encountered_actions = None
-        self.best_encountered_rewards = None
+        #self.best_encountered_actions = None
+        #self.best_encountered_rewards = None
+        #self.best_final_state = None 
         print(f'Instance of {type(self).__name__} initialized with '
               f'the following attributes (showing only str, int and float):')
         for attribute, value in self.__dict__.items():
@@ -159,6 +165,7 @@ class DeepQLearning(Solver):
                 [0]*(len(self.best_encountered_actions) - 1)
                 + [self.env.reward(self.best_encountered_actions,self.rho_target)]
             )
+            
 
         print('Final reward of the initial action sequence'
               f' is {self.best_encountered_rewards[-1]}')
@@ -175,15 +182,16 @@ class DeepQLearning(Solver):
 
             mode = 'explore'
 
-            reward_sequence, action_sequence = self.run_episode(verbose,
+            reward_sequence, action_sequence, final_state = self.run_episode(verbose,
                                                                 mode=mode)
             reward_sequence = np.real(reward_sequence)
             print('reward_sequence[-1]:{} '.format(reward_sequence[-1]) )
-            print('self.best_encountered_rewards[-1]:{} '.format(self.best_encountered_rewards[-1]) )
-            if reward_sequence[-1] >self.best_encountered_rewards[-1]:
+            print('self.best_encountered_rewards[-1]:{} '.format(self.best_encountered_rewards[-1]))
+            if reward_sequence[-1] > self.best_encountered_rewards[-1]:
                 self.best_encountered_rewards = reward_sequence
                 self.best_encountered_actions = action_sequence
-            print('rewards[episode, :]:{},reward_sequence:{}'.format(rewards[episode, :],reward_sequence))
+                self.best_final_state = final_state
+            #print('rewards[episode, :]:{},reward_sequence:{}'.format(rewards[episode, :],reward_sequence))
             rewards[episode, :] = reward_sequence
 
             if self.epsilon >= self.epsilon_min:
@@ -192,7 +200,8 @@ class DeepQLearning(Solver):
         print(f"Final epsilon: {self.epsilon:.2f}.\n")
         print(f'\nBest encountered rewards (i.e. with best final reward): ',
               [f'{r:.4f}' for r in self.best_encountered_rewards])
-        self.env.render(action_sequence=self.best_encountered_actions)
+
+        self.env.render(action_sequence=self.best_encountered_actions, best_final_state=self.best_final_state)
         return rewards
 
     def run_episode(self, verbose=False, mode='explore'):
@@ -256,10 +265,15 @@ class DeepQLearning(Solver):
         #target_params.pop('solver', None)
         solver_for_target.load_settings(target_params)
         solver_for_target.solve()
+        state_target = solver_for_target.get_state_target()
+        self.state_target = state_target
         rho_target = solver_for_target.get_rho_target()
         #rho_target = np.array(rho_target/np.trace(rho_target),dtype="complex128")
         self.rho_target = rho_target
-        return rho_target 
+        return rho_target
+    
+
+    
 
 class DQLWithReplayMemory(DeepQLearning):
     """DQN with the addition of a replay memory."""
@@ -305,7 +319,7 @@ class DQLWithReplayMemory(DeepQLearning):
                 #                                use_target=True)[1]
                 #  )
                 pass
-
+        final_state = self.env.final_state
         if verbose:
             print(f'\n----------Total Reward: {reward_sequence[-1]:.2f}')
 
@@ -314,7 +328,7 @@ class DQLWithReplayMemory(DeepQLearning):
                           reward_sequence)
         self.memory.push(episode)
         self.fit_network()
-        return reward_sequence, action_sequence
+        return reward_sequence, action_sequence, final_state
 
     def fit_network(self, memory=None, sampling_size=None, epochs=None):
         """Update policy network using a batch of episodes sampled from memory
@@ -349,43 +363,48 @@ class DQLWithReplayMemory(DeepQLearning):
         if not self.seetings_replay_memory_loaded:
             raise RuntimeError("The seetings of the replay memory need to be loaded: run self.load_seetings_replay_memory().")
         # This method runs the deep Q-learning algorithm with experience replay memory. 
-        start_time = time.time()        
-        rho_target = self.get_rho_target_from_other_solver()
-        #  Get the initial reward (useful to get the Trotter reward).
-        #  note: when the initial actions are random, the seed is not the same.
-        initial_action_sequence = self.env.initial_action_sequence(False)
-        initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
-        #  print("The initial reward is (Trotter or random) ", initial_reward)
-
         #  Run the simulation and get a history of the rewards for each episode.
-        rewards = self.run()
-        end_time = time.time()
-        parametername = 'N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)
-        self.save_best_encountered_actions('json',
-                                                 'best_gate_sequence'+parametername+'.json')
-        try:
-            reward_filename = 'rewards'+parametername+'.npy'
-            with open(reward_filename, 'wb') as f:
-                np.save(f, rewards)
-        except Exception as e:
-            print(reward_filename+' could not be saved.')
-            print('--->', e)
-        info_dic = {
-            #  'parameters': parameters,
-            'initial_reward': initial_reward,
-            #  'ground_state_energy': ground_state_energy,
-            #  'final_reward': rewards[-1],
-            'best_reward': self.best_encountered_rewards,
-            'total_time': end_time - start_time
-            }   
-        try:
-            result_info_filename = 'results_info'+parametername+'.json'
-            with open(result_info_filename, 'w') as f:
-                json.dump(info_dic, f, indent=2)
-            print(result_info_filename+' written.')
-        except Exception as e:
-            print(result_info_filename+' could not be saved.')
-            print('--->', e)
+        start_time = time.time()   
+        rho_target = self.get_rho_target_from_other_solver()
+        intermediate_time = time.time()
+        for simul in range(0,self.n_simulations,1):
+            #  Get the initial reward (useful to get the Trotter reward).
+            #  note: when the initial actions are random, the seed is not the same.
+            initial_action_sequence = self.env.initial_action_sequence(False)
+            initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
+            #  print("The initial reward is (Trotter or random) ", initial_reward)
+            rewards = self.run()
+            end_time = time.time()
+            parametername = 'N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)
+            self.save_best_encountered_actions('json',
+                                                    'best_gate_sequence'+parametername+'.json')
+            try:
+                reward_filename = 'rewards'+parametername+'.npy'
+                with open(reward_filename, 'wb') as f:
+                    np.save(f, rewards)
+            except Exception as e:
+                print(reward_filename+' could not be saved.')
+                print('--->', e)
+            info_dic = {
+                #  'parameters': parameters,
+                'initial_reward': initial_reward,
+                'best_reward': str(self.best_encountered_rewards),
+                'total_time': end_time - start_time,
+                'deep_q_learning_time': end_time - intermediate_time,
+                'ed_time': intermediate_time - start_time,
+                'best_final_state': str(self.best_final_state),
+                'target_state': str(self.state_target)
+                #  'ground_state_energy': ground_state_energy,
+                #  'final_reward': rewards[-1],
+                }   
+            try:
+                result_info_filename = 'results_info'+parametername+'.json'
+                with open(result_info_filename, 'w') as f:
+                    json.dump(info_dic, f, indent=2)
+                print(result_info_filename+' written.')
+            except Exception as e:
+                print(result_info_filename+' could not be saved.')
+                print('--->', e)
 
 
 Episode = namedtuple('Episode', ('action_sequence',

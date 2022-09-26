@@ -59,9 +59,7 @@ class Model(object):
         fonction = self.model_hamiltonian
         self.hamiltonian = fonction(*parameter)
         eig_values,eig_vectors = np.linalg.eigh(self.hamiltonian) 
-        #self.eig_values = np.maximum(eig_values,0)
         self.eig_values = eig_values
-        #print('eig_values:{}'.format(self.eig_values))
         self.eig_vectors = eig_vectors
         self.ground_states = ground_states(eig_values,eig_vectors)
 
@@ -147,7 +145,10 @@ class State(object):
         self.vec_state_real = new_vec_state.real
         self.vec_state_imag = new_vec_state.imag
 
-    def get_density_matrix(self):
+    def get_vector_state(self,):
+        return self.vec_state
+
+    def get_density_matrix(self,):
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
         # The function returns a normalized, positive definite matrix.
         trace_density_mat = np.trace(self._density_mat)
