@@ -72,8 +72,7 @@ class ExactDiagonalization(object):
         self.step = step
         self.amplitudes = None
         self.H = self.model.hamiltonian
-        eig_values,self.eig_vectors = np.linalg.eigh(self.H)
-        self.eig_values = eig_values # np.maximum(eig_values,0)
+        self.eig_values,self.eig_vectors = np.linalg.eigh(self.H)
         self.ground_state = None
 
     def set_ground_state(self):

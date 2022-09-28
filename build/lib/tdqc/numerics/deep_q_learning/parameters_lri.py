@@ -19,7 +19,7 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 6 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 10 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
@@ -143,13 +143,14 @@ parameters = {
     #      #  'action_initialization': 'fixed random'
     #  },
 
-    'max_q_optimizer': { # To perform backpropagation on Q_behavior
+    'max_q_optimizer': {
+        # To perform backpropagation on Q_behavior.
         'algorithm': 'adam',
-        # learning rate
-        'learning_rate': 0.6,#005,
+        # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
+        'learning_rate': 0.6,#005
         'beta_1': 0.9,
         'beta_2': 0.999,
-        'epsilon': 1e-8,
+        'epsilon': 1e-8, 
         #  'n_initial_actions': 5,
         'n_initial_actions': 5,
         #'n_iterations': 1000,
