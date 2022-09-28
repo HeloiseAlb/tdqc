@@ -125,9 +125,10 @@ parameters = {
     #  },
 
     'max_q_optimizer': {
+        # To perform backpropagation on Q_behavior.
         'algorithm': 'adam',
-        # learning rate
-        'learning_rate': 0.6,#005,
+        # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
+        'learning_rate': 0.6,#005
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8,
