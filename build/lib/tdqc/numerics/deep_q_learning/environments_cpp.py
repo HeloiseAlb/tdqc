@@ -14,7 +14,6 @@ import sys
 from scipy.linalg import logm, expm, eigh, inv
 #for p in sys.path:
 #    print(str('p'),p)
-from numpy import linalg
 import numpy as np
 import cmath
 from math import pi, log2, sqrt, isnan, log
@@ -263,14 +262,15 @@ class DynamicalEvolution(QuantumEnv):
         jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(jx_gates, hx_gates, hz_gates)
-        self.final_state = self.apply_gate_sequence()
-         
+        final_state = self.apply_gate_sequence()
+         # Normalizaton of the final state
+        norm_final_state = np.linalg.norm(final_state)
+        if norm_final_state != 0:
+            final_state = final_state / norm_final_state
+        self.final_state = final_state
+
         rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)        
 
-        # The density matrix is a normalized, positive definite matrix.
-        trace_rho_DQS = np.trace(rho_DQS)
-        if trace_rho_DQS != 0:
-            rho_DQS = rho_DQS/trace_rho_DQS # Normalizaton of the final state. 
         return local_reward(rho_DQS,rho_target,n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors=False):
@@ -359,7 +359,7 @@ def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
     rho = rho.reshape([4,4])
     #rho_mat = np.matrix(rho)
     #print('rho diff:{}'.format(rho_mat-rho_mat.getH()))
-    return np.matrix(rho)
+    return rho
 
 def globalize_op(local_op,site,L):
     '''

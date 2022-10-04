@@ -374,7 +374,7 @@ def globalize_op(local_op,site,L):
         tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
     return tensor_0
 
-def relative_entropy(rho1,rho2,positiveDefinite=1):
+def relative_entropy(rho1,rho2,positiveDefinite=0):
     if positiveDefinite:
         # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
         eVals1, eVecs1 = eigh(rho1) 
