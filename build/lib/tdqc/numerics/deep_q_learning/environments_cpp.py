@@ -103,11 +103,14 @@ class QuantumEnv():
 
     def set_coupling_matrix(self,):
         dim = int(2**self.n_sites)
+        list_glob_operators =  [None] * self.n_sites
+        for site in range(0,self.n_sites,1):
+            list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
         coupling_matrix = np.zeros((dim,dim),dtype='complex128')
         for l in range(0,self.n_sites,1):
-            matrix_1 = globalize_op(spin_op['sigma_x'],l,self.n_sites)
+            matrix_1 = list_glob_operators[l] 
             for k in range(l+1,self.n_sites,1):
-                matrix_2 = globalize_op(spin_op['sigma_x'],k,self.n_sites)
+                matrix_2 = list_glob_operators[k]
                 coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
         self.coupling_matrix = coupling_matrix
 
@@ -147,8 +150,8 @@ class QuantumEnv():
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
         self.initial_state = self.state_real + 1j*self.state_imag
-        #  the flip is used to be consitent with how states are encoded in
-        #  the QuDyn library. 
+        # the flip is used to be consitent with how states are encoded in
+        # the QuDyn library. 
         # Since I don't used QuDyn library anymore, I don't do that on the state I use. 
         state_real = np.flip(self.state_real, axis=0)
         state_imag = np.flip(self.state_imag, axis=0)
@@ -374,7 +377,7 @@ def globalize_op(local_op,site,L):
         tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
     return tensor_0
 
-def relative_entropy(rho1,rho2,positiveDefinite=1):
+def relative_entropy(rho1,rho2,positiveDefinite=0):
     if positiveDefinite:
         # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
         eVals1, eVecs1 = eigh(rho1) 
