@@ -168,6 +168,9 @@ class DeepQLearning(Solver):
 
         print('Final reward of the initial action sequence'
               f' is {self.best_encountered_rewards[-1]}')
+        self.time_select_action_sum = 0
+        self.time_compute_reward_sum = 0
+        self.time_fit_network_sum = 0 
         for episode in range(self.n_episodes):
 
             if episode % self.model_update_spacing == 0:
@@ -302,14 +305,20 @@ class DQLWithReplayMemory(DeepQLearning):
         state = self.env.reset()
         step = 0
         while not done:
+            time_start_select_action = time.time()
             action = self.select_action(mode=mode,
                                         state=state,
                                         step=step)
+            time_end_select_action = time.time()
+            self.time_select_action_sum += time_end_select_action - time_start_select_action
             action_sequence.append(action)
             # env.step modifies env.current_state
             # (state is env.current_state)
+            time_start_compute_reward = time.time()
             state, reward, done, _ = self.env.step(action,rho_target=self.rho_target)
             reward_sequence.append(reward)
+            time_end_compute_reward = time.time()
+            self.time_compute_reward_sum += time_end_compute_reward - time_start_compute_reward
             step += 1
             if not done:
                 #  q_target_sequence.append(
@@ -326,7 +335,10 @@ class DQLWithReplayMemory(DeepQLearning):
         episode = Episode(action_sequence,
                           reward_sequence)
         self.memory.push(episode)
+        time_start_fit_network = time.time()
         self.fit_network()
+        time_end_fit_network = time.time()
+        self.time_fit_network_sum += time_end_fit_network - time_start_fit_network
         return reward_sequence, action_sequence, final_state
 
     def fit_network(self, memory=None, sampling_size=None, epochs=None):
@@ -362,13 +374,15 @@ class DQLWithReplayMemory(DeepQLearning):
         if not self.seetings_replay_memory_loaded:
             raise RuntimeError("The seetings of the replay memory need to be loaded: run self.load_seetings_replay_memory().")
         # This method runs the deep Q-learning algorithm with experience replay memory. 
-        #  Run the simulation and get a history of the rewards for each episode.
+        # Run the simulation and get a history of the rewards for each episode.
         start_time = time.time()   
         rho_target = self.get_rho_target_from_other_solver()
         intermediate_time = time.time()
+
         for simul in range(0,self.n_simulations,1):
-            #  Get the initial reward (useful to get the Trotter reward).
-            #  note: when the initial actions are random, the seed is not the same.
+            # The loop here is not working because it does not initialize the NN. 
+            # Get the initial reward (useful to get the Trotter reward).
+            # note: when the initial actions are random, the seed is not the same.
             initial_action_sequence = self.env.initial_action_sequence(False)
             initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
             #  print("The initial reward is (Trotter or random) ", initial_reward)
@@ -392,7 +406,10 @@ class DQLWithReplayMemory(DeepQLearning):
                 'deep_q_learning_time': end_time - intermediate_time,
                 'ed_time': intermediate_time - start_time,
                 'best_final_state': str(self.best_final_state),
-                'target_state': str(self.state_target)
+                'target_state': str(self.state_target),
+                'time_fit_network_sum': self.time_fit_network_sum,
+                'time_compute_reward_sum': self.time_compute_reward_sum,
+                'time_select_action_sum': self.time_select_action_sum,
                 #  'ground_state_energy': ground_state_energy,
                 #  'final_reward': rewards[-1],
                 }   

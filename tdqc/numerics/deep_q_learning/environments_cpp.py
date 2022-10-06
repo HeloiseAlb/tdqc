@@ -222,15 +222,15 @@ class QuantumEnv():
         return np.random.uniform(-1, 1, size=self.action_dim)
 
     def apply_gate_sequence(self):
+        # Apply the sequence of gates to have the final state. 
         # Define the universal quantum gate set used in Markus article. 
         U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
 
-        # Apply the sequence of gates to have the final state. 
         state = self.initial_state
-        # Those gate lists are in fact list of angles.
+        # Those gate lists are in fact lists of angles.
         jx_angle_list = self.system.jx_gate_list
         hx_angle_list = self.system.hx_gate_list
         hz_angle_list = self.system.hz_gate_list
@@ -266,14 +266,13 @@ class DynamicalEvolution(QuantumEnv):
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(jx_gates, hx_gates, hz_gates)
         final_state = self.apply_gate_sequence()
-         # Normalizaton of the final state
+
+        # Normalizaton of the final state
         norm_final_state = np.linalg.norm(final_state)
         if norm_final_state != 0:
             final_state = final_state / norm_final_state
         self.final_state = final_state
-
         rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)        
-
         return local_reward(rho_DQS,rho_target,n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors=False):
@@ -334,7 +333,6 @@ def local_reward(rho1,rho2,n_qubits=None):
     r_local = r_local.real
     #print('r_local:{}'.format(r_local))
     return max(0,r_local)
-    #return r_local
 
 def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
     # Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix.
