@@ -27,7 +27,7 @@ class Solver(metaclass=ABCMeta):
         return [all(hasattr(self, attr) for attr in self.__attributes), all(callable(getattr(self, attr)) for attr in self.__callables)]
 
     def __check_validity__(self):
-        """ Asserts that all necassery attributes are defined and all expected methods callable"""
+        """ Asserts that all necessary attributes are defined and all expected methods callable"""
         __reasons = self.__check_reason__()
         assert all(__reasons), "The specialization {} is not a proper subclass of {}!\nAll attributes defined {}, all callables defined {}".format(self.__class__.__name__,self.__bases__[0],__reasons[0],__reasons[1])
 

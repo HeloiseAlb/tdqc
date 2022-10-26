@@ -65,7 +65,7 @@ def test_ed_solver_structure():
     solver = EDSolver()
     solver.load_settings(settings)
     assert callable(getattr(solver, 'solve', None)), "EDSolver has a method solve"
-    # It must be possible to get the list of amplitudes obtained from solved.
+    # It must be possible to get the list of amplitudes obtained from solve.
     assert hasattr(solver, 'time_evolution'), "EDSolver has an attribut time_evolution"
     solver.solve()
     assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"

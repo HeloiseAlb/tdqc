@@ -225,7 +225,7 @@ class QuantumEnv():
 
     def apply_gate_sequence(self):
         """ Apply the sequence of gates to have the final state. """
-        # Define the universal quantum gate set used in Markus article. 
+        # Define the universal quantum gate set used in Markus' article. 
         U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
