@@ -11,13 +11,14 @@ NN model used, coded in models.py.
 """
 
 import sys
-from scipy.linalg import logm, expm, eigh, inv
+from scipy.linalg import logm, expm, eigh
 #for p in sys.path:
 #    print(str('p'),p)
 import numpy as np
 import cmath
 from math import pi, log2, sqrt, isnan, log
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
+import time
 #import tdqc.numerics.deep_q_learning.system_mps.system as sy
 
 spin_op= {
@@ -29,10 +30,9 @@ spin_op= {
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
 
 def globalize_op(local_op,site,L):
-    '''
-    Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
+    """" Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
-    '''
+    """
     tensor_0 = np.identity(1,dtype = 'complex128')
     for i in range(0,site,1):
         tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
@@ -43,8 +43,7 @@ def globalize_op(local_op,site,L):
 
 
 class QuantumEnv():
-    """ Quantum environment using QuDyn (cpp) for time evolution.
-    """
+    """ Quantum environment using QuDyn (cpp) for time evolution. """
     def __init__(self,
                  n_sites,
                  n_steps,
@@ -100,6 +99,8 @@ class QuantumEnv():
         self.state = self.state_real+1j*self.state_imag
         self.set_coupling_matrix()
         self.reset()
+        self.time_reduced_density_matrix_iteration = 0
+
 
     def set_coupling_matrix(self,):
         dim = int(2**self.n_sites)
@@ -159,7 +160,8 @@ class QuantumEnv():
 
     def decode_action_sequence(self, action_sequence):
         """ Given [..., ai, ...], the list of actions, return list of gates jx, [.., hx_i, ...],
-        [..., hz_i, ...]"""
+        [..., hz_i, ...]
+        """
         if self.n_directions != 2:  # and self.n_directions != 3:
             raise ValueError('decode_action_sequence is only implemented '
                              'for n_directions = 2.')
@@ -222,15 +224,14 @@ class QuantumEnv():
         return np.random.uniform(-1, 1, size=self.action_dim)
 
     def apply_gate_sequence(self):
+        """ Apply the sequence of gates to have the final state. """
         # Define the universal quantum gate set used in Markus article. 
         U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
-
-        # Apply the sequence of gates to have the final state. 
         state = self.initial_state
-        # Those gate lists are in fact list of angles.
+        # Those gate lists are in fact lists of angles.
         jx_angle_list = self.system.jx_gate_list
         hx_angle_list = self.system.hx_gate_list
         hz_angle_list = self.system.hz_gate_list
@@ -246,10 +247,8 @@ class QuantumEnv():
                 elif self.system.gate_order == "zx":
                     U_z_site = globalize_op(U_z(hz_angle_list[step][site]),site,self.n_sites)
                     state = np.dot(U_z_site,state)
-                    #print('state after U_z on site:{} is {}'.format(U_z_site,state))
                     U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
                     state = np.dot(U_x_site,state)
-                    #print('state after U_x on site:{} is {}'.format(U_x_site,state))
         return state
 
 
@@ -258,7 +257,7 @@ class DynamicalEvolution(QuantumEnv):
     def __init__(self, **other_params):
         super().__init__(calculate_target_state=True,
                          **other_params)
-
+    
     def reward(self,action_sequence,rho_target):        
         # Return the reward of the action_sequence computed according to rho_target.
         n_qubits = self.n_sites
@@ -266,15 +265,15 @@ class DynamicalEvolution(QuantumEnv):
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(jx_gates, hx_gates, hz_gates)
         final_state = self.apply_gate_sequence()
-         # Normalizaton of the final state
+        """
+        # Normalizaton of the final state
         norm_final_state = np.linalg.norm(final_state)
         if norm_final_state != 0:
             final_state = final_state / norm_final_state
+        """
         self.final_state = final_state
-
-        rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)        
-
-        return local_reward(rho_DQS,rho_target,n_qubits)
+        rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)     
+        return self.local_reward(rho_DQS,rho_target,n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors=False):
         """Return the ground state energy."""
@@ -313,71 +312,51 @@ class DynamicalEvolution(QuantumEnv):
                 return np.zeros(shape=(self.n_steps, self.action_dim))
             return np.random.uniform(-1, 1, size=(self.n_steps,
                                                   self.action_dim))
+    def local_reward(self,rho1,rho2,n_qubits=None): 
+        if n_qubits == None:
+            n_qubits = int(log2(rho1.shape[0]))
+        sum_measures = 0
+        for j in range(0,n_qubits-1):
+            for k in range(j+1,n_qubits):
+                sum_measures += cmath.sqrt(relative_entropy(self.reduced_density_matrix(rho1,j,k),self.reduced_density_matrix(rho2,j,k)))
+        if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
+            r_local = 0
+            print("sum_measures was Nan, r_local taken to be 0")
+        else:
+            r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
+        r_local = r_local.real
+        return max(0,r_local)
 
-def local_reward(rho1,rho2,n_qubits=None): 
-    #print(' rho 1:{}, and  rho2:{} '.format(rho1,rho2))
-    if n_qubits == None:
-        n_qubits = int(log2(rho1.shape[0]))
-    sum_measures = 0
-    for j in range(0,n_qubits-1):
-        for k in range(j+1,n_qubits):
-            sum_measures += cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))
-            #print("sqrt(relative_entropy({},{}))={}".format(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k),cmath.sqrt(relative_entropy(reduced_density_matrix(rho1,j,k),reduced_density_matrix(rho2,j,k)))))
-    if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
-        r_local = 0
-        print("sum_measures was Nan, r_local taken to be 0")
-    else:
-        r_local = 1 - 2/(n_qubits*(n_qubits-1))*sum_measures
-        #if r_local.real <=0:
-            #print('r_local is negative and is:{}'.format(r_local.real))
-    #r_local = 0.5 * np.trace(np.absolute(rho1-rho2))
-    r_local = r_local.real
-    #print('r_local:{}'.format(r_local))
-    return max(0,r_local)
-    #return r_local
+    def reduced_density_matrix(self,rho_init,site1,site2,n_qubits=None):
+        time_start = time.time()
+        """ Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix. """
+        rho = rho_init 
+        if n_qubits == None:
+            n_qubits = int(log2(rho.shape[0]))
+        n = n_qubits
+        if site1>site2:
+            site1,site2 = site2,site1
+        if site1>0:
+            n1,n2 =int(2**(site1)), int(2**(n-site1))
+            rho = rho.reshape([n1,n2,n1,n2])
+            rho = np.trace(rho,axis1=0,axis2=2)
+            n -= site1
+            site2 -= site1
+        if site2>1:
+            n1,n2 = int(2**(site2-1)),int(2**(n-site2))
+            rho = rho.reshape([2,n1,n2,2,n1,n2])
+            rho = np.trace(rho,axis1=1,axis2=4)
+            n -= site2-1
+        if n>2:
+            n2 = int(2**(n-2))
+            rho = rho.reshape([4,n2,4,n2])
+            rho = np.trace(rho,axis1=1,axis2=3)
+        rho = rho.reshape([4,4])
+        time_end = time.time()
+        self.time_reduced_density_matrix_iteration += time_end - time_start
+        return rho
 
-def reduced_density_matrix(rho_init,site1,site2,n_qubits=None):
-    # Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix.
-    rho = rho_init
-    if n_qubits == None:
-        n_qubits = int(log2(rho.shape[0]))
-    n = n_qubits
-    if site1>site2:
-        site1,site2 = site2,site1
-    if site1>0:
-        n1,n2 =int(2**(site1)), int(2**(n-site1))
-        rho = rho.reshape([n1,n2,n1,n2])
-        rho = np.trace(rho,axis1=0,axis2=2)
-        n -= site1
-        site2 -= site1
-    if site2>1:
-        n1,n2 = int(2**(site2-1)),int(2**(n-site2))
-        rho = rho.reshape([2,n1,n2,2,n1,n2])
-        rho = np.trace(rho,axis1=1,axis2=4)
-        n -= site2-1
-    if n>2:
-        n2 = int(2**(n-2))
-        rho = rho.reshape([4,n2,4,n2])
-        rho = np.trace(rho,axis1=1,axis2=3)
-    rho = rho.reshape([4,4])
-    #rho_mat = np.matrix(rho)
-    #print('rho diff:{}'.format(rho_mat-rho_mat.getH()))
-    return rho
-
-def globalize_op(local_op,site,L):
-    '''
-    Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
-    L is the total number of sites in the system on which we want to apply the global operator.
-    '''
-    tensor_0 = np.identity(1,dtype = 'complex128')
-    for i in range(0,site,1):
-        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-    tensor_0 = np.kron(tensor_0,local_op)
-    for i in range(site+1,L,1):
-        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-    return tensor_0
-
-def relative_entropy(rho1,rho2,positiveDefinite=0):
+def relative_entropy(rho1,rho2,positiveDefinite=1):
     if positiveDefinite:
         # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
         eVals1, eVecs1 = eigh(rho1) 
@@ -398,8 +377,7 @@ def relative_entropy(rho1,rho2,positiveDefinite=0):
         return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
 
 def tensor_prod(*arg):
-    """
-    tensor_prod(a1, a2) = np.kron(a1, a2).
+    """tensor_prod(a1, a2) = np.kron(a1, a2).
     tensor_prod(a1, a2, ..., an) = np.kron(tensor_prod(a1, ..., an-1), an)
     """
     res = arg[0]

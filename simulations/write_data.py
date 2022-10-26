@@ -1,7 +1,8 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_array = np.load('rewards.npy')
+data_array = np.load('rewardsN4episode50000simulations0_26.npy')
 
 print("\nData summary:\n", data_array)
 print("\nData shape:\n", data_array.shape)
@@ -29,8 +30,8 @@ plt.scatter(xaxis,data_array_last_rewards, marker = '+', c = 'g')
 #plt.plot(xaxis,data_array_last_rewards, marker = '+', c = 'g')
 
 
-plt.savefig('local_rewards.png')
-"""
+#plt.savefig('local_rewards.png')
+#"""
 data_average = np.zeros(data_array_last_rewards.shape[0]-100)
 for idx, value in enumerate(data_array[0:-100]):
     data_average[idx] = np.average(data_array_last_rewards[idx:idx+100])
@@ -50,6 +51,7 @@ plt.ylabel('average Rewards over 100')
 #plt.scatter(xaxis,data_average, marker = '+', c = 'g')
 
 plt.plot(xaxis_ave,data_average, marker = '+', c = 'g')
-plt.savefig('local_rewards_ave.png')
+#plt.savefig('local_rewards_ave.png')
 
-"""
+#"""
+# %%

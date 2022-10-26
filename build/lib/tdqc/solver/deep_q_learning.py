@@ -43,7 +43,6 @@ from tdqc.interfaces.solver import Solver
 import tdqc.numerics.deep_q_learning.environments_cpp as envs_cpp
 import tdqc.numerics.deep_q_learning.models as models
 
-
 class DeepQLearning(Solver):
     """Basic abstract class for Deep Q-Learning.
     Two Neural Networks are used for the Q-function.
@@ -165,12 +164,12 @@ class DeepQLearning(Solver):
                 + [self.env.reward(self.best_encountered_actions,self.rho_target)]
             )
             
-
         print('Final reward of the initial action sequence'
               f' is {self.best_encountered_rewards[-1]}')
         self.time_select_action_sum = 0
         self.time_compute_reward_sum = 0
         self.time_fit_network_sum = 0 
+        self.exploration_vs_exploitation = []
         for episode in range(self.n_episodes):
 
             if episode % self.model_update_spacing == 0:
@@ -228,7 +227,9 @@ class DeepQLearning(Solver):
             elif self.exploration == 'gaussian':
                 # add gaussian fluctuation with std = 0.5*ε
                 # (ε = 1 -> 2σ = 1 -> 95% inside [-1, 1])
-                action += self.epsilon * 0.5 * np.random.randn(*action.shape)
+                action_addition = self.epsilon * 0.5 * np.random.randn(*action.shape)
+                action += action_addition
+                self.exploration_vs_exploitation.append(action_addition)
             else:
                 raise NotImplementedError
         else:
@@ -270,7 +271,6 @@ class DeepQLearning(Solver):
         state_target = solver_for_target.get_state_target()
         self.state_target = state_target
         rho_target = solver_for_target.get_rho_target()
-        #rho_target = np.array(rho_target/np.trace(rho_target),dtype="complex128")
         self.rho_target = rho_target
         return rho_target
     
@@ -410,9 +410,17 @@ class DQLWithReplayMemory(DeepQLearning):
                 'time_fit_network_sum': self.time_fit_network_sum,
                 'time_compute_reward_sum': self.time_compute_reward_sum,
                 'time_select_action_sum': self.time_select_action_sum,
+                'time_reduced_density_matrix': self.env.time_reduced_density_matrix_iteration,
                 #  'ground_state_energy': ground_state_energy,
                 #  'final_reward': rewards[-1],
                 }   
+            try: 
+                exploration_vs_exploitation_filename = 'exploration_vs_exploitation'+parametername+'.npy'
+                with open(exploration_vs_exploitation_filename, 'wb') as f:
+                    np.save(f, self.exploration_vs_exploitation)
+            except Exception as e:
+                print(exploration_vs_exploitation_filename+' could not be saved.')
+                print('--->', e)
             try:
                 result_info_filename = 'results_info'+parametername+'.json'
                 with open(result_info_filename, 'w') as f:

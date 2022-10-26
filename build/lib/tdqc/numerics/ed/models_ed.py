@@ -150,12 +150,6 @@ class State(object):
 
     def get_density_matrix(self,):
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
-        '''
-        # The function returns a normalized, positive definite matrix.
-        trace_density_mat = np.trace(self._density_mat)
-        if trace_density_mat != 0:
-            self._density_mat = self._density_mat/trace_density_mat
-        '''
         return self._density_mat
     
     @classmethod

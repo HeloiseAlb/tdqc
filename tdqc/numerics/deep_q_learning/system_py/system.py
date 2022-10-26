@@ -24,9 +24,6 @@ class SpinSystem():
         self.jx_gate_list = jx_angle_list
         self.hx_gate_list = hx_angle_list
         self.hz_gate_list = hz_angle_list
-        #print(' self.jx_gate_list = {} and jx_angle_list = {}'.format(self.jx_gate_list,jx_angle_list))
-        #print(' self.hx_gate_list = {} and hx_angle_list = {}'.format(self.hx_gate_list, hx_angle_list))
-        #print(' self.hz_gate_list = {} and hz_angle_list = {}'.format(self.hz_gate_list, hz_angle_list))
 
     def start(self, measurement):
         # Here we need to run the simulation of the gate sequence.

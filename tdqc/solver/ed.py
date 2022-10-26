@@ -42,8 +42,6 @@ class EDSolver(Solver):
     def time_evolution(self):
         # It returns the amplitudes of the time evolution.
         return self.__time_evolution
-
-
     
     def solve(self):
         # This method runs the time evolution and stores the list of the vec_state in self.__time_evolution.  
@@ -53,7 +51,7 @@ class EDSolver(Solver):
         t_final = self.__t_final
         n_steps = self.__n_steps
         step = (t_final-t_initial)/n_steps
-        print('step:{}'.format(step))
+        #print('step:{}'.format(step))
         imaginary = self.__imaginary
         n_sites = state_t_n.n_sites
         site_list = [l for l in range(1,n_sites,1)]

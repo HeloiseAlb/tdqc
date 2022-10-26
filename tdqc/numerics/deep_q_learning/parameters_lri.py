@@ -19,11 +19,11 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 6 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
-alpha = int(3)
+alpha = 3.0
 model = lri_model
 model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
 # Initializing state
@@ -54,7 +54,7 @@ parameters = {
         #  #  g: x, h: z
         'g': 2.0,
         'h': 2.0,
-        'alpha': 2.0,
+        'alpha': 3.0,#2.0
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0
@@ -102,6 +102,7 @@ parameters = {
     #  'network_type': 'MultiInterStep',
     #  'network_type': 'MultiIntraStep',
     'network_type': 'SingleDense',
+    'seed': 2,
     'architectures': [[(150, 'tanh'),
                        (40, 'relu'),
                        #  (20, 'relu'),
@@ -147,7 +148,7 @@ parameters = {
         # To perform backpropagation on Q_behavior.
         'algorithm': 'adam',
         # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
-        'learning_rate': 0.6,#005
+        'learning_rate': 0.005,#005,#0.6,#005
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8, 
