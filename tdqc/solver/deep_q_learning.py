@@ -98,7 +98,7 @@ class DeepQLearning(Solver):
         self.ham_params = settings["ham_params"]
         self.__target_params = settings["target_params"]
         self.__target_params["t_initial"] = settings["t_initial"]
-        self.__target_params['t_final'] = settings['t_final']
+        self.__target_params["t_final"] = settings["t_final"]
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
