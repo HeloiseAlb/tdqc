@@ -224,7 +224,7 @@ class QuantumEnv():
         return np.random.uniform(-1, 1, size=self.action_dim)
 
     def apply_gate_sequence(self):
-        """ Apply the sequence of gates to have the final state. """
+        """ Apply the sequence of gates onto the initial state and return the final state. """
         # Define the universal quantum gate set used in Markus' article. 
         U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
