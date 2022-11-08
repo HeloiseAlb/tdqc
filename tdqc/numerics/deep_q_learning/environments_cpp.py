@@ -19,7 +19,8 @@ import time
 import numba
 import cython
 from typing import Optional 
-#from numba import jit 
+import tdqc.numerics.deep_q_learning.environments_cpp2 as env_cpp
+#import tdqc.numerics.deep_q_learning.environments_cpp2 as env_cpp
 
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
 #import tdqc.numerics.deep_q_learning.system_mps.system as sy
@@ -321,19 +322,12 @@ class DynamicalEvolution(QuantumEnv):
                                                   self.action_dim))
     
     def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, n_qubits: Optional[int]=None)-> float: 
+
         if n_qubits == None:
             n_qubits = int(log2(rho1.shape[0]))
-        sum_measures = 0
-        for j in range(0,n_qubits-1):
-            for k in range(j+1, n_qubits):
-                sum_measures += cmath.sqrt(relative_entropy(self.reduced_density_matrix(rho1,j,k),self.reduced_density_matrix(rho2,j,k)))
-        if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
-            r_local = 0
-            print("sum_measures was Nan, r_local taken to be 0")
-        else:
-            r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures
-        r_local = r_local.real
-        return max(0,r_local)
+        positiveDefinite = True
+        r_local = env_cpp.local_reward_cpp(rho1, rho2, n_qubits, positiveDefinite) 
+        return r_local
 
     def reduced_density_matrix(self, rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
         time_start = time.time()
