@@ -144,7 +144,7 @@ class DeepQLearning(Solver):
         np.random.seed(self.seed)
         #self.best_encountered_actions = None
         #self.best_encountered_rewards = None
-        #self.best_final_state = None 
+        self.best_final_state = None 
         print(f'Instance of {type(self).__name__} initialized with '
               f'the following attributes (showing only str, int and float):')
         for attribute, value in self.__dict__.items():
@@ -262,7 +262,7 @@ class DeepQLearning(Solver):
                 print(f'`{filename}` could not be saved.')
                 print('--> ', e)
     
-    def get_rho_target_from_other_solver(self,):
+    def get_rho_target_from_other_solver(self,)-> np.ndarray:
         target_params = self.__target_params
         solver_for_target = target_params['solver']
         #target_params.pop('solver', None)

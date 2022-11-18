@@ -81,7 +81,7 @@ class StateProvider(Solver):
         self.__final_state = None
             
     
-    def solve(self):
+    def solve(self,)-> None:
         # This method runs the time evolution and stores the list of the vec_state in self.__time_evolution.  
         if self.__mode == "state_copier":
             self.__final_state = self.__state_to_copy.get_vector_state()
@@ -90,7 +90,7 @@ class StateProvider(Solver):
         else: 
             raise ValueError("The selected mode {} does not exist.".format(self.__mode))
 
-    def apply_gate_sequence(self):
+    def apply_gate_sequence(self,)-> np.ndarray:
         """ Apply the sequence of gates onto the initial state and return the final state. """
         # Define the universal quantum gate set used in Markus article. 
         U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
@@ -118,7 +118,7 @@ class StateProvider(Solver):
                     state = np.dot(U_x_site,state)
         return state
 
-    def set_coupling_matrix(self,):
+    def set_coupling_matrix(self,)-> None:
         dim = int(2**self.__n_qubits)
         list_glob_operators =  [None] * self.__n_qubits
         for qubit in range(0,self.__n_qubits,1):
@@ -131,14 +131,16 @@ class StateProvider(Solver):
                 coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.__alpha
         self.coupling_matrix = coupling_matrix
         
-    def get_rho_target(self,):
-        if not isinstance(self.__final_state, np.ndarray ):
+    def get_rho_target(self,)-> np.ndarray:
+        if not isinstance(self.__final_state, np.ndarray):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         rho_target = np.tensordot(np.conjugate(self.__final_state), self.__final_state, axes=0)
+        # print("You are inside of get_rho_target and the final_state is :{}".format(rho_target))
         return rho_target
 
-    def get_state_target(self,):
-        if not isinstance(self.__final_state, np.ndarray ):
+    def get_state_target(self,)-> np.ndarray:
+        if not isinstance(self.__final_state, np.ndarray):
             raise ValueError("The method solve need to be run before in order to get the target_state")
+        # print("You are inside of get_state_target and the final_state is :{}".format(self.__final_state))
         return self.__final_state
              

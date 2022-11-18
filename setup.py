@@ -1,16 +1,30 @@
 from pathlib import Path
-
+import numpy as np
+import os,subprocess
 from pybind11.setup_helpers import Pybind11Extension, build_ext
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+from Cython.Build import cythonize
+import Cython.Compiler.Options
+Cython.Compiler.Options.annotate = True
+
 
 """
 system_cpp_module = Pybind11Extension(
     'system_cpp',
-    [str(fname) for fname in Path('/project/th-scratch/h/H.Albot/ed/tdqc_project/tdqc/numerics/deep_q_learning/system_cpp/').glob("*.cpp")], 
+    [str(fname) for fname in Path('/project/th-scratch/h/H.Albot/ed/tdqc_project/tdqc/numerics/deep_q_learning/').glob("*.cpp")], 
     include_dirs=['include'],
     extra_compile_args=['-O3']
 )
 """
+extensions = [
+
+    Extension("*",["tdqc/numerics/deep_q_learning/*.pyx"],
+        include_dirs = [np.get_include()], # generally not needed but typical use case 
+        extra_compile_args=['-O3','-march=native','-fopenmp','-Wno-cpp'], # generally not needed but typical use case
+        #extra_link_args=['-fopenmp', '-lgomp', '-Wl,-rpath,'+str(subprocess.check_output([os.getenv('CC'), "-print-libgcc-file-name"]).strip().decode()).rstrip('/')] # might fix rare openmp bug
+        ),
+]
+
 setup(
 	name = "tdqc",
 	python_version = ">=3.6",
@@ -30,5 +44,6 @@ setup(
 		"Operating System :: MacOS :: MacOS X",
 		"Programming Language :: Python :: 3",
 	],
-cmdclass={"build_ext": build_ext},
+	cmdclass={"build_ext": build_ext},
+	ext_modules = cythonize(extensions, compiler_directives={'language_level' : 3}, annotate = True),
 )

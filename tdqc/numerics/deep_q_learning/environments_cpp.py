@@ -33,8 +33,6 @@ spin_op= {
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
 
-#@staticmethod
-#@jit(nopython=True)
 def globalize_op(local_op: np.ndarray, site: int, L: int)-> np.ndarray:
     """" Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
@@ -46,7 +44,6 @@ def globalize_op(local_op: np.ndarray, site: int, L: int)-> np.ndarray:
     for i in range(site+1,L,1):
         tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
     return tensor_0
-
 
 class QuantumEnv():
     """ Quantum environment using QuDyn (cpp) for time evolution. """
@@ -67,7 +64,7 @@ class QuantumEnv():
                  #bulk_size=0,
                  entangling_gates_dir: str ='jx',
                  #  weighted_average=False,
-                 average_exponent: float =1.0,
+                 average_exponent: float =1.0, #useless
                  periodic_boundary_conditions: bool =False,
                  **other_params)-> None:
         
@@ -106,7 +103,6 @@ class QuantumEnv():
         self.set_coupling_matrix()
         self.reset()
         self.time_reduced_density_matrix_iteration = 0
-
 
     def set_coupling_matrix(self,)-> None:
         dim = int(2**self.n_sites)
@@ -157,6 +153,7 @@ class QuantumEnv():
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
         self.initial_state = self.state_real + 1j*self.state_imag
+        print("self.initial_state:{}".format(self.initial_state))
         # the flip is used to be consitent with how states are encoded in
         # the QuDyn library. 
         # Since I don't used QuDyn library anymore, I don't do that on the state I use. 
@@ -229,8 +226,6 @@ class QuantumEnv():
     def random_action(self)-> np.ndarray:
         return np.random.uniform(-1, 1, size=self.action_dim)
     
-    #@staticmethod  
-    #@jit(nopython=True)
     def apply_gate_sequence(self):
         """ Apply the sequence of gates onto the initial state and return the final state. """
         # Define the universal quantum gate set used in Markus' article. 
@@ -266,22 +261,22 @@ class DynamicalEvolution(QuantumEnv):
         super().__init__(calculate_target_state=True,
                          **other_params)
     
-    def reward(self,action_sequence, rho_target: np.ndarray)-> float:        
+    def reward(self, action_sequence, rho_target: np.ndarray)-> float:        
         # Return the reward of the action_sequence computed according to rho_target.
         n_qubits = self.n_sites
         jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)
         self.system.set_gates(jx_gates, hx_gates, hz_gates)
         final_state = self.apply_gate_sequence()
-        """
+        
         # Normalizaton of the final state
         norm_final_state = np.linalg.norm(final_state)
         if norm_final_state != 0:
             final_state = final_state / norm_final_state
-        """
+        
         self.final_state = final_state
         rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)     
-        return self.local_reward(rho_DQS,rho_target,n_qubits)
+        return self.local_reward(rho_DQS, rho_target, n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors: bool=False)-> float:
         """Return the ground state energy."""

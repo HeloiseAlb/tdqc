@@ -1,6 +1,6 @@
 cimport numpy as np
 import numpy as np
-from math import log2, sqrt, isnan, log
+from math import log2, isnan, log #sqrt, 
 import cmath
 from scipy.linalg import logm, expm, eigh
 
@@ -92,7 +92,7 @@ cpdef np.ndarray reduced_density_matrix_cpp(np.ndarray rho_init, int site1, int 
 cpdef float relative_entropy_cpp(np.ndarray rho1, np.ndarray rho2, bint positiveDefinite):
     cdef np.ndarray eVals1, eVals2, eVecs1, eVecs2
     cdef float value1, value2, subsum_index1 
-    cdef double complex relativeEntropy
+    cdef complex relativeEntropy # I changed "double complex" to "complex"
     cdef int index1, index2
     
     if positiveDefinite:
@@ -117,7 +117,7 @@ cpdef float relative_entropy_cpp(np.ndarray rho1, np.ndarray rho2, bint positive
 
 cpdef float local_reward_cpp(np.ndarray rho1, np.ndarray rho2, int n_qubits, bint positiveDefinite): 
     cdef int j, k 
-    cdef double complex r_local, sum_measures
+    cdef complex r_local, sum_measures # I changed "double complex" to "complex"
     
     if n_qubits == None:
         n_qubits = int(log2(rho1.shape[0]))
@@ -133,9 +133,3 @@ cpdef float local_reward_cpp(np.ndarray rho1, np.ndarray rho2, int n_qubits, bin
     else:
         r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures  
     return max(0, r_local.real)
-    
-
-
-        
-    
-print("hello world, this line if at the end of env_cpp2")

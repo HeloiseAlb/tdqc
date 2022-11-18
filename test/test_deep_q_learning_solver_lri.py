@@ -42,4 +42,4 @@ def test_deep_q_learning_solver_solve():
     solver.solve()
     #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
 
-#test_deep_q_learning_solver_solve()
+test_deep_q_learning_solver_solve()

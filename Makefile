@@ -20,7 +20,7 @@ clean:
 build:
 	@echo "------------------------------------------------ building package ------------------------------------------------"
 	@echo ""
-	${TDQC_PYTHONBIN} -m pip install .
+	${TDQC_PYTHONBIN} -m pip install . -v
 
 
 # create documentation

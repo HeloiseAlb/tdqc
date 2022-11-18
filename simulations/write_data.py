@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_array = np.load('rewardsN4episode50000simulations0_26.npy')
+data_array = np.load('rewardsN6episode50000simulations0_36.npy')
 
 print("\nData summary:\n", data_array)
 print("\nData shape:\n", data_array.shape)

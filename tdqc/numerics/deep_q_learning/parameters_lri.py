@@ -23,7 +23,7 @@ L = 6 # 10 # Must be the same as n_sites. It is the number of sites in the physi
 J = 1.0
 m_x = 2.0
 m_z = 2.0
-alpha = 3.0
+alpha = int(3)
 model = lri_model
 model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
 # Initializing state
@@ -63,7 +63,7 @@ parameters = {
     #  'initial_state': 'random_product_state',
     'initial_state': 'antiferro',
     #  'initial_state': 'ferro',
-    'seed_initial_state': None, # 42,
+    'seed_initial_state': None, # 42, #useful to determined only if 'initial_state'=='random_product_state'
 
     #  digital simulator:
     'n_directions': 2,  # also affect LRI Hamiltonian
@@ -89,8 +89,8 @@ parameters = {
     'n_episodes': 50000,#int(5e4),
     #  'n_episodes': 100,
 
-    'epsilon_max': 1.0,
-    'epsilon_min': 0.005,
+    'epsilon_max': 3.0, #1.0
+    'epsilon_min': 0.005, #0.005 
     # corresponds to pp=0.9 with n_episode = 1e5
     'epsilon_decay': 0.9999411315398542,
     'n_epochs': 1,
@@ -102,7 +102,7 @@ parameters = {
     #  'network_type': 'MultiInterStep',
     #  'network_type': 'MultiIntraStep',
     'network_type': 'SingleDense',
-    'seed': 2,
+    'seed': 3,
     'architectures': [[(150, 'tanh'),
                        (40, 'relu'),
                        #  (20, 'relu'),
