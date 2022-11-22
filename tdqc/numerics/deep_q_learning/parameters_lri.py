@@ -89,7 +89,7 @@ parameters = {
     'n_episodes': 50000,#int(5e4),
     #  'n_episodes': 100,
 
-    'epsilon_max': 3.0, #1.0
+    'epsilon_max': 1.0, #1.0
     'epsilon_min': 0.005, #0.005 
     # corresponds to pp=0.9 with n_episode = 1e5
     'epsilon_decay': 0.9999411315398542,

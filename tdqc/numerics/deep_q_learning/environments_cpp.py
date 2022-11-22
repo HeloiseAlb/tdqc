@@ -11,7 +11,7 @@ NN model used, coded in models.py.
 """
 
 import sys
-from scipy.linalg import logm, expm, eigh
+from scipy.linalg import logm, expm, eigh, inv
 import numpy as np
 import cmath
 from math import pi, log2, sqrt, isnan, log
@@ -116,6 +116,11 @@ class QuantumEnv():
                 matrix_2 = list_glob_operators[k]
                 coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
         self.coupling_matrix = coupling_matrix
+        ## Try to implement a faster way
+        # eig_val, eig_vec = np.eigh(coupling_matrix)
+        # self.coupling_matrix_exp_diag = expm(-1j*np.diag(eig_val))
+        # self.coupling_matrix_S = eig_vec 
+        # self.coupling_matrix_S_inv = inv(eig_vec)
 
     def get_action_dim(self)-> int:
         return self.action_dim

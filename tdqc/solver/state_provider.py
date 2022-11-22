@@ -135,12 +135,10 @@ class StateProvider(Solver):
         if not isinstance(self.__final_state, np.ndarray):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         rho_target = np.tensordot(np.conjugate(self.__final_state), self.__final_state, axes=0)
-        # print("You are inside of get_rho_target and the final_state is :{}".format(rho_target))
         return rho_target
 
     def get_state_target(self,)-> np.ndarray:
         if not isinstance(self.__final_state, np.ndarray):
             raise ValueError("The method solve need to be run before in order to get the target_state")
-        # print("You are inside of get_state_target and the final_state is :{}".format(self.__final_state))
         return self.__final_state
              
