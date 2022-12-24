@@ -42,7 +42,7 @@ def test_state_provider_structure():
     rho_target = solver.get_rho_target()
     assert isinstance(rho_target,np.ndarray), "EDSolver method 'get_target_state' returns an array"
     
-
+@pytest.mark.fast
 def test_state_provider_circuit_provider_mode():
     from tdqc.solver.state_provider import StateProvider
     from tdqc.numerics.ed.models_ed import State
@@ -52,7 +52,8 @@ def test_state_provider_circuit_provider_mode():
     n_steps = 3
     init_vec_state = np.zeros([2**L],dtype='complex128')
     init_vec_state[0] = 1
-    settings["initial_state"] = State(init_vec_state)
+    settings["initial_state"] = 'antiferro'
+    settings["n_sites"] = L
     settings["jx_angle_list"] = np.zeros(n_steps)
     settings["hx_angle_list"] = np.zeros((n_steps,L))
     settings["hz_angle_list"] = np.zeros((n_steps,L))

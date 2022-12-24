@@ -1,6 +1,7 @@
 import numpy as np
 from math import log2
 from scipy.linalg import expm
+from typing import Optional
 from tdqc.interfaces.solver import Solver
 
 spin_op= {
@@ -11,6 +12,17 @@ spin_op= {
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
 
+def tensor_prod(*arg):
+    """tensor_prod(a1, a2) = np.kron(a1, a2).
+    tensor_prod(a1, a2, ..., an) = np.kron(tensor_prod(a1, ..., an-1), an)
+    """
+    res = arg[0]
+    for i in range(1, len(arg)):
+        res = np.kron(res, arg[i])
+    #  res = arg[-1]
+    #  for i in range(1, len(arg)):
+    #      res = np.kron(res, arg[len(arg) - i - 1])
+    return res
 
 def globalize_op(local_op,site,L):
     """" Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
@@ -49,12 +61,19 @@ class StateProvider(Solver):
                 raise ValueError("""Error loading state_provider-solver settings, 'state_to_copy' parameter not found.
                 If the mode is state_copier then load a state_to_copy.""")
             self.__state_to_copy = settings["state_to_copy"]
-            self.__n_qubits = self.__state_to_copy.n_sites
+            self.__n_sites = self.__state_to_copy.n_sites
         elif self.__mode == "circuit_copier":
+            if not "n_sites" in settings:
+                raise ValueError("""Error loading state_provider-solver settings, 'n_sites' parameter not found.""")
+            self.__n_sites = settings["n_sites"]
             if not "initial_state" in settings:
                 raise ValueError("""Error loading state_provider-solver settings, 'initial_state' parameter not found.
                 If the mode is circuit_copier then load a initial_state.""")
-            self.__initial_state = settings["initial_state"]
+            
+            if not "seed_initial_state" in settings:
+                settings["seed_initial_state"] = None    
+            self.set_initial_state(settings["seed_initial_state"],settings["initial_state"])
+            # self.__initial_state = settings["initial_state"]
             if not "jx_angle_list" in settings:
                 raise ValueError("""Error loading state_provider-solver settings, 'jx_angle_list' parameter not found.
                 If the mode is circuit_copier then load a jx_angle_list.""")
@@ -97,7 +116,7 @@ class StateProvider(Solver):
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
-        state = self.__initial_state.get_vector_state()
+        state = self.__initial_state
         # Those gate lists are in fact lists of angles.
         jx_angle_list = self.__jx_gate_list
         hx_angle_list = self.__hx_gate_list
@@ -105,28 +124,28 @@ class StateProvider(Solver):
         for step in range(0,self.__n_steps,1):
             state = np.dot(U_xx(jx_angle_list[step]),state)
             #print('state after U_xx:{} is {}'.format(U_xx(jx_angle_list[step]),state))
-            for qubit in range(0,self.__n_qubits,1):
+            for site in range(0,self.__n_sites,1):
                 if self.__gate_order == "xz":
-                    U_x_site = globalize_op(U_x(hx_angle_list[step][qubit]),qubit,self.__n_qubits)
+                    U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.__n_sites)
                     state = np.dot(U_x_site,state)
-                    U_z_site = globalize_op(U_z(hz_angle_list[step][qubit]),qubit,self.__n_qubits)
+                    U_z_site = globalize_op(U_z(hz_angle_list[step][site]),site,self.__n_sites)
                     state = np.dot(U_z_site,state)
                 elif self.__gate_order == "zx":
-                    U_z_site = globalize_op(U_z(hz_angle_list[step][qubit]),qubit,self.__n_qubits)
+                    U_z_site = globalize_op(U_z(hz_angle_list[step][site]),site,self.__n_sites)
                     state = np.dot(U_z_site,state)
-                    U_x_site = globalize_op(U_x(hx_angle_list[step][qubit]),qubit,self.__n_qubits)
+                    U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.__n_sites)
                     state = np.dot(U_x_site,state)
         return state
 
     def set_coupling_matrix(self,)-> None:
-        dim = int(2**self.__n_qubits)
-        list_glob_operators =  [None] * self.__n_qubits
-        for qubit in range(0,self.__n_qubits,1):
+        dim = int(2**self.__n_sites)
+        list_glob_operators =  [None] * self.__n_sites
+        for qubit in range(0,self.__n_sites,1):
             list_glob_operators[qubit] = globalize_op(spin_op["sigma_x"],qubit, self.__n_qubits)  
         coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-        for l in range(0,self.__n_qubits,1):
+        for l in range(0,self.__n_sites,1):
             matrix_1 = list_glob_operators[l] 
-            for k in range(l+1,self.__n_qubits,1):
+            for k in range(l+1,self.__n_sites,1):
                 matrix_2 = list_glob_operators[k]
                 coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.__alpha
         self.coupling_matrix = coupling_matrix
@@ -142,3 +161,34 @@ class StateProvider(Solver):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         return self.__final_state
              
+    def set_initial_state(self, seed: Optional[int], initial_state: str)-> None:
+        if initial_state == 'random_product_state':
+            np.random.seed(seed)
+            #  randomly directed vector on the unit sphere
+            #  f(theta)g(phi)dtheta dphi = sin(theta)/4pi
+            #  g(phi) = 1/2pi, f(theta) = sin(theta)/2
+            #  -> F(theta) = (1-cos(theta))/2
+            #  F^-1(u) = arccos(1 - 2u)
+            phis = [2*pi*np.random.rand() for _ in range(self.__n_sites)]
+            thetas = [np.arccos(1-2*np.random.rand()) for _ in
+                      range(self.__n_sites)]
+            spinors = [np.array([np.cos(theta/2),
+                                 np.exp(1j*phi)*np.sin(theta/2)])
+                       for phi, theta in zip(phis, thetas)]
+            rstate = tensor_prod(*spinors)
+            self.state_real = rstate.real
+            self.state_imag = rstate.imag
+        elif initial_state == 'ferro':
+            self.state_real = np.zeros(2**self.__n_sites)
+            self.state_real[0] = 1.0
+            self.state_imag = np.zeros(2**self.__n_sites)
+        elif initial_state == 'antiferro':
+            self.state_imag = np.zeros(2**self.__n_sites)
+            spinors = [np.array([1.0, 0.0]) if _ % 2 == 0
+                       else np.array([0.0, 1.0]) for _ in range(self.__n_sites)]
+            self.state_real = tensor_prod(*spinors)
+        else:
+            raise NotImplementedError(f'Initial state of type {initial_state} '
+                                      'not implemented.')
+        self.__initial_state = self.state_real + 1j*self.state_imag
+
