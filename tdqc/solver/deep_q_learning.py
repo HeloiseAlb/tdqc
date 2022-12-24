@@ -185,6 +185,7 @@ class DeepQLearning(Solver):
 
             reward_sequence, action_sequence, final_state = self.run_episode(verbose,
                                                                 mode=mode)
+            print("Episode: {} and Action sequence: {}".format(episode, action_sequence))
             reward_sequence = np.real(reward_sequence)
             print('reward_sequence[-1]:{} '.format(reward_sequence[-1]) )
             print('self.best_encountered_rewards[-1]:{} '.format(self.best_encountered_rewards[-1]))
