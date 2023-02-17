@@ -44,7 +44,7 @@ def test_dql_state_provider_solve_circuit():
     #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
 
 
-test_dql_state_provider_solve_circuit()
+test_dql_state_provider_solve()
 
 
 # %%

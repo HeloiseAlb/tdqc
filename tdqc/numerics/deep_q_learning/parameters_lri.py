@@ -19,7 +19,7 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 6 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
@@ -60,10 +60,11 @@ parameters = {
         'j_c': 1.0
     },
     
-    #  'initial_state': 'random_product_state',
-    'initial_state': 'antiferro',
-    #  'initial_state': 'ferro',
-    'seed_initial_state': None, # 42, #useful to determined only if 'initial_state'=='random_product_state'
+    #'initial_state': 'random_product_state',
+    #'initial_state': 'antiferro',
+    #'initial_state': 'ferro',
+    'initial_state': 'ground_state',
+    'seed_initial_state': 42, # None 42, #useful to determined only if 'initial_state'=='random_product_state'
 
     #  digital simulator:
     'n_directions': 2,  # also affect LRI Hamiltonian
@@ -164,7 +165,7 @@ parameters = {
 
     'target_params':{
             'solver': EDSolver(),
-            'n_steps': int(1/0.001), # time steps 
+            'n_steps': int(1/0.001), # time steps, different from n_steps in settings which is the number of layer 
             'model': model,
             'state': State(init_vec_state)
             }

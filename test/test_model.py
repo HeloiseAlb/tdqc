@@ -25,7 +25,7 @@ def test_model_structure():
 def test_lri_model():
     # Models
     model = lri_model
-    L = 4
+    L = 6
     J = 1
     m_x = 2
     m_z = 2
@@ -44,12 +44,14 @@ def test_lri_model():
     step = 0.1
     exact_diagonalization = ExactDiagonalization(model,L,initial_state,t_final,t_initial,step)
     ground_state = exact_diagonalization.get_ground_state()
+    print("gs:{}".format(ground_state))
     print("psi_t_0:{}".format(psi_t_n._density_mat))
     psi_t_n.time_step_ed( model, delta_t = step, imaginary=False)
     print("psi_t_1:{}".format(psi_t_n._density_mat))
     t_list = [t for t in np.arange(t_initial,t_final,step)]
     pass
 
+test_lri_model()
 
 @pytest.mark.fast
 def test_ed_solver_structure():
