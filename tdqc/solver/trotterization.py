@@ -35,15 +35,17 @@ class Trotterization(Solver):
             raise ValueError("Error loading trotterization-solver settings, 'n_steps' parameter not found")
         self.n_steps = settings["n_steps"]
         self.final_state = None 
+
         self.time_step = (self.t_final - self.t_initial)/self.n_steps
         if not "target_params" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'target_params' parameter not found")
         self.__target_params = settings["target_params"]
         self.__target_params["t_initial"] = settings["t_initial"]
         self.__target_params["t_final"] = settings["t_final"]
-        
+        self.system_class = settings["system_class"]
         self.range_one =  settings["range_one"]
         self.range_all =  settings["range_all"]
+        self.n_sites = settings["n_sites"]
         self.env = envs_cpp.DynamicalEvolution(
                  **settings)
 
@@ -69,7 +71,7 @@ class Trotterization(Solver):
         elif filetype == 'json':
             try:
                 gates = self.action_trotterization
-                if len(gates) == 3 or self.env.n_directions == 2:
+                """if len(gates) == 3 or self.env.n_directions == 2:
                     jx_gates, hx_gates, hz_gates, *_ = gates
                     steps = [
                         [('jx', jx_gate), ('hz', list(hz_gate)),
@@ -79,8 +81,9 @@ class Trotterization(Solver):
                     ]
                 elif len(gates) == 4:
                     raise NotImplementedError
+                """                
                 with open(filename, 'w') as f:
-                    json.dump(steps, f, indent=2)
+                    json.dump(gates, f, indent=2)
                 print(f"{filename} written.")
             except Exception as e:
                 print(f'`{filename}` could not be saved.')
@@ -111,13 +114,13 @@ class Trotterization(Solver):
         Returns: np.array with shape=(n_steps, action_dim)
         """
         if self.system_class == 'LongRangeIsing':
-            if self.n_directions == 2:
-                a_all = self.ham_params['J'] * self.time_segment \
-                    / self.n_steps / self.range_all
-                a_onex = self.ham_params['g'] * self.time_segment \
-                    / self.n_steps / self.range_one
-                a_onez = self.ham_params['h'] * self.time_segment \
-                    / self.n_steps / self.range_one
+            if self.env.n_directions == 2:
+                a_all = self.ham_params['J'] * self.time_step \
+                     / self.range_all
+                a_onex = self.ham_params['g'] * self.time_step \
+                    / self.range_one
+                a_onez = self.ham_params['h'] * self.time_step \
+                     / self.range_one
                 action = [a_all] + [a_onez] * self.n_sites \
                     + [a_onex] * self.n_sites
                 return [action] * self.n_steps
@@ -135,9 +138,9 @@ class Trotterization(Solver):
         rho_target = self.get_rho_target_from_other_solver()
         start_time = time.time()   
         self.action_trotterization = self.trotterization_circuit(False)
-        reward_trotterization = self.env.reward(action_sequence=action_trotterization,rho_target=rho_target)
+        reward_trotterization = self.env.reward(action_sequence=self.action_trotterization,rho_target=rho_target)
         end_time = time.time()
-        parametername = 'N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)
+        parametername = 'trotterization_N'+str(self.env.n_sites)+'n_steps'+str(self.n_steps)
         self.save_trotterization_actions('json',
                                                 'trotterization_gate_sequence'+parametername+'.json')
         try:

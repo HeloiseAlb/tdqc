@@ -60,8 +60,8 @@ parameters = {
         'j_c': 1.0
     },
     
-    'initial_state': 'random_product_state',
-    #'initial_state': 'antiferro',
+    #'initial_state': 'random_product_state',
+    'initial_state': 'antiferro',
     #'initial_state': 'ferro',
     #'initial_state': 'ground_state',
     'seed_initial_state': 42, # None 42, #useful to determined only if 'initial_state'=='random_product_state'
@@ -70,9 +70,8 @@ parameters = {
     'n_directions': 2,  # also affect LRI Hamiltonian
     'gate_order': 'zx',
     'entangling_gates_dir': 'jx',
-    
-
-
+    'range_all': 0.2,
+    'range_one': 0.4,
 
     'target_params':{
             'solver': EDSolver(),
@@ -80,8 +79,4 @@ parameters = {
             'model': model,
             'state': State(init_vec_state)
             }
-    # Not useful here, just to be able to use environments_cpp.DynamicalEvolution
-    'range_all': 0.2,
-    'range_one': 0.4,
-
     }

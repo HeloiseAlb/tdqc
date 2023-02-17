@@ -165,7 +165,7 @@ parameters = {
 
     'target_params':{
             'solver': EDSolver(),
-            'n_steps': int(1/0.001), # time steps 
+            'n_steps': int(1/0.001), # time steps, different from n_steps in settings which is the number of layer 
             'model': model,
             'state': State(init_vec_state)
             }
