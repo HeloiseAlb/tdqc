@@ -70,7 +70,7 @@ class Model(object):
 
 
 # Models XXZ
-def hamiltonian_xxz(L,Jxy,Jzz,PDB=True):
+def hamiltonian_xxz(L,Jxy,Jzz,PDB=False):
     Jzz_list = [[Jzz,i,i+1] for i in range(L-1)]
     Jxy_list = [[Jxy ,i,i+1] for i in range(L-1)]
     # Periodic boundary conditions
@@ -110,7 +110,7 @@ class State(object):
     '''
     init_vec_state: type <class 'numpy.ndarray'>
     '''
-    def __init__(self, init_vec_state):
+    def __init__(self, init_vec_state: np.ndarray):
         self.vec_state = init_vec_state
         self.dimension = init_vec_state.size
         self.n_sites = int(log2(self.dimension))

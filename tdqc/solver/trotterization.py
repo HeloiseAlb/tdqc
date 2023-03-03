@@ -71,7 +71,8 @@ class Trotterization(Solver):
         elif filetype == 'json':
             try:
                 gates = self.action_trotterization
-                """if len(gates) == 3 or self.env.n_directions == 2:
+                """
+                if len(gates) == 3 or self.env.n_directions == 2:
                     jx_gates, hx_gates, hz_gates, *_ = gates
                     steps = [
                         [('jx', jx_gate), ('hz', list(hz_gate)),
@@ -81,7 +82,7 @@ class Trotterization(Solver):
                     ]
                 elif len(gates) == 4:
                     raise NotImplementedError
-                """                
+                """
                 with open(filename, 'w') as f:
                     json.dump(gates, f, indent=2)
                 print(f"{filename} written.")
@@ -150,12 +151,19 @@ class Trotterization(Solver):
         except Exception as e:
             print(reward_filename+' could not be saved.')
             print('--->', e)
+        try:
+            final_state_filename = 'final_state'+parametername+'.npy'
+            with open(final_state_filename, 'wb') as f:
+                np.save(f, self.env.final_state)
+        except Exception as e:
+            print(final_state_filename+' could not be saved.')
+            print('--->', e)
         info_dic = {
             #  'parameters': parameters,
             'reward_trotterization': reward_trotterization,
             'trotterization_time': end_time - start_time,
             'target_state': str(self.state_target),
-            #'final_state':
+            'final_state': str(self.env.final_state),
             }   
         try:
             result_info_filename = 'results_info'+parametername+'.json'

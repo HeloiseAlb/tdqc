@@ -174,12 +174,12 @@ class QuantumEnv():
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
         self.initial_state = self.state_real + 1j*self.state_imag
-        print("self.initial_state:{}".format(self.initial_state))
+        print("self.initial_state in set_initial_state:{}".format(self.initial_state))
         # the flip is used to be consitent with how states are encoded in
         # the QuDyn library. 
         # Since I don't used QuDyn library anymore, I don't do that on the state I use. 
-        state_real = np.flip(self.state_real, axis=0)
-        state_imag = np.flip(self.state_imag, axis=0)
+        # state_real = np.flip(self.state_real, axis=0)
+        # state_imag = np.flip(self.state_imag, axis=0)
         
 
     def decode_action_sequence(self, action_sequence: list):
