@@ -84,7 +84,7 @@ class AdamOptimizer(Optimizer):
                  convergence_threshold=0.005,
                  n_iterations=1000,
                  n_inits=1,
-                 initialization='fully random'
+                 initialization='random'
                  ):
         self.alpha = alpha
         self.beta_1 = beta_1
