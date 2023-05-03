@@ -124,7 +124,6 @@ cpdef float local_reward_cpp(np.ndarray rho1, np.ndarray rho2, int n_qubits, bin
     sum_measures = 0
     for j in range(0,n_qubits-1):
         for k in range(j+1, n_qubits):
-            pass
             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))
     
     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):

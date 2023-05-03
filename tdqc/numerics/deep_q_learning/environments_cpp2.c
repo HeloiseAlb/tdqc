@@ -5234,7 +5234,7 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
  *     sum_measures = 0
  *     for j in range(0,n_qubits-1):             # <<<<<<<<<<<<<<
  *         for k in range(j+1, n_qubits):
- *             pass
+ *             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))
  */
   __pyx_t_7 = (__pyx_v_n_qubits - 1);
   __pyx_t_8 = __pyx_t_7;
@@ -5245,33 +5245,33 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
  *     sum_measures = 0
  *     for j in range(0,n_qubits-1):
  *         for k in range(j+1, n_qubits):             # <<<<<<<<<<<<<<
- *             pass
  *             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))
+ * 
  */
     __pyx_t_9 = __pyx_v_n_qubits;
     __pyx_t_10 = __pyx_t_9;
     for (__pyx_t_11 = (__pyx_v_j + 1); __pyx_t_11 < __pyx_t_10; __pyx_t_11+=1) {
       __pyx_v_k = __pyx_t_11;
 
-      /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":128
+      /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":127
+ *     for j in range(0,n_qubits-1):
  *         for k in range(j+1, n_qubits):
- *             pass
  *             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))             # <<<<<<<<<<<<<<
  * 
  *     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
  */
-      __pyx_t_1 = __pyx_PyComplex_FromComplex(__pyx_v_sum_measures); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_1 = __pyx_PyComplex_FromComplex(__pyx_v_sum_measures); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_cmath); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_cmath); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_sqrt); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_sqrt); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = ((PyObject *)__pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_reduced_density_matrix_cpp(__pyx_v_rho1, __pyx_v_j, __pyx_v_k, __pyx_v_n_qubits, 0)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_4 = ((PyObject *)__pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_reduced_density_matrix_cpp(__pyx_v_rho1, __pyx_v_j, __pyx_v_k, __pyx_v_n_qubits, 0)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_12 = ((PyObject *)__pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_reduced_density_matrix_cpp(__pyx_v_rho2, __pyx_v_j, __pyx_v_k, __pyx_v_n_qubits, 0)); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_12 = ((PyObject *)__pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_reduced_density_matrix_cpp(__pyx_v_rho2, __pyx_v_j, __pyx_v_k, __pyx_v_n_qubits, 0)); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_12);
-      __pyx_t_13 = PyFloat_FromDouble(__pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_relative_entropy_cpp(((PyArrayObject *)__pyx_t_4), ((PyArrayObject *)__pyx_t_12), __pyx_v_positiveDefinite, 0)); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_13 = PyFloat_FromDouble(__pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_relative_entropy_cpp(((PyArrayObject *)__pyx_t_4), ((PyArrayObject *)__pyx_t_12), __pyx_v_positiveDefinite, 0)); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_13);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
@@ -5288,36 +5288,36 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
       __pyx_t_2 = (__pyx_t_12) ? __Pyx_PyObject_Call2Args(__pyx_t_5, __pyx_t_12, __pyx_t_13) : __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_13);
       __Pyx_XDECREF(__pyx_t_12); __pyx_t_12 = 0;
       __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
-      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 128, __pyx_L1_error)
+      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyNumber_InPlaceAdd(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_5 = PyNumber_InPlaceAdd(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_14 = __Pyx_PyComplex_As___pyx_t_double_complex(__pyx_t_5); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_14 = __Pyx_PyComplex_As___pyx_t_double_complex(__pyx_t_5); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 127, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       __pyx_v_sum_measures = __pyx_t_14;
     }
   }
 
-  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":130
+  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":129
  *             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))
  * 
  *     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):             # <<<<<<<<<<<<<<
  *         r_local = 0.0 + 1j*0.0
  *         print("sum_measures was Nan, r_local taken to be 0")
  */
-  __pyx_t_15 = __Pyx_PyObject_AsDouble(__pyx_n_u_inf); if (unlikely(__pyx_t_15 == ((double)((double)-1)) && PyErr_Occurred())) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_t_15 = __Pyx_PyObject_AsDouble(__pyx_n_u_inf); if (unlikely(__pyx_t_15 == ((double)((double)-1)) && PyErr_Occurred())) __PYX_ERR(0, 129, __pyx_L1_error)
   __pyx_t_16 = ((__Pyx_c_eq_double(__pyx_v_sum_measures, __pyx_t_double_complex_from_parts(__pyx_t_15, 0))) != 0);
   if (!__pyx_t_16) {
   } else {
     __pyx_t_3 = __pyx_t_16;
     goto __pyx_L9_bool_binop_done;
   }
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_isnan); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_isnan); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyFloat_FromDouble(__Pyx_CREAL(__pyx_v_sum_measures)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_t_1 = PyFloat_FromDouble(__Pyx_CREAL(__pyx_v_sum_measures)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_13 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
@@ -5332,19 +5332,19 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
   __pyx_t_5 = (__pyx_t_13) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_13, __pyx_t_1) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_1);
   __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 130, __pyx_L1_error)
+  if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   if (!__pyx_t_16) {
   } else {
     __pyx_t_3 = __pyx_t_16;
     goto __pyx_L9_bool_binop_done;
   }
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_isnan); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_isnan); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyFloat_FromDouble(__Pyx_CIMAG(__pyx_v_sum_measures)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_t_1 = PyFloat_FromDouble(__Pyx_CIMAG(__pyx_v_sum_measures)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_13 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
@@ -5359,16 +5359,16 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
   __pyx_t_5 = (__pyx_t_13) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_13, __pyx_t_1) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_1);
   __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 130, __pyx_L1_error)
+  if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 130, __pyx_L1_error)
+  __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 129, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __pyx_t_3 = __pyx_t_16;
   __pyx_L9_bool_binop_done:;
   if (__pyx_t_3) {
 
-    /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":131
+    /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":130
  * 
  *     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
  *         r_local = 0.0 + 1j*0.0             # <<<<<<<<<<<<<<
@@ -5377,18 +5377,18 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
  */
     __pyx_v_r_local = __Pyx_c_sum_double(__pyx_t_double_complex_from_parts(0.0, 0), __Pyx_c_prod_double(__pyx_t_double_complex_from_parts(0, 1.0), __pyx_t_double_complex_from_parts(0.0, 0)));
 
-    /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":132
+    /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":131
  *     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
  *         r_local = 0.0 + 1j*0.0
  *         print("sum_measures was Nan, r_local taken to be 0")             # <<<<<<<<<<<<<<
  *     else:
  *         r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures
  */
-    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 132, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 131, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-    /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":130
+    /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":129
  *             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))
  * 
  *     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):             # <<<<<<<<<<<<<<
@@ -5398,7 +5398,7 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
     goto __pyx_L8;
   }
 
-  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":134
+  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":133
  *         print("sum_measures was Nan, r_local taken to be 0")
  *     else:
  *         r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures             # <<<<<<<<<<<<<<
@@ -5408,13 +5408,13 @@ static float __pyx_f_4tdqc_8numerics_15deep_q_learning_17environments_cpp2_local
     __pyx_t_7 = (__pyx_v_n_qubits * (__pyx_v_n_qubits - 1));
     if (unlikely(__pyx_t_7 == 0)) {
       PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-      __PYX_ERR(0, 134, __pyx_L1_error)
+      __PYX_ERR(0, 133, __pyx_L1_error)
     }
     __pyx_v_r_local = __Pyx_c_diff_double(__pyx_t_double_complex_from_parts(1, 0), __Pyx_c_prod_double(__pyx_t_double_complex_from_parts((2.0 / ((double)__pyx_t_7)), 0), __pyx_v_sum_measures));
   }
   __pyx_L8:;
 
-  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":135
+  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":134
  *     else:
  *         r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures
  *     return max(0, r_local.real)             # <<<<<<<<<<<<<<
@@ -6737,14 +6737,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__4);
   __Pyx_GIVEREF(__pyx_slice__4);
 
-  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":132
+  /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":131
  *     if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
  *         r_local = 0.0 + 1j*0.0
  *         print("sum_measures was Nan, r_local taken to be 0")             # <<<<<<<<<<<<<<
  *     else:
  *         r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures
  */
-  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_u_sum_measures_was_Nan_r_local_tak); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_u_sum_measures_was_Nan_r_local_tak); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 131, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__5);
   __Pyx_GIVEREF(__pyx_tuple__5);
 

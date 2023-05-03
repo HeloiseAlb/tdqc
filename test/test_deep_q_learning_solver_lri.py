@@ -42,4 +42,43 @@ def test_deep_q_learning_solver_solve():
     solver.solve()
     #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
 
-test_deep_q_learning_solver_solve()
+@pytest.mark.slow
+def test_deep_q_learning_solver_solve_range():
+    from tdqc.solver.deep_q_learning import DeepQLearning, DQLWithReplayMemory
+    from tdqc.numerics.ed.models_ed import State
+    from tdqc.numerics.ed.models_ed import xxz_model
+    from tdqc.numerics.deep_q_learning.parameters_lri import parameters, parameters_replay_memory
+    range_t_final = np.array([ 0.0001, 0.001, 0.01, 1.0])
+    for t_final_local in range_t_final:
+        #print(t_final_local)
+        solver = DQLWithReplayMemory()
+        parameters.update({"t_final":t_final_local})
+        solver.load_settings(settings=parameters)
+        solver.load_seetings_replay_memory(**parameters_replay_memory)
+        #assert callable(getattr(solver, 'solve', None)), "DQLWithReplayMemory has a method solve"
+        #rho_target = solver.get_rho_target_from_other_solver()
+        #assert isinstance(rho_target,np.ndarray), "DQLWithReplayMemory can get the target_state"
+        # It must be possible to get the list of amplitudes obtained from solved.
+        #assert hasattr(solver, 'time_evolution'), "EDSolver has an attribut time_evolution"
+        solver.solve()
+        #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
+
+@pytest.mark.slow
+def test_deep_q_learning_solver_solve_trans_ising():
+    from tdqc.solver.deep_q_learning import DeepQLearning, DQLWithReplayMemory
+    from tdqc.numerics.ed.models_ed import State
+    from tdqc.numerics.ed.models_ed import trans_ising_model
+    from tdqc.numerics.deep_q_learning.parameters_trans_ising import parameters, parameters_replay_memory
+    solver = DQLWithReplayMemory()
+    solver.load_settings(settings=parameters)
+    solver.load_seetings_replay_memory(**parameters_replay_memory)
+    #assert callable(getattr(solver, 'solve', None)), "DQLWithReplayMemory has a method solve"
+    #rho_target = solver.get_rho_target_from_other_solver()
+    #assert isinstance(rho_target,np.ndarray), "DQLWithReplayMemory can get the target_state"
+    # It must be possible to get the list of amplitudes obtained from solved.
+    #assert hasattr(solver, 'time_evolution'), "EDSolver has an attribut time_evolution"
+    solver.solve()
+    #assert isinstance(getattr(solver, 'time_evolution', None), np.ndarray), "EDSolver method 'solve' returns an array"
+
+
+test_deep_q_learning_solver_solve_trans_ising()

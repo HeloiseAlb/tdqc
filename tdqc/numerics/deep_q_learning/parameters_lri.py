@@ -19,24 +19,13 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 8 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
 alpha = int(3)
 model = lri_model
 model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
-# Initializing state
-state_imag = np.zeros(2**L,dtype='complex128')
-spinors = [np.array([1.0, 0.0],dtype='complex128') if _ % 2 == 0
-        else np.array([0.0, 1.0],dtype='complex128') for _ in range(L)]
-state_real = tensor_prod(*spinors)
-init_vec_state = state_real + 1j*state_imag
-norm = np.linalg.norm(init_vec_state)
-init_vec_state = init_vec_state / norm
-#init_vec_state = np.zeros([2**L],dtype='complex128')
-#init_vec_state[0] = 1
-
 
 parameters = {
     # =======================================================================
@@ -45,7 +34,7 @@ parameters = {
     'n_sites':  L,
     'n_steps': 3,
     't_initial': 0.0,
-    't_final': 1.0, # This is the tau in the article.
+    't_final': 2.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'LongRangeIsing',
     #  also sets entangling gate alpha
@@ -54,16 +43,16 @@ parameters = {
         #  #  g: x, h: z
         'g': 2.0,
         'h': 2.0,
-        'alpha': 3.0,#2.0
+        'alpha': 3.0, # In Adrien's code, it was 2.0 but it make more sense to use 3.0 w.r.t. the model of the Hamiltonian.
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0
     },
     
     #'initial_state': 'random_product_state',
-    #'initial_state': 'antiferro',
+    'initial_state': 'antiferro',
     #'initial_state': 'ferro',
-    'initial_state': 'ground_state',
+    #'initial_state': 'ground_state',
     'seed_initial_state': 42, # None 42, #useful to determined only if 'initial_state'=='random_product_state'
 
     #  digital simulator:
@@ -167,10 +156,7 @@ parameters = {
             'solver': EDSolver(),
             'n_steps': int(1/0.001), # time steps, different from n_steps in settings which is the number of layer 
             'model': model,
-            'state': State(init_vec_state)
             }
-
-
     }
 
 parameters_replay_memory = {

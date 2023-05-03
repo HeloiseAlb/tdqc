@@ -90,9 +90,23 @@ def hamiltonian_xxz(L,Jxy,Jzz,PDB=False):
         t_2 = globalize_op(h_bar/2.0*spin_op["sigma_y"],value[2],L)
         H += np.dot(t_2,t_1)*value[0]
     return H
-xxz_model = Model("xxz_model",hamiltonian_xxz)
+xxz_model = Model("xxz_model", hamiltonian_xxz)
 
 def hamiltonian_lri(L,J,alpha,m_x,m_z):
+    """
+    hamiltonian_lri returns the Hamiltonian matrix of a one-dimensional spin chain with L sites, 
+    where each site is represented by a two-level quantum system or a spin-1/2 particle.
+    The Hamiltonian includes a longitudinal magnetic field along the z-axis and a
+    transverse magnetic field along the x-axis. 
+
+    L: an integer that specifies the number of sites in the spin chain
+    J: a floating-point number that controls the strength of the spin-spin interactions
+    alpha: a floating-point number that controls the decay of the interactions with distance
+    m_x: a floating-point number that specifies the strength of the transverse magnetic field along the x-axis
+    m_z: a floating-point number that specifies the strength of the longitudinal magnetic field along the z-axis
+    return H: 2^L x 2^L complex array representing the Hamiltonian matrix in the computational basis. 
+    """ 
+    # Non Periodic Boundary Conditions
     list_glob_operators =  [None] * L
     # Create the list of global operators
     for site in range(0,L,1):
@@ -104,7 +118,33 @@ def hamiltonian_lri(L,J,alpha,m_x,m_z):
     for j in range(0,L,1):
         H += m_x * list_glob_operators[j] + m_z * globalize_op(spin_op["sigma_z"],j,L)
     return H
-lri_model = Model("lri_model",hamiltonian_lri)
+lri_model = Model("lri_model", hamiltonian_lri)
+
+def hamiltonian_trans_ising(L, J, alpha, h):
+    '''
+    Hamiltonian of the transverse field Ising model 
+    taken from PhysRevLett.111.147205 equation 9. 
+
+    L: an integer that specifies the number of sites in the spin chain
+    J: a floating-point number that controls the strength of the spin-spin interactions
+    alpha: a floating-point number that controls the decay of the interactions with distance
+    h: a floating-point number corresponding to the strength of the transverse field
+    return H: 2^L x 2^L complex array representing the Hamiltonian matrix in the computational basis. 
+    '''
+    # Non Periodic Boundary Conditions
+    list_glob_operators =  [None] * L
+    # Create the list of global operators
+    for site in range(0,L,1):
+        list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site,L)    
+    H = np.zeros((2**(L),2**(L)),dtype='complex128')
+    for j in range(0,L-1):
+        for k in range(j+1,L):
+            H += J*((k-j)**(-alpha)) *np.dot(list_glob_operators[j],list_glob_operators[k])
+    for j in range(0,L,1):
+        H += h * globalize_op(spin_op["sigma_y"],j,L)
+    return H
+
+trans_ising_model = Model("trans_ising_model", hamiltonian_trans_ising)
 
 class State(object):
     '''
@@ -155,5 +195,3 @@ class State(object):
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    
-
-    

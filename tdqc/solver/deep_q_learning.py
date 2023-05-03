@@ -42,6 +42,7 @@ import time
 from tdqc.interfaces.solver import Solver
 import tdqc.numerics.deep_q_learning.environments_cpp as envs_cpp
 import tdqc.numerics.deep_q_learning.models as models
+from tdqc.numerics.ed.models_ed import State
 
 class DeepQLearning(Solver):
     """Basic abstract class for Deep Q-Learning.
@@ -99,6 +100,7 @@ class DeepQLearning(Solver):
         self.__target_params = settings["target_params"]
         self.__target_params["t_initial"] = settings["t_initial"]
         self.__target_params["t_final"] = settings["t_final"]
+        self.t_final = settings["t_final"]
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
@@ -265,6 +267,12 @@ class DeepQLearning(Solver):
     
     def get_rho_target_from_other_solver(self,)-> np.ndarray:
         target_params = self.__target_params
+        if not "state" in target_params:
+            print("self.env.initial_state:{}".format(self.env.initial_state.shape))
+            initial_state = self.env.initial_state
+            n_sites = self.env.get_n_sites()
+            np.reshape(initial_state, (2**n_sites))
+            target_params['state'] = State(initial_state)
         solver_for_target = target_params['solver']
         #target_params.pop('solver', None)
         solver_for_target.load_settings(target_params)
@@ -389,7 +397,7 @@ class DQLWithReplayMemory(DeepQLearning):
             #  print("The initial reward is (Trotter or random) ", initial_reward)
             rewards = self.run()
             end_time = time.time()
-            parametername = 'N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)
+            parametername = 'NoPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)+'t_final'+str(self.t_final)
             self.save_best_encountered_actions('json',
                                                     'best_gate_sequence'+parametername+'.json')
             try:
@@ -421,6 +429,13 @@ class DQLWithReplayMemory(DeepQLearning):
                     np.save(f, self.exploration_vs_exploitation)
             except Exception as e:
                 print(exploration_vs_exploitation_filename+' could not be saved.')
+                print('--->', e)
+            try: 
+                best_final_state_filename = 'best_final_state'+parametername+'.npy'
+                with open(best_final_state_filename, 'wb') as f:
+                    np.save(f, self.best_final_state)
+            except Exception as e:
+                print(best_final_state_filename+' could not be saved.')
                 print('--->', e)
             try:
                 result_info_filename = 'results_info'+parametername+'.json'

@@ -340,16 +340,19 @@ class DynamicalEvolution(QuantumEnv):
                                                   self.action_dim))
     
     def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, n_qubits: Optional[int]=None)-> float: 
-
         if n_qubits == None:
             n_qubits = int(log2(rho1.shape[0]))
-        positiveDefinite = True
+        positiveDefinite = False
         r_local = env_cpp.local_reward_cpp(rho1, rho2, n_qubits, positiveDefinite) 
         return r_local
 
     def reduced_density_matrix(self, rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
         time_start = time.time()
-        """ Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix. """
+        """
+        Take as input a density matrix rho_init representing a quantum state, and two integers site1 and site2 that indicate 
+        the indices of two subsystems in the state. The function then returns the reduced density matrix obtained by tracing 
+        out all subsystems except for subsystems site1 and site2 which is a 4-by-4 matrix.
+        """
         rho = rho_init 
         if n_qubits == None:
             n_qubits = int(log2(rho.shape[0]))

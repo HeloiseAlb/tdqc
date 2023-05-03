@@ -132,7 +132,6 @@ def test_lri_model_solve():
     plt.savefig('test.png')
     #gs = ground_states(eig_values,eig_vectors)
 
-
 test_lri_model_solve()
 
 '''
