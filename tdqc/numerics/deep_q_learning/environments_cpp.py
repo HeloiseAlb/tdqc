@@ -129,11 +129,10 @@ class QuantumEnv():
             for site in range(0,self.n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-            for l in range(0,self.n_sites,1):
+            for l in range(0,self.n_sites-1,1):
                 matrix_1 = list_glob_operators[l] 
-                for k in range(l+1,self.n_sites,1):
-                    matrix_2 = list_glob_operators[k]
-                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+                matrix_2 = list_glob_operators[l+1]
+                coupling_matrix += np.dot(matrix_1,matrix_2)
             self.coupling_matrix = coupling_matrix
 
 
