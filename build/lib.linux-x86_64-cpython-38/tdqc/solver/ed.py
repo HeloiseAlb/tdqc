@@ -55,7 +55,7 @@ class EDSolver(Solver):
         imaginary = self.__imaginary
         n_sites = state_t_n.n_sites
         site_list = [l for l in range(1,n_sites,1)]
-        t_list = [t for t in np.arange(t_initial,t_final,step)]
+        t_list = [t for t in np.linspace(t_initial,t_final,n_steps)]
         time_evolution = np.zeros([n_steps,2**n_sites],dtype='complex128') # [None] * int((t_max-t_min)/step) #np.zeros([int((t_max-t_min)/step)])
         inv_temperature = 1
         for idx, t_n in enumerate(t_list):
@@ -80,4 +80,3 @@ class EDSolver(Solver):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_vector_state()
         return target
-    

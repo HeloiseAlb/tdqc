@@ -19,7 +19,7 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 8 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 m_x = 2.0
 m_z = 2.0
@@ -37,7 +37,6 @@ init_vec_state = init_vec_state / norm
 #init_vec_state = np.zeros([2**L],dtype='complex128')
 #init_vec_state[0] = 1
 
-
 parameters = {
     # =======================================================================
     # physical system
@@ -54,7 +53,7 @@ parameters = {
         #  #  g: x, h: z
         'g': 2.0,
         'h': 2.0,
-        'alpha': 3.0,#2.0
+        'alpha': 3.0, #2.0
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0
@@ -70,12 +69,12 @@ parameters = {
     'n_directions': 2,  # also affect LRI Hamiltonian
     'gate_order': 'zx',
     'entangling_gates_dir': 'jx',
-    'range_all': 0.2,
-    'range_one': 0.4,
+    'range_all': 1, # 0.2,
+    'range_one': 1, # 0.4,
 
     'target_params':{
             'solver': EDSolver(),
-            'n_steps': int(1/0.001), # time steps 
+            'n_steps': int(1/0.1), # Number of time steps 
             'model': model,
             'state': State(init_vec_state)
             }

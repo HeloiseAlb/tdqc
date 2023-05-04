@@ -35,7 +35,7 @@ parameters = {
     't_initial': 0.0,
     't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'LongRangeIsing',
+    'system_class': 'TransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
         'J': 1.0,

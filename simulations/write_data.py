@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_array = np.load('rewardsN6episode50000simulations0_57.npy')
+data_array = np.load('rewardsN6episode50000simulations0t_final0.08.npy')
 
 print("\nData summary:\n", data_array)
 print("\nData shape:\n", data_array.shape)
@@ -82,6 +82,40 @@ plt.show()
 plt.xlabel('Times')
 plt.ylabel('Fidelities')
 plt.plot(xaxis,fidelities_several_circuits, marker = '+', c = 'g')
+#plt.plot(xaxis,data_array_last_rewards, marker = '+', c = 'g')
+
+# %%
+
+# %%
+# Plots of the fidelity when applying several time the circuit obtained from DQL 
+# and the circuit obtained by Trotterization. The block forming the block unit 
+# have been obtained for the simulation of t_final = 0.06. Applying n times the 
+# circuit should provide the final state for the final time n*t_final. 
+
+# Following the fidelities for positiveDefinite = True
+fidelities_several_circuits_dql = np.array([0.7128275632858276, 0.5116266012191772, 0.33018091320991516, 0.13852520287036896, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ])
+fidelities_circuit_same_depth_trotter = np.array([0.1927478313446045, 0.0, 0.0, 0.0, 0.0, 0.017091745510697365, 0.37677833437919617, 0.42947739362716675, 0.192281112074852, 0.0])
+
+# Following the fidelities for positiveDefinite = False
+fidelities_several_circuits_dql = np.array([0.7128275632858276, 0.5116266012191772, 0.33018091320991516, 0.13852520287036896, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ])
+fidelities_circuit_same_depth_trotter2 = np.array([0.9835176467895508, 0.9708316326141357, 0.9598742723464966, 0.9507444500923157, 0.9439265131950378, 0.9398025274276733, 0.9382265210151672, 0.9383816123008728, 0.9398238062858582, 0.9428160190582275])
+
+# 
+
+#fidelities_several_circuits_t2 = np.array([0.5596060534411742,0.27667333738509203,0.23905020869816584,0.18610511855834655,0.17412193921179597])
+xaxis = 0.06*np.arange(1,fidelities_several_circuits_dql.shape[0]+1)
+xaxis2 = 0.06*np.arange(1,fidelities_circuit_same_depth_trotter.shape[0]+1)
+#xaxis3 = np.arange(2,fidelities_ed_dql.shape[0]+2,2)
+
+plt.show()
+#plt.title("Evolution of the local reward during training for a 4-qubit system.")
+plt.xlabel('Times')
+plt.ylabel('Local reward')
+plt.plot(xaxis,fidelities_several_circuits_dql, marker = '+', c = 'g', label="dql")
+plt.plot(xaxis2,fidelities_circuit_same_depth_trotter2, marker = '+', c = 'r', label="Trotter")
+#plt.plot(xaxis3,fidelities_several_circuits_t2, marker = '+', c = 'c')
+plt.legend(loc="upper right")
+plt.xticks(xaxis)
 #plt.plot(xaxis,data_array_last_rewards, marker = '+', c = 'g')
 
 # %%

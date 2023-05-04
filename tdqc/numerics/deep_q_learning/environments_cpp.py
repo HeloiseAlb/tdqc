@@ -106,22 +106,37 @@ class QuantumEnv():
         self.time_reduced_density_matrix_iteration = 0
         
     def set_coupling_matrix(self,)-> None:
-        dim = int(2**self.n_sites)
-        list_glob_operators =  [None] * self.n_sites
-        for site in range(0,self.n_sites,1):
-            list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
-        coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-        for l in range(0,self.n_sites,1):
-            matrix_1 = list_glob_operators[l] 
-            for k in range(l+1,self.n_sites,1):
-                matrix_2 = list_glob_operators[k]
-                coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
-        self.coupling_matrix = coupling_matrix
-        ## Try to implement a faster way
-        # eig_val, eig_vec = np.eigh(coupling_matrix)
-        # self.coupling_matrix_exp_diag = expm(-1j*np.diag(eig_val))
-        # self.coupling_matrix_S = eig_vec 
-        # self.coupling_matrix_S_inv = inv(eig_vec)
+        if self.system_class == 'LongRangeIsing':
+            dim = int(2**self.n_sites)
+            list_glob_operators =  [None] * self.n_sites
+            for site in range(0,self.n_sites,1):
+                list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
+            coupling_matrix = np.zeros((dim,dim),dtype='complex128')
+            for l in range(0,self.n_sites,1):
+                matrix_1 = list_glob_operators[l] 
+                for k in range(l+1,self.n_sites,1):
+                    matrix_2 = list_glob_operators[k]
+                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+            self.coupling_matrix = coupling_matrix
+            ## Try to implement a faster way
+            # eig_val, eig_vec = np.eigh(coupling_matrix)
+            # self.coupling_matrix_exp_diag = expm(-1j*np.diag(eig_val))
+            # self.coupling_matrix_S = eig_vec 
+            # self.coupling_matrix_S_inv = inv(eig_vec)
+        elif self.system_class == 'TransIsing':
+            dim = int(2**self.n_sites)
+            list_glob_operators =  [None] * self.n_sites
+            for site in range(0,self.n_sites,1):
+                list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
+            coupling_matrix = np.zeros((dim,dim),dtype='complex128')
+            for l in range(0,self.n_sites,1):
+                matrix_1 = list_glob_operators[l] 
+                for k in range(l+1,self.n_sites,1):
+                    matrix_2 = list_glob_operators[k]
+                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+            self.coupling_matrix = coupling_matrix
+
+
 
     def get_action_dim(self)-> int:
         return self.action_dim
@@ -333,6 +348,19 @@ class DynamicalEvolution(QuantumEnv):
             else:
                 raise NotImplementedError('Trotter sequence only implemented'
                                           ' for n_directions = 2.')
+        elif self.system_class == 'TransIsing':
+            if self.n_directions ==2:
+                a_all = self.ham_params['J'] * self.time_segment \
+                    / self.n_steps / self.range_all
+                a_onex = 0
+                a_onez = self.ham_params['h'] * self.time_segment \
+                    / self.n_steps / self.range_one
+                action = [a_all] + [a_onez] * self.n_sites \
+                    + [a_onex] * self.n_sites
+                return [action] * self.n_steps
+            else:
+                raise NotImplementedError('Trotter sequence only implemented'
+                            ' for n_directions = 2.')
         else:
             if all_zeros:
                 return np.zeros(shape=(self.n_steps, self.action_dim))

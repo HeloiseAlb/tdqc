@@ -174,12 +174,12 @@ class QuantumEnv():
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
         self.initial_state = self.state_real + 1j*self.state_imag
-        print("self.initial_state:{}".format(self.initial_state))
+        print("self.initial_state in set_initial_state:{}".format(self.initial_state))
         # the flip is used to be consitent with how states are encoded in
         # the QuDyn library. 
         # Since I don't used QuDyn library anymore, I don't do that on the state I use. 
-        state_real = np.flip(self.state_real, axis=0)
-        state_imag = np.flip(self.state_imag, axis=0)
+        # state_real = np.flip(self.state_real, axis=0)
+        # state_imag = np.flip(self.state_imag, axis=0)
         
 
     def decode_action_sequence(self, action_sequence: list):
@@ -333,6 +333,19 @@ class DynamicalEvolution(QuantumEnv):
             else:
                 raise NotImplementedError('Trotter sequence only implemented'
                                           ' for n_directions = 2.')
+        elif self.system_class == 'TransIsing':
+            if self.n_directions ==2:
+                a_all = self.ham_params['J'] * self.time_segment \
+                    / self.n_steps / self.range_all
+                a_onex = 0
+                a_onez = self.ham_params['h'] * self.time_segment \
+                    / self.n_steps / self.range_one
+                action = [a_all] + [a_onez] * self.n_sites \
+                    + [a_onex] * self.n_sites
+                return [action] * self.n_steps
+            else:
+                raise NotImplementedError('Trotter sequence only implemented'
+                            ' for n_directions = 2.')
         else:
             if all_zeros:
                 return np.zeros(shape=(self.n_steps, self.action_dim))
@@ -340,16 +353,19 @@ class DynamicalEvolution(QuantumEnv):
                                                   self.action_dim))
     
     def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, n_qubits: Optional[int]=None)-> float: 
-
         if n_qubits == None:
             n_qubits = int(log2(rho1.shape[0]))
-        positiveDefinite = True
+        positiveDefinite = False
         r_local = env_cpp.local_reward_cpp(rho1, rho2, n_qubits, positiveDefinite) 
         return r_local
 
     def reduced_density_matrix(self, rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
         time_start = time.time()
-        """ Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix. """
+        """
+        Take as input a density matrix rho_init representing a quantum state, and two integers site1 and site2 that indicate 
+        the indices of two subsystems in the state. The function then returns the reduced density matrix obtained by tracing 
+        out all subsystems except for subsystems site1 and site2 which is a 4-by-4 matrix.
+        """
         rho = rho_init 
         if n_qubits == None:
             n_qubits = int(log2(rho.shape[0]))
