@@ -2,8 +2,11 @@ import numpy as np
 from tdqc.interfaces.solver import Solver
 from tdqc.numerics.ed.models_ed import State, Model
 from scipy.linalg import expm
-
-
+###################################################################################
+###################################################################################
+######### Not working, I need to find a way to implement the propagators. #########
+###################################################################################
+###################################################################################
 class AdiaStatePrepa(Solver):
     """
     Class implementing the adiabatic state preparation

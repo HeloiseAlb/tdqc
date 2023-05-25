@@ -19,7 +19,7 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 10 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 h = 2.0
 alpha = int(3)

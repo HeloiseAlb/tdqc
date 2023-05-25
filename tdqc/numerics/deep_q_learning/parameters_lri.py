@@ -34,7 +34,7 @@ parameters = {
     'n_sites':  L,
     'n_steps': 3,
     't_initial': 0.0,
-    't_final': 2.0, # This is the tau in the article.
+    't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'LongRangeIsing',
     #  also sets entangling gate alpha
