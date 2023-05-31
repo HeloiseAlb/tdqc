@@ -21,12 +21,12 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = 8
+L = 2
 J = 1.0
-h = 2.0
+g = 2.0 # The notation can be confusing. It is the h of the Transversal Long range Ising model.
 alpha = int(3)
 model_t = trans_ising_model
-model_t.parametrize_hamiltonian(*[L,J,alpha,h])
+model_t.parametrize_hamiltonian(*[L,J,alpha,g])
 ground_states = model_t.ground_states 
 
 init_vec_state = np.array(ground_states,dtype='complex128')
@@ -37,28 +37,35 @@ vec_to_copy = init_vec_state
 
 state_to_copy = State(vec_to_copy)
 
+model_0 = trans_ising_model
+model_0.parametrize_hamiltonian(*[L,0,alpha,g])
+model_f = trans_ising_model
+model_f.parametrize_hamiltonian(*[L,J,alpha,g])
+
+
 parameters = {
     # =======================================================================
     # physical system
     # =======================================================================
     'n_sites':  L,
-    'n_steps': 3,
+    'n_steps': 10000,
     't_initial': 0.0,
-    't_final': 1.0, # This is the tau in the article.
+    't_final': 10.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'TransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
-        'J': 1.0,
+        'J': J,
         #  #  g: x, h: z
-        'g': 2.0,
+        'g': g,
         'h': 2.0,
         'alpha': 3.0, # In Adrien's code, it was 2.0 but it make more sense to use 3.0 w.r.t. the model of the Hamiltonian.
-        'm_c': 0.5,
-        'w_c': 1.0,
-        'j_c': 1.0
+        #'m_c': 0.5,
+        #'w_c': 1.0,
+        #'j_c': 1.0
     },
-    
+    'model_0': model_0,
+    'model_f': model_f,
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
     'initial_state': 'ferro',
