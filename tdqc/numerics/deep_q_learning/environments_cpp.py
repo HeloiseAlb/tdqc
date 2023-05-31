@@ -133,7 +133,7 @@ class QuantumEnv():
                 matrix_1 = list_glob_operators[l] 
                 matrix_2 = list_glob_operators[l+1]
                 coupling_matrix += np.dot(matrix_1,matrix_2)
-            self.coupling_matrix = coupling_matrix
+            self.coupling_matrix = -coupling_matrix
 
 
 
