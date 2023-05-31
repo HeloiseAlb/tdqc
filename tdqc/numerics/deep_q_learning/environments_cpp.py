@@ -124,6 +124,8 @@ class QuantumEnv():
             # self.coupling_matrix_S = eig_vec 
             # self.coupling_matrix_S_inv = inv(eig_vec)
         elif self.system_class == 'TransIsing':
+            # I have taken into consideration the minus sign before the J of this model 
+            # in the function set_coupling_matrix. 
             dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
             for site in range(0,self.n_sites,1):
@@ -348,6 +350,8 @@ class DynamicalEvolution(QuantumEnv):
                 raise NotImplementedError('Trotter sequence only implemented'
                                           ' for n_directions = 2.')
         elif self.system_class == 'TransIsing':
+            # I have taken into consideration the minus sign before the J of this model 
+            # in the function set_coupling_matrix. 
             if self.n_directions ==2:
                 a_all = self.ham_params['J'] * self.time_segment \
                     / self.n_steps / self.range_all
