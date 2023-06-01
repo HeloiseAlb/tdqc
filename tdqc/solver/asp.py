@@ -136,10 +136,12 @@ class AdiaStatePrepa(Solver):
 
     # Define the time-dependent Hamiltonian H(t) using a linear schedule
     ### I need to implement the one using a non linear schedule.
-    """
-    def H(self, t, T):
+   
+    def H(self, t):
+        T = self.__t_final
         H_t = (1 - t/T)*self.__model_0.model_hamiltonian() + (t/T)*self.__model_f.model_hamiltonian()
         return H_t
+    """    
     # Define the time evolution operator U(t, T)
     def U(self, t, T):
         return expm(-1j*self.H(t, T))
@@ -160,7 +162,7 @@ class AdiaStatePrepa(Solver):
         for idx, t_n in enumerate(t_list):
             time_evolution[idx, :] = state_t_n.reshape(-1)
             coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(t_n)
-            state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle,hx_angle,hz_angle)
+            state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hz_angle)
         time_evolution[-1,:] = state_t_n.reshape(-1)
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
@@ -192,7 +194,7 @@ class AdiaStatePrepa(Solver):
             # return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing':
             coupling_matrix_angle = self.ham_params['J']
-            hx_angle = self.ham_params['g'] * t_n
+            hx_angle = self.ham_params['g'] * t_n/self.__t_final
             return coupling_matrix_angle, hx_angle, None
         else:
             raise NotImplementedError('Trotter sequence not implemented'

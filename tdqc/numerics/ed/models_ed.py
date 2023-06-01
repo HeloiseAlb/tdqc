@@ -120,7 +120,7 @@ def hamiltonian_lri(L,J,alpha,m_x,m_z):
     return H
 lri_model = Model("lri_model", hamiltonian_lri)
 
-def hamiltonian_trans_ising(L, J, alpha, h):
+def hamiltonian_trans_ising(L, J, h):
     '''
     Hamiltonian of the transverse field Ising model 
     taken from PhysRevLett.111.147205 equation 9. 
@@ -137,9 +137,8 @@ def hamiltonian_trans_ising(L, J, alpha, h):
     for site in range(0,L,1):
         list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site,L)    
     H = np.zeros((2**(L),2**(L)),dtype='complex128')
-    for j in range(0,L-1):
-        for k in range(j+1,L):
-            H += J*((k-j)**(-alpha)) *np.dot(list_glob_operators[j],list_glob_operators[k])
+    for j in range(0, L-1, 1):
+        H += -J *np.dot(list_glob_operators[j],list_glob_operators[j+1])
     for j in range(0,L,1):
         H += h * globalize_op(spin_op["sigma_z"],j,L)
     return H
