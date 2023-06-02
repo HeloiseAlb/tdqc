@@ -1,6 +1,7 @@
 #  import math
 #  import __main__
 import numpy as np
+import copy 
 from tdqc.numerics.ed.models_ed import Model, xxz_model
 from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.ed import EDSolver
@@ -10,7 +11,7 @@ from tdqc.solver.ed import EDSolver
 L = 3 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 Jzz = 1.0
 Jxy = 1.0
-model = xxz_model
+model = copy.deepcopy(xxz_model)
 model.parametrize_hamiltonian(*[L,Jxy,Jzz])
 # Initializing state
 init_vec_state = np.ones([2**L],dtype='complex128')

@@ -42,9 +42,9 @@ parameters = {
     # physical system
     # =======================================================================
     'n_sites':  L,
-    'n_steps': 10000,
+    'n_steps': 1000,
     't_initial': 0.0,
-    't_final': 100.0, # This is the tau in the article.
+    't_final': 10.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'TransIsing',
     #  also sets entangling gate alpha
