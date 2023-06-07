@@ -37,14 +37,15 @@ model_0 = copy.deepcopy(trans_ising_model)
 model_0.parametrize_hamiltonian(*[L,0,g])
 
 
+
 parameters = {
     # =======================================================================
     # physical system
     # =======================================================================
     'n_sites':  L,
-    'n_steps': 1000,
+    'n_steps': 10000,
     't_initial': 0.0,
-    't_final': 10.0, # This is the tau in the article.
+    't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'TransIsing',
     #  also sets entangling gate alpha

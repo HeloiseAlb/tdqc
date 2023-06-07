@@ -52,11 +52,9 @@ class AdiaStatePrepa(Solver):
         if not "model_0" in settings:
             raise ValueError("Error loading asp-solver settings, 'model_0' parameter not found")
         self.__model_0 = settings["model_0"]
-        """
         if not "model_f" in settings:
             raise ValueError("Error loading asp-solver settings, 'model_f' parameter not found")
         self.__model_f = settings["model_f"]
-        """
         if not "t_initial" in settings:
             raise ValueError("Error loading asp-solver settings, 't_initial' parameter not found")
         self.__t_initial = settings["t_initial"]
@@ -81,6 +79,8 @@ class AdiaStatePrepa(Solver):
         #self.H_f = self.__model_f.model_hamiltonian
         #self.__time_evolution = None
         self.__final_state = None 
+        self.__list_fidelities = None
+        self.__list_gaps = None
         self.set_initial_state()
         self.set_coupling_matrix()
 
@@ -139,25 +139,17 @@ class AdiaStatePrepa(Solver):
    
     def H(self, t):
         T = self.__t_final
-        H_t = (1 - t/T)*self.__model_0.model_hamiltonian() + (t/T)*self.__model_f.model_hamiltonian()
+        H_t = (1 - t/T)*self.__model_0.hamiltonian + (t/T)*self.__model_f.hamiltonian
         return H_t
-    """    
-    # Define the time evolution operator U(t, T)
-    def U(self, t, T):
-        return expm(-1j*self.H(t, T))
-    """
+
     def solve(self,)-> None:
         # This method runs the time evolution and stores the list of the vec_state in self.__time_evolution.  
         state_t_n = self.__initial_state.get_vector_state()
-        t_initial = self.__t_initial
-        t_final = self.__t_final
-        n_steps = self.__n_steps
-        step = (t_final-t_initial)/n_steps
-        
-        n_sites = self.__n_sites
-        site_list = [l for l in range(1,n_sites,1)]
-        t_list = [t for t in np.linspace(t_initial,t_final,n_steps)]
-        time_evolution = np.zeros([n_steps+1,2**n_sites],dtype='complex128') # [None] * int((t_max-t_min)/step) #np.zeros([int((t_max-t_min)/step)])
+
+        step = (self.__t_final - self.__t_initial) / self.__n_steps
+        site_list = [l for l in range(1, self.__n_sites, 1)]
+        t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
+        time_evolution = np.zeros([self.__n_steps + 1, 2**self.__n_sites], dtype='complex128') 
         inv_temperature = 1
         for idx, t_n in enumerate(t_list):
             time_evolution[idx, :] = state_t_n.reshape(-1)
@@ -166,11 +158,67 @@ class AdiaStatePrepa(Solver):
         time_evolution[-1,:] = state_t_n.reshape(-1)
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
-
+    
     @property
     def final_state(self):
         return self.__final_state
-        
+
+    def compute_list_fidelities_and_energy_gaps(self,):
+        if self.__final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+        step = (self.__t_final - self.__t_initial) / self.__n_steps
+        site_list = [l for l in range(1, self.__n_sites, 1)]
+        t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
+        list_fidelities = np.zeros(self.__n_steps, dtype='complex128')  
+        list_gaps = np.zeros(self.__n_steps, dtype='complex128') 
+        for idx, t_n in enumerate(t_list):
+            H_t_n = self.H(t_n)
+            ground_state_h_t_n, gap_h_t_n = self.calculate_ground_states_and_energy_gap(H_t_n, all_gs = False)
+            state_t_n = self.__time_evolution[idx,:]
+            fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
+            list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
+            list_gaps[idx] = gap_h_t_n
+        self.__list_fidelities = list_fidelities
+        self.__list_gaps = list_gaps
+
+    def calculate_ground_states_and_energy_gap(self, H_matrix, all_gs = True):
+        # I need to add  an option in case there are several gs.
+        eig_values, eig_vectors = np.linalg.eigh(H_matrix) 
+        length_vector = eig_vectors.shape[0]
+        min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
+        min_indices = np.asarray(min_indices)[0]
+        ground_states = np.zeros([length_vector,min_indices.shape[0]],complex)
+        for idx, value in enumerate(min_indices):
+            eig_vector = eig_vectors[:,value]
+            eig_vector = eig_vector[:]
+            ground_states[:, idx] = eig_vector
+        gap = self.min_energy_gap(eig_values)
+        return ground_states, gap
+
+    def min_energy_gap(self, eigenvalues):
+        sorted_eigenvalues = np.sort(eigenvalues)
+        print(sorted_eigenvalues)
+        gap = sorted_eigenvalues[1] - sorted_eigenvalues[0]
+        return gap
+
+    @property
+    def list_fidelities(self,):
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+        else:
+            if type(self.__list_fidelities) == type(None):
+                self.compute_list_fidelities_and_energy_gaps()
+            return self.__list_fidelities
+
+    @property
+    def list_gaps(self,):
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of energy gaps")
+        else:
+            if type(self.__list_gaps) == type(None):
+                self.compute_list_fidelities_and_energy_gaps()
+            return self.__list_gaps
+
     def get_rho_target(self,)-> np.ndarray:
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
@@ -209,7 +257,6 @@ class AdiaStatePrepa(Solver):
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
         # Those gate lists are in fact lists of angles.
         state = np.dot(U_xx(coupling_matrix_angle),state)
-        #print('state after U_xx:{} is {}'.format(U_xx(jx_angle_list[step]),state))
         if hz_angle != None:       
             U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
             for site in range(0,self.__n_sites,1):

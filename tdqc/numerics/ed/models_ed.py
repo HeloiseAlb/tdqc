@@ -66,25 +66,25 @@ class Model(object):
 
     @property
     def hamiltonian(self,):
-        if self.__hamiltonian == None:
+        if self.__hamiltonian is None:
             raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the hamiltonian.")
         return self.__hamiltonian
 
     @property
     def eig_values(self,):
-        if self.__eig_values == None:
+        if self.__eig_values is None:
             raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the eig_values.")
         return self.__eig_values
 
     @property
     def eig_vectors(self,):
-        if self.__eig_vectors == None:
+        if self.__eig_vectors is None:
             raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the eig_vectors.")
         return self.__eig_vectors
 
     @property
     def ground_states(self,):
-        if self.__ground_states == None:
+        if self.__ground_states is None:
             raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the ground_states.")
         return self.__ground_states
 
