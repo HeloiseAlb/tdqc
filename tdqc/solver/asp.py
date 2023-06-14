@@ -81,6 +81,7 @@ class AdiaStatePrepa(Solver):
         self.__final_state = None 
         self.__list_fidelities = None
         self.__list_gaps = None
+        self.__delta_t = (self.__t_final-self.__t_initial)/self.__n_steps
         self.set_initial_state()
         self.set_coupling_matrix()
 
@@ -197,7 +198,7 @@ class AdiaStatePrepa(Solver):
 
     def min_energy_gap(self, eigenvalues):
         sorted_eigenvalues = np.sort(eigenvalues)
-        print(sorted_eigenvalues)
+        # print(sorted_eigenvalues)
         gap = sorted_eigenvalues[1] - sorted_eigenvalues[0]
         return gap
 
@@ -241,8 +242,8 @@ class AdiaStatePrepa(Solver):
             pass
             # return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing':
-            coupling_matrix_angle = self.ham_params['J']
-            hx_angle = self.ham_params['g'] * t_n/self.__t_final
+            coupling_matrix_angle = self.ham_params['J']*self.__delta_t
+            hx_angle = self.ham_params['g'] * t_n/(self.__t_final-self.__t_initial)*self.__delta_t
             return coupling_matrix_angle, hx_angle, None
         else:
             raise NotImplementedError('Trotter sequence not implemented'
