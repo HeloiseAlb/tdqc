@@ -172,18 +172,30 @@ class AdiaStatePrepa(Solver):
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
         list_fidelities = np.zeros(self.__n_steps, dtype='complex128')  
         list_gaps = np.zeros(self.__n_steps, dtype='complex128') 
+        list_difference_energy_with_gs_hamiltonian = np.zeros(self.__n_steps, dtype='complex128')
         for idx, t_n in enumerate(t_list):
             H_t_n = self.H(t_n)
-            ground_state_h_t_n, gap_h_t_n = self.calculate_ground_states_and_energy_gap(H_t_n, all_gs = False)
             state_t_n = self.__time_evolution[idx,:]
+            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
+            list_difference_energy_with_gs_hamiltonian[idx] = difference_energy_with_gs_hamiltonian
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
+        self.__list_difference_energy_with_gs_hamiltonian = list_difference_energy_with_gs_hamiltonian
 
-    def calculate_ground_states_and_energy_gap(self, H_matrix, all_gs = True):
-        # I need to add  an option in case there are several gs.
+    def compute_ground_states_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
+        """
+        Returns:
+            ground_states: np.array: the ground states of the Hamiltonian H_matrix.
+            gap: float: the gap between the ground state energy and the first excited states.
+            difference_energy_with_gs_hamiltonian: float: the difference between the energy
+            of the state and the ground state energy of the Hamiltonian.
+        """
+        # I need to add an option in case there are several gs.
+        energy_state = self.compute_energy(state_vector, H_matrix)
+
         eig_values, eig_vectors = np.linalg.eigh(H_matrix) 
         length_vector = eig_vectors.shape[0]
         min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
@@ -194,13 +206,39 @@ class AdiaStatePrepa(Solver):
             eig_vector = eig_vector[:]
             ground_states[:, idx] = eig_vector
         gap = self.min_energy_gap(eig_values)
-        return ground_states, gap
+        difference_energy_with_gs_hamiltonian = energy_state - np.min(eig_values)
+        return ground_states, gap, difference_energy_with_gs_hamiltonian
+
+
+    def compute_energy(self, state_vector, H_matrix):
+        """Calculate the energy of a state for a given Hamiltonian.
+        Args:
+            state (np.ndarray): The state vector.
+            H (np.ndarray): The instantaneous Hamiltonian matrix.
+        Returns:
+            float: The energy of the state.
+        """
+        # Calculate the energy
+        energy = np.dot(np.conjugate(state_vector), np.dot(H_matrix, state_vector))
+        return energy.real  # Return the real part of the energy
+
+
 
     def min_energy_gap(self, eigenvalues):
         sorted_eigenvalues = np.sort(eigenvalues)
-        # print(sorted_eigenvalues)
         gap = sorted_eigenvalues[1] - sorted_eigenvalues[0]
         return gap
+
+    
+    @property
+    def list_difference_energy_with_gs_hamiltonian(self,):
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+        else:
+            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
+                self.compute_list_fidelities_and_energy_gaps()
+            return self.__list_difference_energy_with_gs_hamiltonian
+
 
     @property
     def list_fidelities(self,):

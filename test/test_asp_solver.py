@@ -95,11 +95,12 @@ solver.solve()
 
 fidelities = solver.list_fidelities
 gaps = solver.list_gaps
-
+list_difference_energy_with_gs_hamiltonian = solver.list_difference_energy_with_gs_hamiltonian
 #%% 
 # Plot the time evolution of the fidelities between the ground state of H_t_n 
 # and the state of the system.
 print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
+fig1 = plt.figure() 
 plt.plot(t_list,abs(fidelities[:]))
 plt.xlabel('time t')
 plt.ylabel('Fidelities')
@@ -117,6 +118,18 @@ delta_s = (parameters["t_final"]-parameters["t_initial"])/parameters["n_steps"]
 print("T limit:{}".format(largest_singular_value/delta_s**2))
 #test_fidelity_evolution()
 
-# %%
+#%% 
+# Plot the time evolution of the difference between the ground state energy of H_t_n 
+# and the energy state of the system.
+fig2 = plt.figure() 
+plt.plot(t_list,list_difference_energy_with_gs_hamiltonian.real)
+plt.xlabel('time t')
+plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$ - E_0(t)')
+#plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$')
+plt.title('Difference between energy of the system at time t \n and the ground state energy \n of the Hamiltonian at time t: H(t)')
+#plt.title('Energy of the system at time t')
+plt.savefig('my_plot_list_difference_energy_with_gs_hamiltonian.png')
+#plt.savefig('my_plot_list_energies.png')
+
 
 # %%
