@@ -96,9 +96,9 @@ class AdiaStatePrepa(Solver):
         self.__initial_state = State(init_vec_state)
     
     def set_coupling_matrix(self,)-> None:
+        dim = int(2**self.__n_sites)
+        list_glob_operators =  [None] * self.__n_sites
         if self.__system_class == 'LongRangeIsing':
-            dim = int(2**self.__n_sites)
-            list_glob_operators =  [None] * self.__n_sites
             for site in range(0,self.__n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
@@ -109,8 +109,6 @@ class AdiaStatePrepa(Solver):
                     coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
             self.coupling_matrix = coupling_matrix
         elif self.__system_class == 'TransIsing':
-            dim = int(2**self.__n_sites)
-            list_glob_operators =  [None] * self.__n_sites
             for site in range(0,self.__n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
@@ -160,6 +158,25 @@ class AdiaStatePrepa(Solver):
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
+    def generate_data_files(self,):
+        if (self.__final_state == None):
+            # If the method solve have not run yet. 
+            self.solve()
+        parametername = 'ASP'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.t_final)
+        self.save_best_encountered_actions('json',
+                                                'best_gate_sequence'+parametername+'.json')
+        
+        # Generate the file with the time evolution amplitudes.
+        try:
+            amplitude_filename = 'amplitude_'+parametername+'.npy'
+            with open(amplitude_filename, 'wb') as f:
+                np.save(f, self.time_evolution)
+        except Exception as e:
+            print(amplitude_filename+' could not be saved.')
+            print('--->', e)
+        
+
+
     @property
     def final_state(self):
         return self.__final_state
@@ -173,17 +190,22 @@ class AdiaStatePrepa(Solver):
         list_fidelities = np.zeros(self.__n_steps, dtype='complex128')  
         list_gaps = np.zeros(self.__n_steps, dtype='complex128') 
         list_difference_energy_with_gs_hamiltonian = np.zeros(self.__n_steps, dtype='complex128')
+
+        dim = int(2**self.__n_sites)
+        list_eigenvalues = np.zeros((self.__n_steps, dim), dtype='complex128')
         for idx, t_n in enumerate(t_list):
             H_t_n = self.H(t_n)
             state_t_n = self.__time_evolution[idx,:]
-            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
+            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
             list_difference_energy_with_gs_hamiltonian[idx] = difference_energy_with_gs_hamiltonian
+            list_eigenvalues[idx,:] = eig_values
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
         self.__list_difference_energy_with_gs_hamiltonian = list_difference_energy_with_gs_hamiltonian
+        self.__list_eigenvalues = list_eigenvalues
 
     def compute_ground_states_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
         """
@@ -192,6 +214,7 @@ class AdiaStatePrepa(Solver):
             gap: float: the gap between the ground state energy and the first excited states.
             difference_energy_with_gs_hamiltonian: float: the difference between the energy
             of the state and the ground state energy of the Hamiltonian.
+            eig_values: float: the eigenvalues of the Hamiltonian (it does include the ground state).
         """
         # I need to add an option in case there are several gs.
         energy_state = self.compute_energy(state_vector, H_matrix)
@@ -207,7 +230,7 @@ class AdiaStatePrepa(Solver):
             ground_states[:, idx] = eig_vector
         gap = self.min_energy_gap(eig_values)
         difference_energy_with_gs_hamiltonian = energy_state - np.min(eig_values)
-        return ground_states, gap, difference_energy_with_gs_hamiltonian
+        return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values
 
 
     def compute_energy(self, state_vector, H_matrix):
@@ -238,7 +261,16 @@ class AdiaStatePrepa(Solver):
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_list_fidelities_and_energy_gaps()
             return self.__list_difference_energy_with_gs_hamiltonian
-
+    
+    @property
+    def list_eigenvalues(self,):
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+        else:
+            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
+                self.compute_list_fidelities_and_energy_gaps()
+            return self.__list_eigenvalues
+    
 
     @property
     def list_fidelities(self,):

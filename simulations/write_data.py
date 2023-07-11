@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_array = np.load('rewardsN6episode50000simulations0t_final0.08.npy')
+data_array = np.load('rewardsNoPD_N6episode50000simulations0t_final0.8ok.npy')
 
 print("\nData summary:\n", data_array)
 print("\nData shape:\n", data_array.shape)
@@ -45,9 +45,9 @@ for idx, value in enumerate(data_array[0:-100]):
 
 xaxis_ave = np.arange(data_average.shape[0])
 plt.show()
-plt.title("Evolution of the average local reward during training for a N-qubit system.")
+plt.title("Evolution of the local reward (average over 100) during training for a 6-qubit system.")
 plt.xlabel('Episode')
-plt.ylabel('average Rewards over 100')
+plt.ylabel('average local reward over 100 episodes')
 #plt.scatter(xaxis,data_average, marker = '+', c = 'g')
 
 plt.plot(xaxis_ave,data_average, marker = '+', c = 'g')
