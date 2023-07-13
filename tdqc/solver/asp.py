@@ -90,6 +90,7 @@ class AdiaStatePrepa(Solver):
         # Here, I consider the ground state is non-degenerate.
         # To do: Code the case where it is degenerate. 
         ground_states = self.__model_0.ground_states 
+        print(f"ground_states {ground_states}")
         init_vec_state = np.array(ground_states,dtype='complex128')
         norm = np.linalg.norm(init_vec_state)
         init_vec_state = init_vec_state / norm
@@ -141,20 +142,34 @@ class AdiaStatePrepa(Solver):
         H_t = (1 - t/T)*self.__model_0.hamiltonian + (t/T)*self.__model_f.hamiltonian
         return H_t
 
-    def solve(self,)-> None:
-        # This method runs the time evolution and stores the list of the vec_state in self.__time_evolution.  
+    def solve(self, ED = False)-> None:
+        """
+        It realizes the discretization of the time to have instantaneous Hamiltonian on a 
+        small segment of time. 
+        Then, by default, it applies the circuit of the Trotterization for this instantaneous 
+        Hamiltonian. If ED = True, it applies realised the ED to compute the state at the end 
+        of the small time step.
+        It stores the list of the vec_state in self.__time_evolution.  
+        """
         state_t_n = self.__initial_state.get_vector_state()
-
-        step = (self.__t_final - self.__t_initial) / self.__n_steps
+        time_step = (self.__t_final - self.__t_initial) / self.__n_steps
         site_list = [l for l in range(1, self.__n_sites, 1)]
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
-        time_evolution = np.zeros([self.__n_steps + 1, 2**self.__n_sites], dtype='complex128') 
+        time_evolution = np.zeros([self.__n_steps, 2**self.__n_sites], dtype='complex128') 
         inv_temperature = 1
-        for idx, t_n in enumerate(t_list):
-            time_evolution[idx, :] = state_t_n.reshape(-1)
-            coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(t_n)
-            state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hz_angle)
-        time_evolution[-1,:] = state_t_n.reshape(-1)
+        if ED:
+            time_evolution[0, :] = state_t_n.reshape(-1)
+            for idx, t_n in enumerate(t_list[1:]):
+                model = Model("instanteneous_hamiltonian", lambda: self.H(t_n))
+                model.parametrize_hamiltonian()
+                state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
+                time_evolution[idx+1, :] = state_t_n.reshape(-1)
+        else:
+            time_evolution[0, :] = state_t_n.reshape(-1)
+            for idx, t_n in enumerate(t_list[1:]):    
+                coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(t_n)
+                state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hz_angle)
+                time_evolution[idx+1, :] = state_t_n.reshape(-1)
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
@@ -270,7 +285,6 @@ class AdiaStatePrepa(Solver):
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_list_fidelities_and_energy_gaps()
             return self.__list_eigenvalues
-    
 
     @property
     def list_fidelities(self,):
@@ -347,3 +361,16 @@ class AdiaStatePrepa(Solver):
                 state = np.dot(U_x_site,state)
         return state
                 
+
+    def apply_ed_evolution(self, init_vec_state, model, delta_t, imaginary=False, h_bar=1):
+        '''
+        Time evolution of a system after a quench using exact diagonalization. 
+        It makes the state initial_state evolve according to the Hamiltonian of the model for a time delta_t.
+        '''
+        # Input to simulate the imaginary time evolution, by default, it is the real time evolution.
+        if imaginary:
+            delta_t = -1j * delta_t
+        eig_values, eig_vectors = model.eig_values, model.eig_vectors
+        
+        new_vec_state = np.dot(expm(-1j * delta_t * model.hamiltonian), init_vec_state)
+        return new_vec_state

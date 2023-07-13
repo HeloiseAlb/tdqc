@@ -1,3 +1,4 @@
+#%%
 import pytest
 import tdqc
 import numpy as np
@@ -13,7 +14,7 @@ from tdqc.numerics.ed.models_ed import State
 from tdqc.numerics.ed.models_ed import trans_ising_model
 from tdqc.numerics.asp.parameters_asp import parameters
 
-
+#%%
 def plot_eigenvalues_evolution():
     t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]    
     L = parameters["n_sites"]
@@ -49,40 +50,66 @@ def plot_eigenvalues_evolution():
 
 plot_eigenvalues_evolution()
 
-# # Plot the time evolution of the fidelities between the ground state of H_t_n 
-# # and the state of the system.
-# print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
-# fig1 = plt.figure() 
-# plt.plot(t_list,abs(fidelities[:]))
-# plt.xlabel('time t')
-# plt.ylabel('Fidelities')
-# plt.title('Absolute value of the fidelity between state \n of the system at time t and the ground state \n of the Hamiltonian at time t: H(t)')
-# plt.savefig('my_plot_fidelities.png')
+#%%
+def plot_time_evolution(plot_fidelities = True, ):
+    """
+    Plot the time evolution of the selected variables among:
+    - the fidelities between the ground state of H_t_n and the state of the system,
+    - the difference between the ground state energy of H_t_n and the energy state of the system,
+    """
+    t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]   
 
-# # Is T long enough?
-# delta_s_H = -parameters['model_0'].hamiltonian + parameters['model_f'].hamiltonian
-# _, singular_values, _ = np.linalg.svd(delta_s_H)
+    L = parameters["n_sites"]
+    solver = AdiaStatePrepa()
+    solver.load_settings(parameters)
+    solver.solve(ED = True)
 
-# # Print the largest singular value
-# largest_singular_value = singular_values[0]
-# print("Largest singular value: {}".format(largest_singular_value))
-# delta_s = (parameters["t_final"]-parameters["t_initial"])/parameters["n_steps"]
-# print("T limit:{}".format(largest_singular_value/delta_s**2))
-# #test_fidelity_evolution()
+    fidelities = solver.list_fidelities
+    gaps = solver.list_gaps
+    list_difference_energy_with_gs_hamiltonian = solver.list_difference_energy_with_gs_hamiltonian
+    print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
+    
+    if plot_fidelities:
+        fig1 = plt.figure() 
+        plt.plot(t_list,abs(fidelities[:]))
+        plt.xlabel('time t')
+        plt.ylabel('Fidelities')
+        plt.title('Absolute value of the fidelity between state \n of the system at time t and the ground state \n of the Hamiltonian at time t: H(t)')
+        plt.savefig('my_plot_fidelities.png')
 
-# #%% 
-# # Plot the time evolution of the difference between the ground state energy of H_t_n 
-# # and the energy state of the system.
-# fig2 = plt.figure() 
-# plt.plot(t_list,list_difference_energy_with_gs_hamiltonian.real)
-# plt.xlabel('time t')
-# #plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$ - E_0(t)')
-# #plt.title('Difference between energy of the system at time t \n and the ground state energy \n of the Hamiltonian at time t: H(t)')
-# #plt.savefig('my_plot_list_difference_energy_with_gs_hamiltonian.png')
+    # Is T long enough?
+    delta_s_H = -parameters['model_0'].hamiltonian + parameters['model_f'].hamiltonian
+    _, singular_values, _ = np.linalg.svd(delta_s_H)
 
-# plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$')
-# plt.title('Energy of the system at time t')
-# plt.savefig('my_plot_list_energies.png')
+    # Print the largest singular value
+    largest_singular_value = singular_values[0]
+    print("Largest singular value: {}".format(largest_singular_value))
+    delta_s = (parameters["t_final"]-parameters["t_initial"])/parameters["n_steps"]
+    t_limit = largest_singular_value/delta_s**2
+    print("T limit:{}".format(t_limit))
+    if t_limit < parameters["t_initial"]- parameters["t_final"]:
+        print("The simulation time is not long enough to apply the adiabatic therorem.")
+        
+
+    fig2 = plt.figure() 
+    plt.plot(t_list,list_difference_energy_with_gs_hamiltonian.real)
+    plt.xlabel('time t')
+    #plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$ - E_0(t)')
+    #plt.title('Difference between energy of the system at time t \n and the ground state energy \n of the Hamiltonian at time t: H(t)')
+    #plt.savefig('my_plot_list_difference_energy_with_gs_hamiltonian.png')
+
+    plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$')
+    plt.title('Energy of the system at time t')
+    plt.savefig('my_plot_list_energies.png')
+
+    
+
+
+plot_time_evolution()
 
 
 
+
+# %%
+def diagonalisation_evolution():
+    
