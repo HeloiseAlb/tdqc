@@ -165,6 +165,7 @@ class AdiaStatePrepa(Solver):
                 state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
                 time_evolution[idx+1, :] = state_t_n.reshape(-1)
         else:
+            # Else apply the Trotterization circuit.
             time_evolution[0, :] = state_t_n.reshape(-1)
             for idx, t_n in enumerate(t_list[1:]):    
                 coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(t_n)
@@ -174,6 +175,7 @@ class AdiaStatePrepa(Solver):
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
     def generate_data_files(self,):
+        # This function needs to be tested.
         if (self.__final_state == None):
             # If the method solve have not run yet. 
             self.solve()
