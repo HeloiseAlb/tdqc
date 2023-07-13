@@ -1,6 +1,7 @@
 #  import math
 #  import __main__
 import numpy as np
+import copy 
 from tdqc.numerics.ed.models_ed import Model, trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.ed import EDSolver
@@ -19,11 +20,11 @@ def tensor_prod(*arg):
     return res
 
 # Initializing model
-L = 4 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 10 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
 h = 2.0
 alpha = int(3)
-model = trans_ising_model
+model = copy.deepcopy(trans_ising_model)
 model.parametrize_hamiltonian(*[L,J,alpha,h])
 
 parameters = {

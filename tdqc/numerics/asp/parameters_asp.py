@@ -22,7 +22,7 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = 4
+L = 2
 J = 1.0
 g = 2.0 # The notation can be confusing. It is the h of the Transversal Long range Ising model.
 model_f = copy.deepcopy(trans_ising_model)
@@ -45,7 +45,7 @@ parameters = {
     'n_sites':  L,
     'n_steps': 100000,
     't_initial': 0.0,
-    't_final': 3000000.0, # This is the tau in the article.
+    't_final': 100.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'TransIsing',
     #  also sets entangling gate alpha

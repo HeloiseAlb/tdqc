@@ -33,17 +33,6 @@ def globalize_op(local_op,site,L):
         tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
     return tensor_0
 
-def ground_states(eig_values,eig_vectors):
-    length_vector = eig_vectors.shape[0]
-    min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
-    min_indices = np.asarray(min_indices)[0]
-    ground_states = np.zeros([length_vector,min_indices.shape[0]],complex)
-    for idx, value in enumerate(min_indices):
-        eig_vector = eig_vectors[:,value]
-        eig_vector = eig_vector[:]
-        ground_states[:, idx] = eig_vector
-    return ground_states
-
 
 class Model(object):
     # Class attribute
@@ -51,17 +40,53 @@ class Model(object):
     def __init__(self, name, model_hamiltonian):
         self.name = name
         self.model_hamiltonian = model_hamiltonian
-        self.eig_values = None
-        self.eig_vectors = None
-        self.ground_states = None
+        self.__eig_values = None
+        self.__eig_vectors = None
+        self.__ground_states = None
+        self.__hamiltonian = None
+
+    def calculate_ground_states(self, eig_values, eig_vectors):
+        length_vector = eig_vectors.shape[0]
+        min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
+        min_indices = np.asarray(min_indices)[0]
+        ground_states = np.zeros([length_vector,min_indices.shape[0]],complex)
+        for idx, value in enumerate(min_indices):
+            eig_vector = eig_vectors[:,value]
+            eig_vector = eig_vector[:]
+            ground_states[:, idx] = eig_vector
+        return ground_states
 
     def parametrize_hamiltonian(self, *parameter):
         fonction = self.model_hamiltonian
-        self.hamiltonian = fonction(*parameter)
-        eig_values,eig_vectors = np.linalg.eigh(self.hamiltonian) 
-        self.eig_values = eig_values
-        self.eig_vectors = eig_vectors
-        self.ground_states = ground_states(eig_values,eig_vectors)
+        self.__hamiltonian = fonction(*parameter)
+        eig_values, eig_vectors = np.linalg.eigh(self.__hamiltonian) 
+        self.__eig_values = eig_values
+        self.__eig_vectors = eig_vectors
+        self.__ground_states = self.calculate_ground_states(eig_values,eig_vectors)
+
+    @property
+    def hamiltonian(self,):
+        if self.__hamiltonian is None:
+            raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the hamiltonian.")
+        return self.__hamiltonian
+
+    @property
+    def eig_values(self,):
+        if self.__eig_values is None:
+            raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the eig_values.")
+        return self.__eig_values
+
+    @property
+    def eig_vectors(self,):
+        if self.__eig_vectors is None:
+            raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the eig_vectors.")
+        return self.__eig_vectors
+
+    @property
+    def ground_states(self,):
+        if self.__ground_states is None:
+            raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the ground_states.")
+        return self.__ground_states
 
     @classmethod
     def class_method(cls):
@@ -70,24 +95,24 @@ class Model(object):
 
 
 # Models XXZ
-def hamiltonian_xxz(L,Jxy,Jzz,PDB=False):
-    Jzz_list = [[Jzz,i,i+1] for i in range(L-1)]
-    Jxy_list = [[Jxy ,i,i+1] for i in range(L-1)]
+def hamiltonian_xxz(L, Jxy, Jzz, PDB=False):
+    Jzz_list = [[Jzz, i, i+1] for i in range(L-1)]
+    Jxy_list = [[Jxy ,i, i+1] for i in range(L-1)]
     # Periodic boundary conditions
     if PDB:
-        Jzz_list.append([Jzz,L-1,0])
-        Jxy_list.append([Jxy,L-1,0])
-    H = np.zeros((2**(L),2**(L)),dtype='complex128')
+        Jzz_list.append([Jzz, L-1, 0])
+        Jxy_list.append([Jxy, L-1, 0])
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
     for _,value in enumerate(Jzz_list):
-        t_1 = globalize_op(h_bar/2.0*spin_op["sigma_z"],value[1],L)
-        t_2 = globalize_op(h_bar/2.0*spin_op["sigma_z"],value[2],L)
-        H += (np.dot(t_2,t_1))*value[0]
+        t_1 = globalize_op(h_bar/2.0 * spin_op["sigma_z"], value[1], L)
+        t_2 = globalize_op(h_bar/2.0 * spin_op["sigma_z"], value[2], L)
+        H += np.dot(t_2,t_1) * value[0]
     for _,value in enumerate(Jxy_list):
-        t_1 = globalize_op(h_bar/2.0*spin_op["sigma_x"],value[1],L)
-        t_2 = globalize_op(h_bar/2.0*spin_op["sigma_x"],value[2],L)
-        H += np.dot(t_2,t_1)*value[0]
-        t_1 = globalize_op(h_bar/2.0*spin_op["sigma_y"],value[1],L)
-        t_2 = globalize_op(h_bar/2.0*spin_op["sigma_y"],value[2],L)
+        t_1 = globalize_op(h_bar/2.0 * spin_op["sigma_x"], value[1], L)
+        t_2 = globalize_op(h_bar/2.0 * spin_op["sigma_x"], value[2], L)
+        H += np.dot(t_2, t_1) * value[0]
+        t_1 = globalize_op(h_bar/2.0 * spin_op["sigma_y"], value[1], L)
+        t_2 = globalize_op(h_bar/2.0 * spin_op["sigma_y"], value[2], L)
         H += np.dot(t_2,t_1)*value[0]
     return H
 xxz_model = Model("xxz_model", hamiltonian_xxz)
@@ -109,18 +134,18 @@ def hamiltonian_lri(L,J,alpha,m_x,m_z):
     # Non Periodic Boundary Conditions
     list_glob_operators =  [None] * L
     # Create the list of global operators
-    for site in range(0,L,1):
-        list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site,L)    
-    H = np.zeros((2**(L),2**(L)),dtype='complex128')
-    for j in range(0,L-1):
-        for k in range(j+1,L):
-            H += J*((k-j)**(-alpha)) *np.dot(list_glob_operators[j],list_glob_operators[k])
+    for site in range(0, L, 1):
+        list_glob_operators[site] = globalize_op(spin_op["sigma_x"], site, L)    
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    for j in range(0, L-1):
+        for k in range(j+1, L):
+            H += J*((k-j)**(-alpha)) * np.dot(list_glob_operators[j], list_glob_operators[k])
     for j in range(0,L,1):
-        H += m_x * list_glob_operators[j] + m_z * globalize_op(spin_op["sigma_z"],j,L)
+        H += m_x * list_glob_operators[j] + m_z * globalize_op(spin_op["sigma_z"], j, L)
     return H
 lri_model = Model("lri_model", hamiltonian_lri)
 
-def hamiltonian_trans_ising(L, J, alpha, h):
+def hamiltonian_trans_ising(L, J, h):
     '''
     Hamiltonian of the transverse field Ising model 
     taken from PhysRevLett.111.147205 equation 9. 
@@ -134,14 +159,13 @@ def hamiltonian_trans_ising(L, J, alpha, h):
     # Non Periodic Boundary Conditions
     list_glob_operators =  [None] * L
     # Create the list of global operators
-    for site in range(0,L,1):
-        list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site,L)    
-    H = np.zeros((2**(L),2**(L)),dtype='complex128')
-    for j in range(0,L-1):
-        for k in range(j+1,L):
-            H += J*((k-j)**(-alpha)) *np.dot(list_glob_operators[j],list_glob_operators[k])
-    for j in range(0,L,1):
-        H += h * globalize_op(spin_op["sigma_z"],j,L)
+    for site in range(0, L, 1):
+        list_glob_operators[site] = globalize_op(spin_op["sigma_x"], site, L)    
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    for j in range(0, L-1, 1):
+        H += -J * np.dot(list_glob_operators[j], list_glob_operators[j+1])
+    for j in range(0, L, 1):
+        H += h * globalize_op(spin_op["sigma_z"], j, L)
     return H
 
 trans_ising_model = Model("trans_ising_model", hamiltonian_trans_ising)
@@ -176,11 +200,11 @@ class State(object):
         '''
         # Input to simulate the imaginary time evolution, by default, it is the real time evolution.
         if imaginary:
-            delta_t = -1j*delta_t
+            delta_t = -1j * delta_t
         init_vec_state = self.vec_state
-        eig_values,eig_vectors = model.eig_values, model.eig_vectors
+        eig_values, eig_vectors = model.eig_values, model.eig_vectors
         
-        new_vec_state = np.dot(expm(-1j*delta_t*model.hamiltonian),init_vec_state)
+        new_vec_state = np.dot(expm(-1j * delta_t * model.hamiltonian), init_vec_state)
         self.vec_state = new_vec_state
         self.vec_state_real = new_vec_state.real
         self.vec_state_imag = new_vec_state.imag

@@ -1,6 +1,7 @@
 #  import math
 #  import __main__
 import numpy as np
+import copy 
 from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model
 from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.ed import EDSolver
@@ -24,7 +25,7 @@ J = 1.0
 m_x = 2.0
 m_z = 2.0
 alpha = int(3)
-model = lri_model
+model = copy.deepcopy(lri_model)
 model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
 
 parameters = {
@@ -34,7 +35,7 @@ parameters = {
     'n_sites':  L,
     'n_steps': 3,
     't_initial': 0.0,
-    't_final': 2.0, # This is the tau in the article.
+    't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'LongRangeIsing',
     #  also sets entangling gate alpha
