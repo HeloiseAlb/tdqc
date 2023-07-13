@@ -51,11 +51,12 @@ def plot_eigenvalues_evolution():
 # plot_eigenvalues_evolution()
 
 #%%
-def plot_time_evolution(plot_fidelities = True,plot_amplitudes = True  ):
+def plot_time_evolution(plot_fidelities = True, plot_amplitudes = True):
     """
     Plot the time evolution of the selected variables among:
     - the fidelities between the ground state of H_t_n and the state of the system,
     - the difference between the ground state energy of H_t_n and the energy state of the system,
+    - the probability amplitudes of the different state of the computational basis.
     """
     t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]   
 
@@ -63,14 +64,15 @@ def plot_time_evolution(plot_fidelities = True,plot_amplitudes = True  ):
     solver = AdiaStatePrepa()
     solver.load_settings(parameters)
     solver.solve(ED = False)
-
     fidelities = solver.list_fidelities
-    amplitudes = solver.time_evolution
+    
+    
     gaps = solver.list_gaps
     list_difference_energy_with_gs_hamiltonian = solver.list_difference_energy_with_gs_hamiltonian
     print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
     
     if plot_fidelities:
+        
         fig1 = plt.figure() 
         plt.plot(t_list,abs(fidelities[:]))
         plt.xlabel('time t')
@@ -104,6 +106,7 @@ def plot_time_evolution(plot_fidelities = True,plot_amplitudes = True  ):
     plt.savefig('my_plot_list_energies.png')
 
     if plot_amplitudes:
+        amplitudes = solver.time_evolution
         fig3 = plt.figure()
         # Plot the time evolution of the state in the computational basis.
         legend_list = []
@@ -129,3 +132,4 @@ plot_time_evolution()
 
 
     
+# %%
