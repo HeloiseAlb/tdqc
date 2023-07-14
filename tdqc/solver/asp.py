@@ -73,6 +73,11 @@ class AdiaStatePrepa(Solver):
         if not "n_sites" in settings:
             raise ValueError("Error loading asp-solver settings, 'n_sites' parameter not found")
         self.__n_sites = settings["n_sites"]
+        if not "gate_order" in settings and self.__system_class == "LongRangeIsing":
+            raise ValueError("Error loading asp-solver settings, 'gate_order' parameter not found")
+        else:
+            self.__gate_order = settings["gate_order"]
+
 
         # Define the initial Hamiltonian H_0 and the final Hamiltonian H_f
         #self.H_0 = self.__model_0.model_hamiltonian
@@ -107,7 +112,7 @@ class AdiaStatePrepa(Solver):
                 matrix_1 = list_glob_operators[l] 
                 for k in range(l+1,self.__n_sites,1):
                     matrix_2 = list_glob_operators[k]
-                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.ham_params['alpha']
             self.coupling_matrix = coupling_matrix
         elif self.__system_class == 'TransIsing':
             for site in range(0,self.__n_sites,1):
@@ -319,17 +324,24 @@ class AdiaStatePrepa(Solver):
         return target
 
     def define_gate_angles(self, t_n):
-        # The gates are defined to realize the Trotterization of the Hamiltonian.
+        """
+        The gates are defined to realize the Trotterization of the Hamiltonian.
+        """
         # I need to implement difference way to weight the H_0 and H_f. For 
-        # the moment, it is only possible linearly. 
+        # the moment, it is only possible linearly w.r.t. the time. 
         if self.__system_class == 'LongRangeIsing':
+            # Trotter sequence only implemented for n_directions = 2.
+            coupling_matrix_angle = self.ham_params['J'] * self.__delta_t
+            hx_angle = self.ham_params['g'] * self.__delta_t
+            hz_angle = self.ham_params['h'] * self.__delta_t
+
+            # coupling_matrix_angle = self.ham_params['J']*self.__delta_t
             # To be defined according to the choice of H_0 for 
             # LongRangeIsing model. 
-            pass
-            # return coupling_matrix_angle, hx_angle, hz_angle
+            return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing':
             coupling_matrix_angle = self.ham_params['J']*self.__delta_t
-            hx_angle = self.ham_params['g'] * t_n/(self.__t_final-self.__t_initial)*self.__delta_t
+            hx_angle = self.ham_params['g'] * self.__delta_t
             return coupling_matrix_angle, hx_angle, None
         else:
             raise NotImplementedError('Trotter sequence not implemented'
