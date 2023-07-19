@@ -147,12 +147,10 @@ lri_model = Model("lri_model", hamiltonian_lri)
 
 def hamiltonian_trans_ising(L, J, h):
     '''
-    Hamiltonian of the transverse field Ising model 
-    taken from PhysRevLett.111.147205 equation 9. 
-
+    Hamiltonian of the transverse field Ising model. We consider only the nearest neighbor interactions. 
+    
     L: an integer that specifies the number of sites in the spin chain
     J: a floating-point number that controls the strength of the spin-spin interactions
-    alpha: a floating-point number that controls the decay of the interactions with distance
     h: a floating-point number corresponding to the strength of the transverse field
     return H: 2^L x 2^L complex array representing the Hamiltonian matrix in the computational basis. 
     '''
@@ -165,7 +163,7 @@ def hamiltonian_trans_ising(L, J, h):
     for j in range(0, L-1, 1):
         H += -J * np.dot(list_glob_operators[j], list_glob_operators[j+1])
     for j in range(0, L, 1):
-        H += h * globalize_op(spin_op["sigma_z"], j, L)
+        H += -h * globalize_op(spin_op["sigma_z"], j, L)
     return H
 
 trans_ising_model = Model("trans_ising_model", hamiltonian_trans_ising)
