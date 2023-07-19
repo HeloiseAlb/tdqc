@@ -118,11 +118,17 @@ class AdiaStatePrepa(Solver):
             for site in range(0,self.__n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-            for l in range(0,self.__n_sites-1,1):
+            for l in range(0, self.__n_sites-1, 1):
                 matrix_1 = list_glob_operators[l] 
                 matrix_2 = list_glob_operators[l+1]
                 coupling_matrix += np.dot(matrix_1,matrix_2)
-            self.coupling_matrix = -coupling_matrix
+            self.coupling_matrix = coupling_matrix
+            print("coupling_matrix:{}".format(coupling_matrix))
+        else:
+            raise NotImplementedError('Trotter sequence not implemented'
+                                          ' for your system_class. Only implemented'
+                                          ' for TransIsing and LongRangeIsing.')
+        
 
     @property
     def time_evolution(self):
@@ -197,7 +203,9 @@ class AdiaStatePrepa(Solver):
             print(amplitude_filename+' could not be saved.')
             print('--->', e)
         
-
+    @property
+    def n_steps(self):
+        return self.__n_steps
 
     @property
     def final_state(self):
@@ -214,20 +222,23 @@ class AdiaStatePrepa(Solver):
         list_difference_energy_with_gs_hamiltonian = np.zeros(self.__n_steps, dtype='complex128')
 
         dim = int(2**self.__n_sites)
-        list_eigenvalues = np.zeros((self.__n_steps, dim), dtype='complex128')
+        list_eigenvalues = np.zeros((self.__n_steps, dim))
+        list_eigenvectors = np.zeros((self.__n_steps, dim, dim))
         for idx, t_n in enumerate(t_list):
             H_t_n = self.H(t_n)
             state_t_n = self.__time_evolution[idx,:]
-            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
+            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
             list_difference_energy_with_gs_hamiltonian[idx] = difference_energy_with_gs_hamiltonian
             list_eigenvalues[idx,:] = eig_values
+            list_eigenvectors[idx,:,:] = eig_vectors
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
         self.__list_difference_energy_with_gs_hamiltonian = list_difference_energy_with_gs_hamiltonian
         self.__list_eigenvalues = list_eigenvalues
+        self.__list_eigenvectors = list_eigenvectors
 
     def compute_ground_states_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
         """
@@ -252,7 +263,7 @@ class AdiaStatePrepa(Solver):
             ground_states[:, idx] = eig_vector
         gap = self.min_energy_gap(eig_values)
         difference_energy_with_gs_hamiltonian = energy_state - np.min(eig_values)
-        return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values
+        return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors
 
 
     def compute_energy(self, state_vector, H_matrix):
@@ -278,7 +289,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_difference_energy_with_gs_hamiltonian(self,):
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+            raise ValueError("The method solve need to be run before in order to get the list of energies")
         else:
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_list_fidelities_and_energy_gaps()
@@ -287,11 +298,20 @@ class AdiaStatePrepa(Solver):
     @property
     def list_eigenvalues(self,):
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+            raise ValueError("The method solve need to be run before in order to get the list of eigenvalues")
         else:
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_list_fidelities_and_energy_gaps()
             return self.__list_eigenvalues
+
+    @property
+    def list_eigenvectors(self,):
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of eigenvectors")
+        else:
+            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
+                self.compute_list_fidelities_and_energy_gaps()
+            return self.__list_eigenvectors
 
     @property
     def list_fidelities(self,):
@@ -334,14 +354,10 @@ class AdiaStatePrepa(Solver):
             coupling_matrix_angle = self.ham_params['J'] * self.__delta_t
             hx_angle = self.ham_params['g'] * self.__delta_t
             hz_angle = self.ham_params['h'] * self.__delta_t
-
-            # coupling_matrix_angle = self.ham_params['J']*self.__delta_t
-            # To be defined according to the choice of H_0 for 
-            # LongRangeIsing model. 
             return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing':
-            coupling_matrix_angle = self.ham_params['J']*self.__delta_t
-            hx_angle = self.ham_params['g'] * self.__delta_t
+            coupling_matrix_angle = - self.ham_params['J']*self.__delta_t
+            hx_angle = - self.ham_params['g'] * self.__delta_t
             return coupling_matrix_angle, hx_angle, None
         else:
             raise NotImplementedError('Trotter sequence not implemented'
@@ -356,6 +372,7 @@ class AdiaStatePrepa(Solver):
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
         # Those gate lists are in fact lists of angles.
         state = np.dot(U_xx(coupling_matrix_angle),state)
+        # if self.__system_class == 'LongRangeIsing':
         if hz_angle != None:       
             U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
             for site in range(0,self.__n_sites,1):
@@ -369,10 +386,16 @@ class AdiaStatePrepa(Solver):
                     state = np.dot(U_z_site,state)
                     U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
                     state = np.dot(U_x_site,state)
+        # elif self.__system_class == 'TransIsing':
         else:
             for site in range(0,self.__n_sites,1):
                 U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
                 state = np.dot(U_x_site,state)
+        # else:
+        #     raise NotImplementedError('Trotter sequence not implemented'
+        #                                   ' for your system_class. Only implemented'
+        #                                   ' for TransIsing and LongRangeIsing.')
+        
         return state
                 
 
