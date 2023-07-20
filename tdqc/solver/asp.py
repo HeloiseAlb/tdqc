@@ -104,10 +104,10 @@ class AdiaStatePrepa(Solver):
     def set_coupling_matrix(self,)-> None:
         dim = int(2**self.__n_sites)
         list_glob_operators =  [None] * self.__n_sites
+        for site in range(0,self.__n_sites,1):
+            list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
+        coupling_matrix = np.zeros((dim,dim),dtype='complex128')
         if self.__system_class == 'LongRangeIsing':
-            for site in range(0,self.__n_sites,1):
-                list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
-            coupling_matrix = np.zeros((dim,dim),dtype='complex128')
             for l in range(0,self.__n_sites,1):
                 matrix_1 = list_glob_operators[l] 
                 for k in range(l+1,self.__n_sites,1):
@@ -115,15 +115,20 @@ class AdiaStatePrepa(Solver):
                     coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.ham_params['alpha']
             self.coupling_matrix = coupling_matrix
         elif self.__system_class == 'TransIsing':
-            for site in range(0,self.__n_sites,1):
-                list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
-            coupling_matrix = np.zeros((dim,dim),dtype='complex128')
             for l in range(0, self.__n_sites-1, 1):
                 matrix_1 = list_glob_operators[l] 
                 matrix_2 = list_glob_operators[l+1]
                 coupling_matrix += np.dot(matrix_1,matrix_2)
             self.coupling_matrix = coupling_matrix
-            print("coupling_matrix:{}".format(coupling_matrix))
+            print("coupling_matrix TransIsing:{}".format(coupling_matrix))
+        elif self.__system_class == 'LongRangeTransIsing':
+            for l in range(0, self.__n_sites, 1):
+                matrix_1 = list_glob_operators[l] 
+                for k in range(l+1,self.__n_sites,1):
+                    matrix_2 = list_glob_operators[k]
+                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.ham_params['alpha']
+            self.coupling_matrix = coupling_matrix
+            print("coupling_matrix LongRangeTransIsing:{}".format(coupling_matrix))
         else:
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
@@ -355,7 +360,7 @@ class AdiaStatePrepa(Solver):
             hx_angle = self.ham_params['g'] * self.__delta_t
             hz_angle = self.ham_params['h'] * self.__delta_t
             return coupling_matrix_angle, hx_angle, hz_angle
-        elif self.__system_class == 'TransIsing':
+        elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
             coupling_matrix_angle = - self.ham_params['J']*self.__delta_t
             hx_angle = - self.ham_params['g'] * self.__delta_t
             return coupling_matrix_angle, hx_angle, None
@@ -372,7 +377,6 @@ class AdiaStatePrepa(Solver):
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
         # Those gate lists are in fact lists of angles.
         state = np.dot(U_xx(coupling_matrix_angle),state)
-        # if self.__system_class == 'LongRangeIsing':
         if hz_angle != None:       
             U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
             for site in range(0,self.__n_sites,1):
@@ -386,16 +390,10 @@ class AdiaStatePrepa(Solver):
                     state = np.dot(U_z_site,state)
                     U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
                     state = np.dot(U_x_site,state)
-        # elif self.__system_class == 'TransIsing':
         else:
             for site in range(0,self.__n_sites,1):
                 U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
                 state = np.dot(U_x_site,state)
-        # else:
-        #     raise NotImplementedError('Trotter sequence not implemented'
-        #                                   ' for your system_class. Only implemented'
-        #                                   ' for TransIsing and LongRangeIsing.')
-        
         return state
                 
 

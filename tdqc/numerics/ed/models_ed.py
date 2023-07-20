@@ -168,6 +168,33 @@ def hamiltonian_trans_ising(L, J, h):
 
 trans_ising_model = Model("trans_ising_model", hamiltonian_trans_ising)
 
+
+def hamiltonian_lr_trans_ising(L, J, alpha, h):
+    '''
+    Hamiltonian of the long range transverse field Ising model 
+    taken from PhysRevLett.111.147205 equation 9. 
+    
+    L: an integer that specifies the number of sites in the spin chain
+    J: a floating-point number that controls the strength of the spin-spin interactions
+    h: a floating-point number corresponding to the strength of the transverse field
+    return H: 2^L x 2^L complex array representing the Hamiltonian matrix in the computational basis. 
+    '''
+    # Non Periodic Boundary Conditions
+    list_glob_operators =  [None] * L
+    # Create the list of global operators
+    for site in range(0, L, 1):
+        list_glob_operators[site] = globalize_op(spin_op["sigma_x"], site, L)    
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    for j in range(0, L-1):
+        for k in range(j+1, L):
+            H -= J * ((k-j)**(-alpha)) * np.dot(list_glob_operators[j], list_glob_operators[k])
+    for j in range(0, L, 1):
+        H -= h * globalize_op(spin_op["sigma_z"], j, L)
+    return H
+
+lr_trans_ising_model = Model("lr_trans_ising_model", hamiltonian_lr_trans_ising)
+
+
 class State(object):
     '''
     init_vec_state: type <class 'numpy.ndarray'>

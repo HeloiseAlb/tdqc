@@ -46,9 +46,9 @@ def plot_eigenvalues_evolution():
     plt.legend()
 
     # Save the plot
-    plt.savefig(f'evolution_eigenvalues_N{L}.png')
+    plt.savefig(f'evolution_eigenvalues_N{L}_lrtIsing.png')
 
-#plot_eigenvalues_evolution()
+plot_eigenvalues_evolution()
 
 #%%
 #def plot_time_evolution(plot_fidelities = True, plot_amplitudes = True, plot_eigenvector_probabilities = True):
@@ -82,7 +82,7 @@ if plot_fidelities:
     plt.xlabel('time t')
     plt.ylabel('Fidelities')
     plt.title('Absolute value of the fidelity between state \n of the system at time t and the ground state \n of the Hamiltonian at time t: H(t)')
-    plt.savefig('my_plot_fidelities.png')
+    plt.savefig('my_plot_fidelities_lrtIsing.png')
 
 # Is T long enough?
 delta_s_H = -parameters['model_0'].hamiltonian + parameters['model_f'].hamiltonian
@@ -107,7 +107,7 @@ plt.xlabel('time t')
 
 plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$')
 plt.title('Energy of the system at time t')
-plt.savefig('my_plot_list_energies.png')
+plt.savefig('my_plot_list_energies_lrtIsing.png')
 
 amplitudes = solver.time_evolution
 if plot_amplitudes:
@@ -121,7 +121,7 @@ if plot_amplitudes:
     plt.ylabel('Probability')
     plt.title('Probabilities of the states in the basis {|0>,|1>,...,|2**L-1>}')
     plt.legend(legend_list)
-    plt.savefig('my_plot_amplitudes.png')
+    plt.savefig('my_plot_amplitudes_lrtIsing.png')
 
 if plot_eigenvector_probabilities:
     fig4 = plt.figure()
@@ -141,7 +141,7 @@ if plot_eigenvector_probabilities:
     plt.ylabel('P_{E}')
     plt.title('Probabilities of the states in the eigenbasis')
     plt.legend(legend_list)
-    plt.savefig('my_plot_eigenvector_proba.png')
+    plt.savefig('my_plot_eigenvector_proba_lrtIsing.png')
     
 
 
@@ -152,5 +152,7 @@ if plot_eigenvector_probabilities:
 
 
 
+
+# %%
 
 # %%
