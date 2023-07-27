@@ -12,7 +12,7 @@ from tdqc.numerics.ed.exact_diagonalisation import *
 from tdqc.solver.asp import AdiaStatePrepa
 from tdqc.numerics.ed.models_ed import State
 from tdqc.numerics.ed.models_ed import trans_ising_model
-from tdqc.numerics.asp.parameters_asp import parameters
+from tdqc.numerics.asp.parameters_asp_lri import parameters
 
 #%%
 def plot_eigenvalues_evolution():

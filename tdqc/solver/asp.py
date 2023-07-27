@@ -1,5 +1,6 @@
 import numpy as np
 # from math import log2
+import json
 from tdqc.interfaces.solver import Solver
 from tdqc.numerics.ed.models_ed import State, Model
 from scipy.linalg import expm
@@ -95,7 +96,7 @@ class AdiaStatePrepa(Solver):
         # Here, I consider the ground state is non-degenerate.
         # To do: Code the case where it is degenerate. 
         ground_states = self.__model_0.ground_states 
-        print(f"ground_states {ground_states}")
+        print(f"ground_states of H_0: {ground_states}")
         init_vec_state = np.array(ground_states,dtype='complex128')
         norm = np.linalg.norm(init_vec_state)
         init_vec_state = init_vec_state / norm
@@ -195,9 +196,7 @@ class AdiaStatePrepa(Solver):
         if (self.__final_state == None):
             # If the method solve have not run yet. 
             self.solve()
-        parametername = 'ASP'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.t_final)
-        self.save_best_encountered_actions('json',
-                                                'best_gate_sequence'+parametername+'.json')
+        parametername = 'ASP'+str(self.__system_class)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)
         
         # Generate the file with the time evolution amplitudes.
         try:
@@ -207,6 +206,41 @@ class AdiaStatePrepa(Solver):
         except Exception as e:
             print(amplitude_filename+' could not be saved.')
             print('--->', e)
+        
+        # Generate the file with the final state.
+        try:
+            finalstate_filename = 'finalstate_'+parametername+'.npy'
+            with open(finalstate_filename, 'wb') as f:
+                np.save(f, self.final_state)
+        except Exception as e:
+            print(finalstate_filename+' could not be saved.')
+            print('--->', e)
+        
+        # Generate the file with the parameters.
+        info_dic = {
+            'Hamiltonian parameters': self.ham_params,
+            'Initial_state': str(self.__initial_state),
+            'Final fidelity': str(self.__list_fidelities[-1]),
+            'H_0 model': self.__model_0.name,
+            'H_0 hamiltonian': str(self.__model_0.hamiltonian),
+            'H_f model': self.__model_f.name,
+            'H_f hamiltonian': str(self.__model_f.hamiltonian),
+            'Initial time': self.__t_initial,
+            'Final time': self.__t_final,
+            'Time step (delta t)': self.__delta_t,
+            'Ground state of H_f': str(self.__model_f.ground_states)
+            }   
+        try:
+            result_info_filename = 'results_info'+parametername+'.json'
+            with open(result_info_filename, 'w') as f:
+                json.dump(info_dic, f, indent=2)
+            print(result_info_filename+' written.')
+        except Exception as e:
+            print(result_info_filename+' could not be saved.')
+            print('--->', e)
+
+
+
         
     @property
     def n_steps(self):
@@ -337,12 +371,16 @@ class AdiaStatePrepa(Solver):
             return self.__list_gaps
 
     def get_rho_target(self,)-> np.ndarray:
+        # Attention: it does not correspond to the ground state of the final Hamiltonian 
+        # but to the final state. This method aims to be used by the DQL solver. 
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_density_matrix()
         return target
 
     def get_state_target(self,)-> np.ndarray:
+        # Attention: it does not correspond to the ground state of the final Hamiltonian 
+        # but to the final state. This method aims to be used by the DQL solver. 
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_vector_state()
@@ -362,38 +400,51 @@ class AdiaStatePrepa(Solver):
             return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
             coupling_matrix_angle = - self.ham_params['J']*self.__delta_t
-            hx_angle = - self.ham_params['g'] * self.__delta_t
-            return coupling_matrix_angle, hx_angle, None
+            hz_angle = - self.ham_params['g'] * self.__delta_t
+            return coupling_matrix_angle, None, hz_angle 
         else:
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
                                           ' for TransIsing and LongRangeIsing.')
         
-    def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hz_angle = None)-> np.ndarray:
-        """ Apply the sequence of gates onto the initial state and return the final state. """
+    def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hz_angle)-> np.ndarray:
+        """ Apply the sequence of gates onto the initial state and return the final state.
+        Args:
+            state (np.ndarray): The state vector.
+            coupling_matrix_angle (float): The angle of the entangling gate.
+            hx_angle (float or None): The angle of the x-rotation gates. It is just one float 
+                even if one x-rotation gate is applied on each qubit because the angles are all 
+                equal. It may be None in the case of the (long range or not) transverse Ising 
+                model because then the Trotterization does not require x-rotation gates.
+            hz_angle (float): The angle of the z-rotation gates. It is just one float 
+                even if one z-rotation gate is applied on each qubit because the angles are all 
+                equal.
+        Returns:
+            np.array: The updated state vector.
+        """
         # Define the universal quantum gate set used in Markus article. 
-        U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
+        U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
         # Those gate lists are in fact lists of angles.
-        state = np.dot(U_xx(coupling_matrix_angle),state)
-        if hz_angle != None:       
-            U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
-            for site in range(0,self.__n_sites,1):
+        state = np.dot(U_xx(coupling_matrix_angle), state)
+        if hx_angle != None:       
+            U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
+            for site in range(0, self.__n_sites, 1):
                 if self.__gate_order == "xz":
-                    U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
-                    state = np.dot(U_x_site,state)
-                    U_z_site = globalize_op(U_z(hz_angle),site,self.__n_sites)
-                    state = np.dot(U_z_site,state)
+                    U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
+                    state = np.dot(U_x_site, state)
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
                 elif self.__gate_order == "zx":
                     U_z_site = globalize_op(U_z(hz_angle),site,self.__n_sites)
-                    state = np.dot(U_z_site,state)
+                    state = np.dot(U_z_site, state)
                     U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
-                    state = np.dot(U_x_site,state)
+                    state = np.dot(U_x_site, state)
         else:
-            for site in range(0,self.__n_sites,1):
-                U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
-                state = np.dot(U_x_site,state)
+            for site in range(0, self.__n_sites, 1):
+                U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                state = np.dot(U_z_site, state)
         return state
                 
 
