@@ -96,7 +96,6 @@ class AdiaStatePrepa(Solver):
         # Here, I consider the ground state is non-degenerate.
         # To do: Code the case where it is degenerate. 
         ground_states = self.__model_0.ground_states 
-        print(f"ground_states of H_0: {ground_states}")
         init_vec_state = np.array(ground_states,dtype='complex128')
         norm = np.linalg.norm(init_vec_state)
         init_vec_state = init_vec_state / norm
@@ -121,7 +120,6 @@ class AdiaStatePrepa(Solver):
                 matrix_2 = list_glob_operators[l+1]
                 coupling_matrix += np.dot(matrix_1,matrix_2)
             self.coupling_matrix = coupling_matrix
-            print("coupling_matrix TransIsing:{}".format(coupling_matrix))
         elif self.__system_class == 'LongRangeTransIsing':
             for l in range(0, self.__n_sites, 1):
                 matrix_1 = list_glob_operators[l] 
@@ -129,7 +127,6 @@ class AdiaStatePrepa(Solver):
                     matrix_2 = list_glob_operators[k]
                     coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.ham_params['alpha']
             self.coupling_matrix = coupling_matrix
-            print("coupling_matrix LongRangeTransIsing:{}".format(coupling_matrix))
         else:
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
@@ -141,15 +138,6 @@ class AdiaStatePrepa(Solver):
         # It returns the amplitudes of the time evolution.
         return self.__time_evolution
     
-    """    
-    @property
-    def H_0(self):
-        return self.__H_0
-
-    @property
-    def H_f(self):
-        return self.__H_f
-    """
 
     # Define the time-dependent Hamiltonian H(t) using a linear schedule
     ### I need to implement the one using a non linear schedule.
@@ -192,7 +180,6 @@ class AdiaStatePrepa(Solver):
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
     def generate_data_files(self,):
-        # This function needs to be tested.
         if (self.__final_state == None):
             # If the method solve have not run yet. 
             self.solve()
@@ -228,7 +215,8 @@ class AdiaStatePrepa(Solver):
             'Initial time': self.__t_initial,
             'Final time': self.__t_final,
             'Time step (delta t)': self.__delta_t,
-            'Ground state of H_f': str(self.__model_f.ground_states)
+            'Ground state of H_f': str(self.__model_f.ground_states),
+            'Minimum energy gap with the GS': np.min(self.list_gaps)
             }   
         try:
             result_info_filename = 'results_info'+parametername+'.json'
@@ -238,9 +226,6 @@ class AdiaStatePrepa(Solver):
         except Exception as e:
             print(result_info_filename+' could not be saved.')
             print('--->', e)
-
-
-
         
     @property
     def n_steps(self):
@@ -285,7 +270,7 @@ class AdiaStatePrepa(Solver):
             ground_states: np.array: the ground states of the Hamiltonian H_matrix.
             gap: float: the gap between the ground state energy and the first excited states.
             difference_energy_with_gs_hamiltonian: float: the difference between the energy
-            of the state and the ground state energy of the Hamiltonian.
+                of the state and the ground state energy of the Hamiltonian.
             eig_values: float: the eigenvalues of the Hamiltonian (it does include the ground state).
         """
         # I need to add an option in case there are several gs.
@@ -304,7 +289,6 @@ class AdiaStatePrepa(Solver):
         difference_energy_with_gs_hamiltonian = energy_state - np.min(eig_values)
         return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors
 
-
     def compute_energy(self, state_vector, H_matrix):
         """Calculate the energy of a state for a given Hamiltonian.
         Args:
@@ -313,13 +297,16 @@ class AdiaStatePrepa(Solver):
         Returns:
             float: The energy of the state.
         """
-        # Calculate the energy
         energy = np.dot(np.conjugate(state_vector), np.dot(H_matrix, state_vector))
         return energy.real  # Return the real part of the energy
 
-
-
     def min_energy_gap(self, eigenvalues):
+        """Calculate the energy gap between the two lower energy eigenvalues.
+        Args:
+            eigenvalues: np.ndarray: All the eigenvalues.
+        Returns:
+            float: The energy gap between the two smallest energy eigenvalues.
+        """
         sorted_eigenvalues = np.sort(eigenvalues)
         gap = sorted_eigenvalues[1] - sorted_eigenvalues[0]
         return gap
@@ -429,7 +416,7 @@ class AdiaStatePrepa(Solver):
         # Those gate lists are in fact lists of angles.
         state = np.dot(U_xx(coupling_matrix_angle), state)
         if hx_angle != None:       
-            U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
+            U_x = lambda theta : expm(-1j * theta * spin_op['sigma_x'])
             for site in range(0, self.__n_sites, 1):
                 if self.__gate_order == "xz":
                     U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
@@ -437,9 +424,9 @@ class AdiaStatePrepa(Solver):
                     U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
                     state = np.dot(U_z_site, state)
                 elif self.__gate_order == "zx":
-                    U_z_site = globalize_op(U_z(hz_angle),site,self.__n_sites)
+                    U_z_site = globalize_op(U_z(hz_angle), site,self.__n_sites)
                     state = np.dot(U_z_site, state)
-                    U_x_site = globalize_op(U_x(hx_angle),site,self.__n_sites)
+                    U_x_site = globalize_op(U_x(hx_angle), site,self.__n_sites)
                     state = np.dot(U_x_site, state)
         else:
             for site in range(0, self.__n_sites, 1):

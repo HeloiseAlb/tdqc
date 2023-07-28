@@ -22,21 +22,21 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = 2
+L = 4
 J = 1.0
-g = 3.0 
+g = 2.0 
 h = g
-alpha = int(3)
-model_f = copy.deepcopy(lr_trans_ising_model)
-model_f.parametrize_hamiltonian(*[L, J, alpha, g])
+alpha = int(1)
+model_f = copy.deepcopy(trans_ising_model) # Change it for model_0 and system_class !!
+model_f.parametrize_hamiltonian(*[L, J, g])
 ground_states = model_f.ground_states 
 vector_to_copy = np.array(ground_states,dtype='complex128')
 norm = np.linalg.norm(vector_to_copy)
 vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
-model_0 = copy.deepcopy(lr_trans_ising_model)
-model_0.parametrize_hamiltonian(*[L,0,alpha,g])
+model_0 = copy.deepcopy(trans_ising_model)
+model_0.parametrize_hamiltonian(*[L,0,g])
 
 
 
@@ -45,11 +45,11 @@ parameters = {
     # physical system
     # =======================================================================
     'n_sites':  L,
-    'n_steps': 100000,
+    'n_steps': 10000,
     't_initial': 0.0,
-    't_final': 10000.0, # This is the tau in the article.
+    't_final': 100.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'LongRangeIsing',
+    'system_class': 'TransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
         'J': J,

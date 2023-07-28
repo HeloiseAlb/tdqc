@@ -11,7 +11,6 @@ from tdqc.numerics.ed.exact_diagonalisation import *
 
 from tdqc.solver.asp import AdiaStatePrepa
 from tdqc.numerics.ed.models_ed import State
-from tdqc.numerics.ed.models_ed import trans_ising_model
 from tdqc.numerics.asp.parameters_asp_lri import parameters
 
 #%%
@@ -48,7 +47,7 @@ def plot_eigenvalues_evolution():
     # Save the plot
     plt.savefig(f'evolution_eigenvalues_N{L}_lrtIsing.png')
 
-plot_eigenvalues_evolution()
+#plot_eigenvalues_evolution()
 
 #%%
 #def plot_time_evolution(plot_fidelities = True, plot_amplitudes = True, plot_eigenvector_probabilities = True):
@@ -58,9 +57,10 @@ Plot the time evolution of the selected variables among:
 - the difference between the ground state energy of H_t_n and the energy state of the system,
 - the probability amplitudes of the different state of the computational basis.
 """
-plot_fidelities = False
-plot_amplitudes = False
+plot_fidelities = True
+plot_amplitudes = True
 plot_eigenvector_probabilities = True
+generate_files = True
 
 t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]   
 
@@ -73,7 +73,7 @@ fidelities = solver.list_fidelities
 
 gaps = solver.list_gaps
 list_difference_energy_with_gs_hamiltonian = solver.list_difference_energy_with_gs_hamiltonian
-print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
+#print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
 
 if plot_fidelities:
     
@@ -96,7 +96,6 @@ t_limit = largest_singular_value/delta_s**2
 print("T limit:{}".format(t_limit))
 if t_limit < parameters["t_initial"]- parameters["t_final"]:
     print("The simulation time is not long enough to apply the adiabatic therorem.")
-    
 
 fig2 = plt.figure() 
 plt.plot(t_list,list_difference_energy_with_gs_hamiltonian.real)
@@ -142,17 +141,14 @@ if plot_eigenvector_probabilities:
     plt.title('Probabilities of the states in the eigenbasis')
     plt.legend(legend_list)
     plt.savefig('my_plot_eigenvector_proba_lrtIsing.png')
+
+if generate_files:
+    solver.generate_data_files()
     
 
 
 
 #plot_time_evolution(plot_fidelities = False, plot_amplitudes = False, plot_eigenvector_probabilities = True)
 
-
-
-
-
-
-# %%
 
 # %%
