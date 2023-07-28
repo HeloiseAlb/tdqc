@@ -216,7 +216,7 @@ class AdiaStatePrepa(Solver):
             'Final time': self.__t_final,
             'Time step (delta t)': self.__delta_t,
             'Ground state of H_f': str(self.__model_f.ground_states),
-            'Minimum energy gap with the GS': np.min(self.list_gaps)
+            'Minimum energy gap with the GS': str(np.min(self.list_gaps))
             }   
         try:
             result_info_filename = 'results_info'+parametername+'.json'
