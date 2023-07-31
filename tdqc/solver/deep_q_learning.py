@@ -388,7 +388,7 @@ class DQLWithReplayMemory(DeepQLearning):
         rho_target = self.get_rho_target_from_other_solver()
         intermediate_time = time.time()
 
-        for simul in range(0,self.n_simulations,1):
+        for simul in range(0, self.n_simulations, 1):
             # The loop here is not working because it does not initialize the NN. 
             # Get the initial reward (useful to get the Trotter reward).
             # note: when the initial actions are random, the seed is not the same.

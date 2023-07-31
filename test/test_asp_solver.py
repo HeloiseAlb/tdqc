@@ -78,3 +78,26 @@ def test_fidelity_and_evolution_amplitude():
     print("Fidelity with a random state:{}".format(abs(np.vdot(np.conj(random_state),final_state))))
 
 
+# %%
+@pytest.mark.fast
+
+def compute_transition_matrix_element(H, eigenvalues, eigenvectors):
+        # Sort eigenvalues and eigenvectors in ascending order
+        sorted_indices = np.argsort(eigenvalues)
+        sorted_eigenvalues = eigenvalues[sorted_indices]
+        sorted_eigenvectors = eigenvectors[:, sorted_indices]
+
+        # Extract eigenvectors corresponding to the smallest and second smallest eigenvalues
+        smallest_eigenvector = sorted_eigenvectors[:, 0]
+        second_smallest_eigenvector = sorted_eigenvectors[:, 1]
+        print(smallest_eigenvector)
+        re = np.dot(H, smallest_eigenvector)
+        print(re)
+        # Compute the projection of the smallest eigenvector onto the second smallest eigenvector
+        projection = np.dot(second_smallest_eigenvector, re)
+        print(projection)
+        return np.abs(projection)
+H= np.identity(4)
+eigval , eigvec = np.linalg.eigh(H) 
+absolute_projection_value = compute_transition_matrix_element(H, eigval, eigvec)
+print(absolute_projection_value)

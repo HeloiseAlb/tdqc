@@ -25,7 +25,7 @@ def tensor_prod(*arg):
     #      res = np.kron(res, arg[len(arg) - i - 1])
     return res
 
-def globalize_op(local_op,site,L):
+def globalize_op(local_op, site, L):
     """" Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
     """
@@ -216,7 +216,8 @@ class AdiaStatePrepa(Solver):
             'Final time': self.__t_final,
             'Time step (delta t)': self.__delta_t,
             'Ground state of H_f': str(self.__model_f.ground_states),
-            'Minimum energy gap with the GS': str(np.min(self.list_gaps))
+            'Minimum energy gap with the GS': str(np.min(self.list_gaps)),
+            'max_{0=<s=<1} |<l=1,s|dH/ds|l=0,s>|': np.max(self.__list_transition_matrix_element)
             }   
         try:
             result_info_filename = 'results_info'+parametername+'.json'
@@ -235,6 +236,14 @@ class AdiaStatePrepa(Solver):
     def final_state(self):
         return self.__final_state
 
+    @property
+    def t_final(self,):
+        return self.__t_final
+
+    @property
+    def system_class(self,):
+        return self.__system_class
+
     def compute_list_fidelities_and_energy_gaps(self,):
         if self.__final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of fidelities")
@@ -248,21 +257,26 @@ class AdiaStatePrepa(Solver):
         dim = int(2**self.__n_sites)
         list_eigenvalues = np.zeros((self.__n_steps, dim))
         list_eigenvectors = np.zeros((self.__n_steps, dim, dim))
+        list_transition_matrix_element = np.zeros(self.__n_steps, dtype='float')
         for idx, t_n in enumerate(t_list):
             H_t_n = self.H(t_n)
             state_t_n = self.__time_evolution[idx,:]
-            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
+            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
             list_difference_energy_with_gs_hamiltonian[idx] = difference_energy_with_gs_hamiltonian
             list_eigenvalues[idx,:] = eig_values
             list_eigenvectors[idx,:,:] = eig_vectors
+            list_transition_matrix_element[idx] = transition_matrix_element
+        
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
         self.__list_difference_energy_with_gs_hamiltonian = list_difference_energy_with_gs_hamiltonian
         self.__list_eigenvalues = list_eigenvalues
         self.__list_eigenvectors = list_eigenvectors
+        self.__list_transition_matrix_element = list_transition_matrix_element
+        
 
     def compute_ground_states_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
         """
@@ -272,10 +286,10 @@ class AdiaStatePrepa(Solver):
             difference_energy_with_gs_hamiltonian: float: the difference between the energy
                 of the state and the ground state energy of the Hamiltonian.
             eig_values: float: the eigenvalues of the Hamiltonian (it does include the ground state).
+            transition_matrix_element: float: for the time s of the instantaneous matrix, |<l=1,s|dH/ds|l=0,s>|
         """
         # I need to add an option in case there are several gs.
         energy_state = self.compute_energy(state_vector, H_matrix)
-
         eig_values, eig_vectors = np.linalg.eigh(H_matrix) 
         length_vector = eig_vectors.shape[0]
         min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
@@ -287,7 +301,8 @@ class AdiaStatePrepa(Solver):
             ground_states[:, idx] = eig_vector
         gap = self.min_energy_gap(eig_values)
         difference_energy_with_gs_hamiltonian = energy_state - np.min(eig_values)
-        return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors
+        transition_matrix_element = self.compute_transition_matrix_element(eig_values, eig_vectors)
+        return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element
 
     def compute_energy(self, state_vector, H_matrix):
         """Calculate the energy of a state for a given Hamiltonian.
@@ -313,7 +328,7 @@ class AdiaStatePrepa(Solver):
 
     
     @property
-    def list_difference_energy_with_gs_hamiltonian(self,):
+    def list_difference_energy_with_gs_hamiltonian(self,)-> np.ndarray:
         if self.final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of energies")
         else:
@@ -322,7 +337,7 @@ class AdiaStatePrepa(Solver):
             return self.__list_difference_energy_with_gs_hamiltonian
     
     @property
-    def list_eigenvalues(self,):
+    def list_eigenvalues(self,)-> np.ndarray:
         if self.final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of eigenvalues")
         else:
@@ -331,7 +346,7 @@ class AdiaStatePrepa(Solver):
             return self.__list_eigenvalues
 
     @property
-    def list_eigenvectors(self,):
+    def list_eigenvectors(self,)-> np.ndarray:
         if self.final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of eigenvectors")
         else:
@@ -340,7 +355,7 @@ class AdiaStatePrepa(Solver):
             return self.__list_eigenvectors
 
     @property
-    def list_fidelities(self,):
+    def list_fidelities(self,)-> np.ndarray:
         if self.final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of fidelities")
         else:
@@ -349,13 +364,22 @@ class AdiaStatePrepa(Solver):
             return self.__list_fidelities
 
     @property
-    def list_gaps(self,):
+    def list_gaps(self,)-> np.ndarray:
         if self.final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of energy gaps")
         else:
             if type(self.__list_gaps) == type(None):
                 self.compute_list_fidelities_and_energy_gaps()
             return self.__list_gaps
+
+    @property
+    def list_transition_matrix_element(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of transition matrix elements of H")
+        else:
+            if type(self.__list_transition_matrix_element) == type(None):
+                self.compute_list_fidelities_and_energy_gaps()
+            return self.__list_transition_matrix_element       
 
     def get_rho_target(self,)-> np.ndarray:
         # Attention: it does not correspond to the ground state of the final Hamiltonian 
@@ -447,3 +471,32 @@ class AdiaStatePrepa(Solver):
         
         new_vec_state = np.dot(expm(-1j * delta_t * model.hamiltonian), init_vec_state)
         return new_vec_state
+
+
+
+    def compute_transition_matrix_element(self, eigenvalues: np.ndarray, eigenvectors: np.ndarray)-> float:
+        """
+        This function requires that the initial Hamiltonian is the 
+        non-interacting part such as:
+        dH(s)/ds =d ((1-s)H_0 +sH_T)/ds=H_coupling_matrix
+        It aims at computing for each 0=<s=<1 of our discretization, the 
+        |<l=1,s|dH(s)/ds|l=0,s>| in the formula (2.9) of arXiv:quant-ph/0001106.
+        """
+        # Sort eigenvalues and eigenvectors in ascending order
+        sorted_indices = np.argsort(eigenvalues)
+        sorted_eigenvalues = eigenvalues[sorted_indices]
+        sorted_eigenvectors = eigenvectors[:, sorted_indices]
+
+        # Extract eigenvectors corresponding to the smallest and second smallest eigenvalues
+        smallest_eigenvector = sorted_eigenvectors[:, 0]
+        second_smallest_eigenvector = sorted_eigenvectors[:, 1]
+
+        # Compute dH/ds
+        dH_ds = self.ham_params['J'] * self.coupling_matrix
+        
+        # Compute the projection of the smallest eigenvector onto the second smallest eigenvector
+        projection = np.dot(second_smallest_eigenvector, np.dot(dH_ds, smallest_eigenvector))
+
+        return np.abs(projection)
+
+
