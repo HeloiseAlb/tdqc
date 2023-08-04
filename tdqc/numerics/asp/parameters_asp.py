@@ -3,7 +3,7 @@
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
-from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model
+from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
@@ -22,20 +22,21 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = 4
+L = int(2)
 J = 1.0
+h = 2.0
 g = 2.0 # The notation can be confusing. It is the h of the Transversal Long range Ising model.
-alpha = 1.0
-model_f = copy.deepcopy(trans_ising_model)
-model_f.parametrize_hamiltonian(*[L,J,g])
+alpha = int(3)
+model_f = copy.deepcopy(lr_trans_ising_model)
+model_f.parametrize_hamiltonian(*[L, J, alpha, g])
 ground_states = model_f.ground_states 
-init_vec_state = np.array(ground_states,dtype='complex128')
-norm = np.linalg.norm(init_vec_state)
-init_vec_state = init_vec_state / norm
-state_to_copy = State(init_vec_state)
+vector_to_copy = np.array(ground_states, dtype='complex128')
+norm = np.linalg.norm(vector_to_copy)
+vector_to_copy = vector_to_copy / norm
+state_to_copy = State(vector_to_copy)
 
-model_0 = copy.deepcopy(trans_ising_model)
-model_0.parametrize_hamiltonian(*[L,0,g])
+model_0 = copy.deepcopy(lr_trans_ising_model)
+model_0.parametrize_hamiltonian(*[L, 0, alpha, g])
 
 
 
@@ -48,7 +49,7 @@ parameters = {
     't_initial': 0.0,
     't_final': 10.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'LongRangeTransIsing',
+    'system_class': 'LongRangeTransIsing', #
     #  also sets entangling gate alpha
     'ham_params': {
         'J': J,

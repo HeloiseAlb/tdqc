@@ -165,21 +165,22 @@ class QuantumEnv():
         elif initial_state == 'ferro':
             self.state_real = np.zeros(2**self.n_sites)
             self.state_real[0] = 1.0
-            self.state_imag = np.zeros(2**self.n_sites)
+            self.state_imag = np.zeros(2 ** self.n_sites)
         elif initial_state == 'antiferro':
             self.state_imag = np.zeros(2**self.n_sites)
             spinors = [np.array([1.0, 0.0]) if _ % 2 == 0
                        else np.array([0.0, 1.0]) for _ in range(self.n_sites)]
             self.state_real = tensor_prod(*spinors)
         elif initial_state == 'ground_state':
+            # this part is not checked
             if self.system_class == 'LongRangeIsing':
-                lri_model = Model("lri_model",hamiltonian_lri)
+                lri_model = Model("lri_model", hamiltonian_lri)
                 L = self.n_sites
                 J = self.ham_params["J"]
                 alpha = self.ham_params["alpha"]
                 m_x = self.ham_params["g"]
                 m_z = self.ham_params["h"]
-                lri_model.parametrize_hamiltonian(L,J,alpha,m_x,m_z)
+                lri_model.parametrize_hamiltonian(L, J, alpha, m_x, m_z)
                 ground_state = lri_model.ground_states
                 self.state_real = ground_state.real
                 self.state_imag = ground_state.imag
@@ -373,7 +374,7 @@ class DynamicalEvolution(QuantumEnv):
     def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, n_qubits: Optional[int]=None)-> float: 
         if n_qubits == None:
             n_qubits = int(log2(rho1.shape[0]))
-        positiveDefinite = False
+        positiveDefinite = True
         r_local = env_cpp.local_reward_cpp(rho1, rho2, n_qubits, positiveDefinite) 
         return r_local
 

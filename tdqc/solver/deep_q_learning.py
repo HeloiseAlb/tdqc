@@ -268,7 +268,6 @@ class DeepQLearning(Solver):
     def get_rho_target_from_other_solver(self,)-> np.ndarray:
         target_params = self.__target_params
         if not "state" in target_params:
-            print("self.env.initial_state:{}".format(self.env.initial_state.shape))
             initial_state = self.env.initial_state
             n_sites = self.env.get_n_sites()
             np.reshape(initial_state, (2**n_sites))

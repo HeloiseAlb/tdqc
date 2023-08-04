@@ -90,12 +90,9 @@ def compute_transition_matrix_element(H, eigenvalues, eigenvectors):
         # Extract eigenvectors corresponding to the smallest and second smallest eigenvalues
         smallest_eigenvector = sorted_eigenvectors[:, 0]
         second_smallest_eigenvector = sorted_eigenvectors[:, 1]
-        print(smallest_eigenvector)
         re = np.dot(H, smallest_eigenvector)
-        print(re)
         # Compute the projection of the smallest eigenvector onto the second smallest eigenvector
         projection = np.dot(second_smallest_eigenvector, re)
-        print(projection)
         return np.abs(projection)
 H= np.identity(4)
 eigval , eigvec = np.linalg.eigh(H) 
