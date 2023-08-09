@@ -1,10 +1,10 @@
-#  import math
-#  import __main__
+from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
-from tdqc.numerics.ed.models_ed import Model, trans_ising_model
+from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model
 from tdqc.numerics.ed.models_ed import State
-from tdqc.solver.ed import EDSolver
+#from tdqc_project.tdqc.solver.state_provider import StateProvider
+from tdqc.solver.state_provider import StateProvider
 
 def tensor_prod(*arg):
     """
@@ -19,18 +19,24 @@ def tensor_prod(*arg):
     #      res = np.kron(res, arg[len(arg) - i - 1])
     return res
 
-# Initializing model
-L = 10 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+# Preparation of the target state by taking the ground state of the target Hamiltonian.
+L = 10
 J = 1.0
-g = 2.0
-h = 2.0
-alpha = int(3)
-model = copy.deepcopy(trans_ising_model)
-model.parametrize_hamiltonian(*[L,J,alpha,h])
+g = 5.0 
+h = g
+alpha = int(2)
+model_f = copy.deepcopy(trans_ising_model) # Change it also for model_0 and system_class !!
+model_f.parametrize_hamiltonian(*[L, J, g])
+ground_states = model_f.ground_states 
+vector_to_copy = np.array(ground_states, dtype='complex128')
+norm = np.linalg.norm(vector_to_copy)
+vector_to_copy = vector_to_copy / norm
+state_to_copy = State(vector_to_copy)
+
 
 parameters = {
     # =======================================================================
-    # physical system
+    # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
     'n_sites':  L,
     'n_steps': 3,
@@ -44,17 +50,16 @@ parameters = {
         #  #  g: x, h: z
         'g': g,
         'h': h,
-        'alpha': alpha, # In Adrien's code, it was 2.0 but it make more sense to use 3.0 w.r.t. the model of the Hamiltonian.
-        'm_c': 0.5,
-        'w_c': 1.0,
-        'j_c': 1.0
+        'alpha': alpha,#2.0
+        #'m_c': 0.5,
+        #'w_c': 1.0,
+        #'j_c': 1.0
     },
     
-    #'initial_state': 'random_product_state',
-    'initial_state': 'antiferro',
-    #'initial_state': 'ferro',
-    #'initial_state': 'ground_state',
-    'seed_initial_state': 42, # None 42, #useful to determined only if 'initial_state'=='random_product_state'
+    # 'initial_state': 'random_product_state', 
+    # 'initial_state': 'antiferro',
+    'initial_state': 'ferro',
+    'seed_initial_state': None, # 42,
 
     #  digital simulator:
     'n_directions': 2,  # also affect LRI Hamiltonian
@@ -74,14 +79,14 @@ parameters = {
 
     #  type of reward
     #  'measurement': 'fidelity',
-    'average_exponent': 0.5,
+    'average_exponent': 0.5, #useless
 
     # q_learning parameters:
     'n_episodes': 50000,#int(5e4),
     #  'n_episodes': 100,
 
-    'epsilon_max': 1.0, #1.0
-    'epsilon_min': 0.005, #0.005 
+    'epsilon_max': 1.0,
+    'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
     'epsilon_decay': 0.9999411315398542,
     'n_epochs': 1,
@@ -93,7 +98,7 @@ parameters = {
     #  'network_type': 'MultiInterStep',
     #  'network_type': 'MultiIntraStep',
     'network_type': 'SingleDense',
-    'seed': 3,
+    'seed': 2,
     'architectures': [[(150, 'tanh'),
                        (40, 'relu'),
                        #  (20, 'relu'),
@@ -154,11 +159,12 @@ parameters = {
     },
 
     'target_params':{
-            'solver': EDSolver(),
-            'n_steps': int(1/0.001), # time steps, different from n_steps in settings which is the number of layer 
-            'model': model,
+            'solver': StateProvider(),
+            'mode': 'state_copier',
+            'state_to_copy': state_to_copy
             }
     }
+
 
 parameters_replay_memory = {
     'capacity': 50,
