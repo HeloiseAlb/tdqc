@@ -112,9 +112,9 @@ class QuantumEnv():
             for site in range(0,self.n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-            for l in range(0,self.n_sites,1):
+            for l in range(0, self.n_sites, 1):
                 matrix_1 = list_glob_operators[l] 
-                for k in range(l+1,self.n_sites,1):
+                for k in range(l+1, self.n_sites, 1):
                     matrix_2 = list_glob_operators[k]
                     coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
             self.coupling_matrix = coupling_matrix
@@ -131,12 +131,25 @@ class QuantumEnv():
             for site in range(0,self.n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-            for l in range(0,self.n_sites-1,1):
+            for l in range(0, self.n_sites-1, 1):
                 matrix_1 = list_glob_operators[l] 
                 matrix_2 = list_glob_operators[l+1]
                 coupling_matrix += np.dot(matrix_1,matrix_2)
             self.coupling_matrix = -coupling_matrix
-
+        elif self.system_class == 'LongRangeTransIsing':
+            # I have taken into consideration the minus sign before the J of this model 
+            # in the function set_coupling_matrix. 
+            dim = int(2**self.n_sites)
+            list_glob_operators =  [None] * self.n_sites
+            for site in range(0, self.n_sites, 1):
+                list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
+            coupling_matrix = np.zeros((dim,dim),dtype='complex128')
+            for l in range(0, self.n_sites, 1):
+                matrix_1 = list_glob_operators[l] 
+                for k in range(l+1, self.n_sites, 1):
+                    matrix_2 = list_glob_operators[k]
+                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
+            self.coupling_matrix = -coupling_matrix
 
 
     def get_action_dim(self)-> int:
@@ -350,7 +363,7 @@ class DynamicalEvolution(QuantumEnv):
             else:
                 raise NotImplementedError('Trotter sequence only implemented'
                                           ' for n_directions = 2.')
-        elif self.system_class == 'TransIsing':
+        elif self.system_class == 'TransIsing' or self.system_class == 'LongRangeTransIsing':
             # I have taken into consideration the minus sign before the J of this model 
             # in the function set_coupling_matrix. 
             if self.n_directions ==2:
@@ -374,7 +387,7 @@ class DynamicalEvolution(QuantumEnv):
     def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, n_qubits: Optional[int]=None)-> float: 
         if n_qubits == None:
             n_qubits = int(log2(rho1.shape[0]))
-        positiveDefinite = True
+        positiveDefinite = False
         r_local = env_cpp.local_reward_cpp(rho1, rho2, n_qubits, positiveDefinite) 
         return r_local
 

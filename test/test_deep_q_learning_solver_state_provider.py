@@ -53,4 +53,14 @@ def test_deep_q_learning_state_provider_solve_trans_ising():
     solver.load_seetings_replay_memory(**parameters_replay_memory)
     solver.solve()
 
-test_deep_q_learning_state_provider_solve_trans_ising()
+@pytest.mark.slow
+def test_deep_q_learning_state_provider_solve_long_range_trans_ising():
+    from tdqc.solver.deep_q_learning import DeepQLearning, DQLWithReplayMemory
+    from tdqc.numerics.ed.models_ed import State
+    from tdqc.numerics.ed.models_ed import trans_ising_model
+    from tdqc.numerics.state_provider.parameters_state_provider_lr_trans_ising import parameters, parameters_replay_memory
+    solver = DQLWithReplayMemory()
+    solver.load_settings(settings=parameters)
+    solver.load_seetings_replay_memory(**parameters_replay_memory)
+    solver.solve()
+test_deep_q_learning_state_provider_solve_long_range_trans_ising()

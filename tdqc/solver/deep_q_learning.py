@@ -393,10 +393,9 @@ class DQLWithReplayMemory(DeepQLearning):
             # note: when the initial actions are random, the seed is not the same.
             initial_action_sequence = self.env.initial_action_sequence(False)
             initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
-            #  print("The initial reward is (Trotter or random) ", initial_reward)
             rewards = self.run()
             end_time = time.time()
-            parametername = 'NoPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)+'t_final'+str(self.t_final)
+            parametername = 'lrti_noPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
             self.save_best_encountered_actions('json',
                                                     'best_gate_sequence'+parametername+'.json')
             try:
@@ -407,7 +406,7 @@ class DQLWithReplayMemory(DeepQLearning):
                 print(reward_filename+' could not be saved.')
                 print('--->', e)
             info_dic = {
-                #  'parameters': parameters,
+                'parameters': self.ham_params,
                 'initial_reward': initial_reward,
                 'best_reward': str(self.best_encountered_rewards),
                 'total_time': end_time - start_time,

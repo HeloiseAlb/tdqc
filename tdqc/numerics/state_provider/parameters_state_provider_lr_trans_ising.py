@@ -29,7 +29,7 @@ J = float(sys.argv[2])
 g = float(sys.argv[3])
 h = g
 alpha = int(2)
-model_f = copy.deepcopy(trans_ising_model) # Change it also for model_0 and system_class !!
+model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for system_class !!
 model_f.parametrize_hamiltonian(*[L, J, g])
 ground_states = model_f.ground_states 
 vector_to_copy = np.array(ground_states, dtype='complex128')
@@ -47,7 +47,7 @@ parameters = {
     't_initial': 0.0,
     't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'TransIsing',
+    'system_class': 'LomgRangeTransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
         'J': J,
