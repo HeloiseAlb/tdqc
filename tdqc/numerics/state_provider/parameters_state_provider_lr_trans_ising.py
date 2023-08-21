@@ -1,7 +1,7 @@
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
-from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model
+from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
@@ -30,7 +30,7 @@ g = float(sys.argv[3])
 h = g
 alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for system_class !!
-model_f.parametrize_hamiltonian(*[L, J, g])
+model_f.parametrize_hamiltonian(*[L, J, alpha, g])
 ground_states = model_f.ground_states 
 vector_to_copy = np.array(ground_states, dtype='complex128')
 norm = np.linalg.norm(vector_to_copy)
@@ -47,7 +47,7 @@ parameters = {
     't_initial': 0.0,
     't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'LomgRangeTransIsing',
+    'system_class': 'LongRangeTransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
         'J': J,
