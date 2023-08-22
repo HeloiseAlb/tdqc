@@ -443,6 +443,13 @@ class DQLWithReplayMemory(DeepQLearning):
             except Exception as e:
                 print(result_info_filename+' could not be saved.')
                 print('--->', e)
+            try:
+                target_state_filename = 'target_state'+parametername+'.npy'
+                with open(target_state_filename, 'wb') as f:
+                    np.save(f, self.state_target)
+            except Exception as e:
+                print(reward_filename+' could not be saved.')
+                print('--->', e)
 
 
 Episode = namedtuple('Episode', ('action_sequence',
