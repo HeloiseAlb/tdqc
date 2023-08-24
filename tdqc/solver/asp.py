@@ -183,8 +183,8 @@ class AdiaStatePrepa(Solver):
         if (self.__final_state == None):
             # If the method solve have not run yet. 
             self.solve()
-        parametername = 'ASP'+str(self.__system_class)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)
-        
+        parametername = 'ASP_lrti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+
         # Generate the file with the time evolution amplitudes.
         try:
             amplitude_filename = 'amplitude_'+parametername+'.npy'
@@ -198,7 +198,7 @@ class AdiaStatePrepa(Solver):
         try:
             finalstate_filename = 'finalstate_'+parametername+'.npy'
             with open(finalstate_filename, 'wb') as f:
-                np.save(f, self.final_state)
+                np.save(f, self.final_state.get_vector_state())
         except Exception as e:
             print(finalstate_filename+' could not be saved.')
             print('--->', e)
