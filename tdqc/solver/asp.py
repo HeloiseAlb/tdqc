@@ -157,25 +157,31 @@ class AdiaStatePrepa(Solver):
         It stores the list of the vec_state in self.__time_evolution.  
         """
         state_t_n = self.__initial_state.get_vector_state()
-        time_step = (self.__t_final - self.__t_initial) / self.__n_steps
+        time_step = self.__delta_t
         site_list = [l for l in range(1, self.__n_sites, 1)]
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
-        time_evolution = np.zeros([self.__n_steps, 2**self.__n_sites], dtype='complex128') 
+        time_evolution = np.zeros([self.__n_steps + 1, 2**self.__n_sites], dtype='complex128') 
         inv_temperature = 1
         if ED:
             time_evolution[0, :] = state_t_n.reshape(-1)
-            for idx, t_n in enumerate(t_list[1:]):
+            for idx, t_n in enumerate(t_list[:]):
                 model = Model("instanteneous_hamiltonian", lambda: self.H(t_n))
                 model.parametrize_hamiltonian()
                 state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
-                time_evolution[idx+1, :] = state_t_n.reshape(-1)
+                time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         else:
             # Else apply the Trotterization circuit.
             time_evolution[0, :] = state_t_n.reshape(-1)
-            for idx, t_n in enumerate(t_list[1:]):    
-                coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(t_n)
+            self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
+            self.list_hx_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
+            self.list_hz_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
+            for idx, t_n in enumerate(t_list[:]):    
+                coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles()
+                self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
+                self.list_hx_angle[idx] = hx_angle
+                self.list_hz_angle[idx] = hz_angle
                 state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hz_angle)
-                time_evolution[idx+1, :] = state_t_n.reshape(-1)
+                time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
@@ -202,7 +208,7 @@ class AdiaStatePrepa(Solver):
         except Exception as e:
             print(finalstate_filename+' could not be saved.')
             print('--->', e)
-        
+
         # Generate the file with the parameters.
         info_dic = {
             'Hamiltonian parameters': self.ham_params,
@@ -227,6 +233,27 @@ class AdiaStatePrepa(Solver):
         except Exception as e:
             print(result_info_filename+' could not be saved.')
             print('--->', e)
+
+    def save_gate_sequence(self,):
+        parametername = 'ASP_lrti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+        filename = 'gate_sequence'+parametername+'.json'
+        try:
+            jx_gates, hx_gates, hz_gates = self.list_coupling_matrix_angles, self.list_hx_angle, self.list_hz_angle 
+
+            steps = [
+                [('jx', list(jx_gate)), ('hz', list(hz_gate)),
+                    ('hx', list(hx_gate))]
+                for jx_gate, hz_gate, hx_gate
+                in zip(jx_gates, hz_gates, hx_gates)
+            ]
+            with open(filename, 'w') as f:
+                json.dump(steps, f, indent=2)
+            print(f"{filename} written.")
+        except Exception as e:
+            print(f'`{filename}` could not be saved.')
+            print('--> ', e)
+
+    
         
     @property
     def n_steps(self):
@@ -397,7 +424,7 @@ class AdiaStatePrepa(Solver):
         target = self.__final_state.get_vector_state()
         return target
 
-    def define_gate_angles(self, t_n):
+    def define_gate_angles(self,):
         """
         The gates are defined to realize the Trotterization of the Hamiltonian.
         """
