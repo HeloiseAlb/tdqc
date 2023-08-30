@@ -63,6 +63,7 @@ class Model(object):
         self.__eig_values = eig_values
         self.__eig_vectors = eig_vectors
         self.__ground_states = self.calculate_ground_states(eig_values,eig_vectors)
+        self.__ground_state = self.__ground_states[:,0]
 
     @property
     def hamiltonian(self,):
@@ -87,6 +88,12 @@ class Model(object):
         if self.__ground_states is None:
             raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the ground_states.")
         return self.__ground_states
+
+    @property
+    def ground_state(self,):
+        if self.__ground_state is None:
+            raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the ground_states.")
+        return self.__ground_state
 
     @classmethod
     def class_method(cls):

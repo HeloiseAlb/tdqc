@@ -27,16 +27,15 @@ g = float(sys.argv[3])
 h = g
 alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for model_0 and system_class !!
-model_f.parametrize_hamiltonian(*[L, J, alpha, g])
-
-ground_states = model_f.ground_states 
+model_f.parametrize_hamiltonian(*[L, J, alpha, h]) 
+ground_states = model_f.ground_state
 vector_to_copy = np.array(ground_states, dtype='complex128')
 norm = np.linalg.norm(vector_to_copy)
 vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
 model_0 = copy.deepcopy(lr_trans_ising_model)
-model_0.parametrize_hamiltonian(*[L,0,alpha,g])
+model_0.parametrize_hamiltonian(*[L, 0, alpha, h])
 
 
 parameters = {

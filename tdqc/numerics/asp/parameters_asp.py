@@ -5,7 +5,6 @@ import numpy as np
 import copy 
 from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
-#from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
 
 def tensor_prod(*arg):
@@ -22,11 +21,11 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = int(2)
-J = 1.0
-h = 2.0
-g = 2.0 # The notation can be confusing. It is the h of the Transversal Long range Ising model.
-alpha = int(3)
+L = int(sys.argv[1])
+J = float(sys.argv[2])
+g = float(sys.argv[3]) 
+h = g # The notation can be confusing. It is the h of the Transversal Long range Ising model.
+alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model)
 model_f.parametrize_hamiltonian(*[L, J, alpha, g])
 ground_states = model_f.ground_states 

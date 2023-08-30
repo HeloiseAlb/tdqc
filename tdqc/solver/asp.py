@@ -95,8 +95,8 @@ class AdiaStatePrepa(Solver):
         # The initial state is the GS of the initial hamiltonian H_0.
         # Here, I consider the ground state is non-degenerate.
         # To do: Code the case where it is degenerate. 
-        ground_states = self.__model_0.ground_states 
-        init_vec_state = np.array(ground_states,dtype='complex128')
+        ground_state = self.__model_0.ground_state 
+        init_vec_state = np.array(ground_state,dtype='complex128')
         norm = np.linalg.norm(init_vec_state)
         init_vec_state = init_vec_state / norm
         self.__initial_state = State(init_vec_state)
@@ -171,6 +171,10 @@ class AdiaStatePrepa(Solver):
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         else:
             # Else apply the Trotterization circuit.
+            print("time_evolution.shape {}".format(time_evolution.shape))
+            print("state_t_n.shape {}".format(state_t_n.shape))
+            r = state_t_n.reshape(-1)
+            print("state_t_n.reshape(-1).shape {}".format(r.shape))
             time_evolution[0, :] = state_t_n.reshape(-1)
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
             self.list_hx_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
@@ -189,7 +193,7 @@ class AdiaStatePrepa(Solver):
         if (self.__final_state == None):
             # If the method solve have not run yet. 
             self.solve()
-        parametername = 'ASP_lrti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+        parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
 
         # Generate the file with the time evolution amplitudes.
         try:
@@ -212,7 +216,7 @@ class AdiaStatePrepa(Solver):
         # Generate the file with the parameters.
         info_dic = {
             'Hamiltonian parameters': self.ham_params,
-            'Initial_state': str(self.__initial_state),
+            'Initial_state': str(self.__initial_state.get_density_matrix),
             'Final fidelity': str(self.__list_fidelities[-1]),
             'H_0 model': self.__model_0.name,
             'H_0 hamiltonian': str(self.__model_0.hamiltonian),
@@ -235,7 +239,7 @@ class AdiaStatePrepa(Solver):
             print('--->', e)
 
     def save_gate_sequence(self,):
-        parametername = 'ASP_lrti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+        parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
         filename = 'gate_sequence'+parametername+'.json'
         try:
             jx_gates, hx_gates, hz_gates = self.list_coupling_matrix_angles, self.list_hx_angle, self.list_hz_angle 
@@ -288,7 +292,9 @@ class AdiaStatePrepa(Solver):
         for idx, t_n in enumerate(t_list):
             H_t_n = self.H(t_n)
             state_t_n = self.__time_evolution[idx,:]
-            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_ground_states_and_energy_gap(H_t_n, state_t_n, all_gs = False)
+            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_ground_state_and_energy_gap(H_t_n, state_t_n, all_gs = False)
+            print("ground_state_h_t_n.shape: {}".format(ground_state_h_t_n.shape))
+            print("state_t_n.shape:{}".format(state_t_n.shape))
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
@@ -305,7 +311,7 @@ class AdiaStatePrepa(Solver):
         self.__list_transition_matrix_element = list_transition_matrix_element
         
 
-    def compute_ground_states_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
+    def compute_ground_state_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
         """
         Returns:
             ground_states: np.array: the ground states of the Hamiltonian H_matrix.
@@ -329,7 +335,7 @@ class AdiaStatePrepa(Solver):
         gap = self.min_energy_gap(eig_values)
         difference_energy_with_gs_hamiltonian = energy_state - np.min(eig_values)
         transition_matrix_element = self.compute_transition_matrix_element(eig_values, eig_vectors)
-        return ground_states, gap, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element
+        return ground_states[:,0], gap, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element
 
     def compute_energy(self, state_vector, H_matrix):
         """Calculate the energy of a state for a given Hamiltonian.
@@ -437,8 +443,8 @@ class AdiaStatePrepa(Solver):
             hz_angle = self.ham_params['h'] * self.__delta_t
             return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
-            coupling_matrix_angle = - self.ham_params['J']*self.__delta_t
-            hz_angle = - self.ham_params['g'] * self.__delta_t
+            coupling_matrix_angle = self.ham_params['J']*self.__delta_t
+            hz_angle = self.ham_params['g'] * self.__delta_t
             return coupling_matrix_angle, None, hz_angle 
         else:
             raise NotImplementedError('Trotter sequence not implemented'
