@@ -37,7 +37,6 @@ norm = np.linalg.norm(vector_to_copy)
 vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
-
 parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).

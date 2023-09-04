@@ -171,10 +171,7 @@ class AdiaStatePrepa(Solver):
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         else:
             # Else apply the Trotterization circuit.
-            print("time_evolution.shape {}".format(time_evolution.shape))
-            print("state_t_n.shape {}".format(state_t_n.shape))
             r = state_t_n.reshape(-1)
-            print("state_t_n.reshape(-1).shape {}".format(r.shape))
             time_evolution[0, :] = state_t_n.reshape(-1)
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
             self.list_hx_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
@@ -216,7 +213,7 @@ class AdiaStatePrepa(Solver):
         # Generate the file with the parameters.
         info_dic = {
             'Hamiltonian parameters': self.ham_params,
-            'Initial_state': str(self.__initial_state.get_density_matrix),
+            'Initial_state': str(self.__initial_state.get_density_matrix()),
             'Final fidelity': str(self.__list_fidelities[-1]),
             'H_0 model': self.__model_0.name,
             'H_0 hamiltonian': str(self.__model_0.hamiltonian),
@@ -293,8 +290,6 @@ class AdiaStatePrepa(Solver):
             H_t_n = self.H(t_n)
             state_t_n = self.__time_evolution[idx,:]
             ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_ground_state_and_energy_gap(H_t_n, state_t_n, all_gs = False)
-            print("ground_state_h_t_n.shape: {}".format(ground_state_h_t_n.shape))
-            print("state_t_n.shape:{}".format(state_t_n.shape))
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
