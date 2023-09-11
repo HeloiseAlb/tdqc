@@ -5,7 +5,7 @@ import numpy as np
 from numpy import linalg
 import scipy as sci
 import numpy as np
-from math import log2
+from math import log2, cos, sin
 import cmath
 
 
@@ -20,7 +20,7 @@ spin_op= {
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')} 
 
-def globalize_op(local_op,site,L):
+def globalize_op(local_op: np.ndarray, site: int, L: int):
     '''
     Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
@@ -247,7 +247,18 @@ class State(object):
     def get_density_matrix(self,):
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
         return self._density_mat
+
+    def rotate_parallel_spins(self, rotation_angle: float):
+        """
+        Apply an X-axis rotation to each qubit with the specified angle rotation_angle.
+        """
+        x_rotation_gate = np.array([[cos(rotation_angle/2), -1j*sin(rotation_angle/2)], [-1j*sin(rotation_angle/2), cos(rotation_angle/2)]])
+        for qubit in range(self.n_sites):
+            global_gate = globalize_op(x_rotation_gate, qubit, self.n_sites)
+            self.vec_state = np.dot(global_gate, self.vec_state) 
+
     
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    
+

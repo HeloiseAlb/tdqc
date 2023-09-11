@@ -25,3 +25,20 @@ def test_state_structure():
     assert callable(getattr(State, 'get_state_format_ml', None)), "State has method method get_state_format_ml"
     state_real, state_imag = state.get_state_format_ml()
     assert isinstance(state_real, np.ndarray) and isinstance(state_imag, np.ndarray), "Amplitudes format ml given as two arrays from numpy"
+
+@pytest.mark.fast
+def test_rotate_parallel_spins():
+    from math import pi, sqrt 
+    from tdqc.numerics.ed.models_ed import State
+    L = 2
+    angle = pi/3
+    # Ferromagnetic
+    init_vec_state = np.zeros(2**L)
+    init_vec_state[0] = 1.0
+    norm = np.linalg.norm(init_vec_state)
+    init_vec_state = init_vec_state / norm
+    state = State(init_vec_state)
+    print(state.get_vector_state())
+    state.rotate_parallel_spins(angle)
+    print(state.get_vector_state())
+
