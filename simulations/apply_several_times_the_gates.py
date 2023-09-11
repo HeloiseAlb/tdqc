@@ -6,7 +6,7 @@ from scipy.linalg import eigh, logm
 from math import log2, sqrt, log, isnan 
 from scipy.linalg import expm
 import cmath
-from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model
+from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.ed import EDSolver
 import tdqc.numerics.deep_q_learning.environments_cpp2 as env_cpp
@@ -139,51 +139,51 @@ def local_reward(rho1,rho2,n_qubits=None):
     # return r_local
 
 
-def reduced_density_matrix(rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
-    """ Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix. """
-    rho = rho_init 
-    if n_qubits == None:
-        n_qubits = int(log2(rho.shape[0]))
-    n = n_qubits
-    if site1>site2:
-        site1, site2 = site2, site1
-    if site1>0:
-        n1, n2 =int(2**(site1)), int(2**(n-site1))
-        rho = rho.reshape([n1, n2, n1, n2])
-        rho = np.trace(rho, axis1=0, axis2=2)
-        n -= site1
-        site2 -= site1
-    if site2>1:
-        n1, n2 = int(2**(site2-1)), int(2**(n-site2))
-        rho = rho.reshape([2,n1,n2,2,n1,n2])
-        rho = np.trace(rho,axis1=1,axis2=4)
-        n -= site2-1
-    if n>2:
-        n2 = int(2**(n-2))
-        rho = rho.reshape([4, n2, 4, n2])
-        rho = np.trace(rho, axis1=1, axis2=3)
-    rho = rho.reshape([4, 4])
-    return rho
+# def reduced_density_matrix(rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
+#     """ Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix. """
+#     rho = rho_init 
+#     if n_qubits == None:
+#         n_qubits = int(log2(rho.shape[0]))
+#     n = n_qubits
+#     if site1>site2:
+#         site1, site2 = site2, site1
+#     if site1>0:
+#         n1, n2 =int(2**(site1)), int(2**(n-site1))
+#         rho = rho.reshape([n1, n2, n1, n2])
+#         rho = np.trace(rho, axis1=0, axis2=2)
+#         n -= site1
+#         site2 -= site1
+#     if site2>1:
+#         n1, n2 = int(2**(site2-1)), int(2**(n-site2))
+#         rho = rho.reshape([2,n1,n2,2,n1,n2])
+#         rho = np.trace(rho,axis1=1,axis2=4)
+#         n -= site2-1
+#     if n>2:
+#         n2 = int(2**(n-2))
+#         rho = rho.reshape([4, n2, 4, n2])
+#         rho = np.trace(rho, axis1=1, axis2=3)
+#     rho = rho.reshape([4, 4])
+#     return rho
 
-def relative_entropy(rho1: np.ndarray, rho2: np.ndarray, positiveDefinite:bool=True)-> float:
-    if positiveDefinite:
-        # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
-        eVals1, eVecs1 = eigh(rho1) 
-        eVals1 = np.maximum(eVals1, 0)
-        eVals2, eVecs2 = eigh(rho2)
-        eVals2 = np.maximum(eVals2, 0)
-        relativeEntropy = 0
-        for index1, value1 in enumerate(eVals1):
-            subsum_index1 = 0
-            if value1 > 0:
-                relativeEntropy += value1 * (log(value1))
-                for index2, value2 in enumerate(eVals2):
-                    if value2 > 0 :
-                        subsum_index1 += abs( np.dot(eVecs2[:, index2],eVecs1[:, index1]))**2 * log(value2)
-                relativeEntropy -= value1 * subsum_index1
-        return np.real(relativeEntropy)
-    else:
-        return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
+# def relative_entropy(rho1: np.ndarray, rho2: np.ndarray, positiveDefinite:bool=True)-> float:
+#     if positiveDefinite:
+#         # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
+#         eVals1, eVecs1 = eigh(rho1) 
+#         eVals1 = np.maximum(eVals1, 0)
+#         eVals2, eVecs2 = eigh(rho2)
+#         eVals2 = np.maximum(eVals2, 0)
+#         relativeEntropy = 0
+#         for index1, value1 in enumerate(eVals1):
+#             subsum_index1 = 0
+#             if value1 > 0:
+#                 relativeEntropy += value1 * (log(value1))
+#                 for index2, value2 in enumerate(eVals2):
+#                     if value2 > 0 :
+#                         subsum_index1 += abs( np.dot(eVecs2[:, index2],eVecs1[:, index1]))**2 * log(value2)
+#                 relativeEntropy -= value1 * subsum_index1
+#         return np.real(relativeEntropy)
+#     else:
+#         return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
 
 # The following function need to be optimized it is not at all.
 def apply_several_times_the_gates(initial_state: np.ndarray, jx_angle_list: np.ndarray, hx_angle_list: np.ndarray, hz_angle_list: np.ndarray, n_times_apply_gates: int, n_steps: int, n_sites: int, gate_order: str)-> np.ndarray:
@@ -197,15 +197,15 @@ def apply_several_times_the_gates(initial_state: np.ndarray, jx_angle_list: np.n
 ###################### Parameters necessary ######################
 
 # Initializing model
-L = 6 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
+L = 8 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
-m_x = 2.0
-m_z = 2.0
-alpha = 3
-model = lri_model
-model.parametrize_hamiltonian(*[L,J,alpha,m_x,m_z])
+g = 0.2
 
-initial_state = 'antiferro' # 'ferro','random_product_state',
+alpha = int(2)
+model = lr_trans_ising_model
+model.parametrize_hamiltonian(*[L, J, alpha, g])
+
+initial_state = 'ferro' # 'ferro','random_product_state',
 seed_initial_state = 42, # 42, #useful to determined only if 'initial_state'=='random_product_state'
 initial_state_vector = get_initial_state_for_ed(seed = seed_initial_state, initial_state = initial_state, n_sites = L )
 
@@ -225,8 +225,8 @@ jx_angle_list = np.array([0.17608174725785508,0.28184247184071526,0.257945816182
 hz_angle_list = np.array([[ -0.11922617126574848, -0.132527526454309, -0.1271589901619128, 0.17039545638156942, 0.20979017282010481, 0.3400055472457961],[-0.5429056458076297,-0.03220951425070164,-0.057697662588413336,0.10611445027684326,0.041294782570169164,0.16244891006425172],[-0.20195797076040886,0.07677985900551919,-0.09941066928110837,0.07493298762909732,-0.01704175336486498,0.32652464783399565]])
 hx_angle_list = np.array([[-0.1387266346582304,-0.21182746854842774,-0.3377540675217936,0.0957978358059864,0.15607311976657468,-0.31086424967833265],[0.3543519384643863,0.18913150484906094,0.225781671983032,-0.021018463741297705,0.21544702299288998,-0.06792831418820755],[-0.08452768620945332,0.18310981462218978,-0.05731513818331313,0.3175992742295699,-0.00926905846541648,-0.2825688787067737]])
 """
-# Gates to apply from best_gate_sequenceN6episode50000simulations0t_final0.06ok
 """
+# Gates to apply from best_gate_sequenceN6episode50000simulations0t_final0.06ok
 jx_angle_list = np.array([0.010903179221746773,-0.05596004746689547,-0.005932486026685387])
 hz_angle_list = np.array([[-0.01797811443166326,-0.09184139178791147,0.1776054852828728,0.06746290775851863,-0.06155993777120394,-0.0455965231451876],
       [0.4324026653285702,-0.273633479971554,0.014511363490156588,0.20899937561800075,-0.3480422131607997,0.08580963980156378],
@@ -417,16 +417,26 @@ hx_angle_list = np.array([
       [-0.200545026866399,-0.2953175525472482,0.028811548289351882,-0.1842733774917017,-0.012869277626366804,0.3898059228009531],
       [-0.019135202817378606,-0.3569543968616982,-0.09380644347474325,-0.18866423873521812,-0.2619552864117341,0.316605673753699]])
 """
-# Gates to apply DQL circuit for t_final=1.2 with 3 layers and positiveDefinite= False for trotterization.
-jx_angle_list = np.array([0.39999999999999997,0.39999999999999997,0.39999999999999997])
-hz_angle_list = np.array([
-    [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
-    [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
-    [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999]])
-hx_angle_list = np.array([  
-    [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
-    [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
-    [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999]])
+# # Gates to apply DQL circuit for t_final=1.2 with 3 layers and positiveDefinite= False for trotterization.
+# jx_angle_list = np.array([0.39999999999999997,0.39999999999999997,0.39999999999999997])
+# hz_angle_list = np.array([
+#     [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
+#     [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
+#     [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999]])
+# hx_angle_list = np.array([  
+#     [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
+#     [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999],
+#     [0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999,0.7999999999999999]])
+
+# best_gate_sequencenoPD_N8episode50000simulations0t_final1.0alpha2J1.0h0.2
+jx_angle_list = np.array([0.3333333333333333,0.3333333333333333,0.3333333333333333])
+hz_angle_list = np.array([[0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667],   
+    [0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667],
+    [0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667,0.06666666666666667]])
+hx_angle_list = np.array([[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0], 
+    [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0], 
+    [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]]) 
+
 
 """
 # Gates to apply from best_gate_sequenceN6episode50000simulations0_19.
@@ -439,11 +449,10 @@ hz_angle_list = np.array([[-0.0002785926319221394,-0.23180188321243123,-0.364697
         [-0.2260718897884354,-0.23591322474719126,-0.0023830200993602696,0.22345410792527126,0.28409412896804953,0.11404947015361344]])
 """
 #%%
-alpha =  int(3)
 coupling_matrix = get_coupling_matrix(L, alpha)
 #%%
 list_rewards = []
-for n_times_apply_gates in range(21,31,1):
+for n_times_apply_gates in range(1,2,1):
     #n_times_apply_gates = 20 # How many times do we want to apply the block of gates?
 
     parameters_ed = {
@@ -452,14 +461,14 @@ for n_times_apply_gates in range(21,31,1):
             'model': model,
             'state': State(initial_state_vector),
             't_initial': 0.0,
-            't_final': 1.2*n_times_apply_gates}
+            't_final': 1*n_times_apply_gates}
     solver = EDSolver()
     solver.load_settings(parameters_ed)
     solver.solve()
     state_target_here = solver.get_state_target()
 
 
-    #print('state_target_here from ED:{}'.format(state_target_here))
+    print('state_target_here from ED:{}'.format(state_target_here))
 
     # Target state from results_infoN6episode50000simulations0t_final0.06
     #state_target_here = np.array([-2.25124525e-04+0.00300363j, -1.77659768e-02+0.00043421j,  6.03985959e-04+0.00201326j, -7.10889714e-03+0.00406982j, -1.31097070e-02+0.00517642j, -2.81811472e-02-0.11193767j, -6.48383995e-03+0.0035043j,  -1.43187420e-02+0.00160237j,  5.62096868e-04+0.00201393j, -1.38413316e-02+0.00490086j,  7.12645062e-04+0.00124796j, -3.01811097e-03+0.00276604j, -6.48686376e-03+0.00314492j, -1.42264518e-02-0.05502429j, -2.95412028e-03+0.00182914j, -7.67343276e-03+0.0022318j, -1.78885885e-02-0.00042677j, -2.88767228e-02-0.11133988j, -1.39848707e-02+0.00442119j, -1.42112263e-02-0.05502075j, -2.12803533e-02-0.11232381j,  9.49428958e-01+0.00475547j, -1.37773636e-02-0.05592032j, -7.73924196e-04-0.11335708j, -7.22669014e-03+0.00364998j, -1.41778002e-02-0.05492059j, -3.12718537e-03+0.00274142j, -1.44622376e-02+0.00142313j, -1.42679208e-02+0.00085839j, -1.57546586e-03-0.11306609j, -7.76803466e-03+0.00215874j, -1.55389848e-02-0.00723746j,  3.55393950e-04+0.00119808j, -7.22437670e-03+0.0040406j,  5.39400843e-04+0.00082523j, -2.95431623e-03+0.00184946j, -6.44321664e-03+0.00300495j, -1.39244615e-02-0.05597228j, -3.06554315e-03+0.00170865j, -7.01462528e-03+0.00184991j,  5.03417714e-04+0.00043325j, -3.12776171e-03+0.00275963j,  3.50726735e-04+0.00013284j,  3.90254904e-04+0.00137656j,  3.14477996e-04+0.00181068j, -1.45631839e-02+0.00093866j,  3.20686103e-04+0.00091972j, -3.62614736e-04+0.00201657j, -4.15240407e-04+0.00231409j, -1.43849279e-02+0.00085894j,  3.14772891e-04+0.00180412j, -6.98951738e-03+0.00149134j, -1.36515688e-02+0.00144976j,  6.08834278e-03-0.1131703j, -6.90240229e-03+0.00134996j, -1.36429030e-02-0.0014219j,  4.00134855e-04+0.00107828j, -7.75369353e-03+0.00180758j,  3.79104474e-04+0.00052701j, -4.02930395e-04+0.00200397j, -8.91431570e-04+0.00211943j, -1.53895634e-02-0.00806968j, -2.10311788e-04+0.00118587j, -1.97404140e-03+0.00204956j])

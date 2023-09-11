@@ -20,11 +20,8 @@ import numba
 import cython
 from typing import Optional 
 import tdqc.numerics.deep_q_learning.environments_cpp2 as env_cpp
-#import tdqc.numerics.deep_q_learning.environments_cpp2 as env_cpp
-from tdqc.numerics.ed.models_ed import *
 
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
-#import tdqc.numerics.deep_q_learning.system_mps.system as sy
 
 spin_op= {
     "I": np.array([[1+0j,0+0j],[0+0j,1+0j]],dtype = 'complex128'),
@@ -61,12 +58,9 @@ class QuantumEnv():
                  seed_initial_state: Optional[int],
                  range_one: float,
                  range_all: float,
-                 #measurement=None,
-                 #bulk_size=0,
                  entangling_gates_dir: str ='jx',
-                 #  weighted_average=False,
-                 average_exponent: float =1.0, #useless
-                 periodic_boundary_conditions: bool =False,
+                 # average_exponent: float =1.0, #useless
+                 # periodic_boundary_conditions: bool =False,
                  **other_params)-> None:
         
         """Define the model of the system. The Hamiltonian of a system is defined in the system.cpp..
@@ -82,8 +76,6 @@ class QuantumEnv():
                 t_final = t_final,
                 gate_order=gate_order,
                 alpha=self.alpha,
-                #entangling_gates_dir=entangling_gates_dir, #Check if we keep it
-                #average_exponent=average_exponent, #Check if we keep it
                 )
 
         self.system_class = system_class
@@ -124,7 +116,7 @@ class QuantumEnv():
             # self.coupling_matrix_S = eig_vec 
             # self.coupling_matrix_S_inv = inv(eig_vec)
         elif self.system_class == 'TransIsing':
-            # I have taken into consideration the minus sign before the J of this model 
+            # NB: I have taken into consideration the minus sign before the J of this model 
             # in the function set_coupling_matrix. 
             dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
@@ -137,7 +129,7 @@ class QuantumEnv():
                 coupling_matrix += np.dot(matrix_1,matrix_2)
             self.coupling_matrix = -coupling_matrix
         elif self.system_class == 'LongRangeTransIsing':
-            # I have taken into consideration the minus sign before the J of this model 
+            # NB: I have taken into consideration the minus sign before the J of this model 
             # in the function set_coupling_matrix. 
             dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
@@ -312,8 +304,10 @@ class DynamicalEvolution(QuantumEnv):
         super().__init__(calculate_target_state=True,
                          **other_params)
     
-    def reward(self, action_sequence, rho_target: np.ndarray)-> float:        
-        # Return the reward of the action_sequence computed according to rho_target.
+    def reward(self, action_sequence: np.ndarray, rho_target: np.ndarray)-> float:  
+        """
+        Return the reward of the action_sequence computed according to rho_target.
+        """       
         n_qubits = self.n_sites
         jx_gates, hx_gates, hz_gates = \
             self.decode_action_sequence(action_sequence)

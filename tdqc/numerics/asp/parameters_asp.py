@@ -3,6 +3,7 @@
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
+import sys
 from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.state_provider import StateProvider
@@ -26,16 +27,16 @@ J = float(sys.argv[2])
 g = float(sys.argv[3]) 
 h = g # The notation can be confusing. It is the h of the Transversal Long range Ising model.
 alpha = int(2)
-model_f = copy.deepcopy(lr_trans_ising_model)
-model_f.parametrize_hamiltonian(*[L, J, alpha, g])
-ground_states = model_f.ground_states 
-vector_to_copy = np.array(ground_states, dtype='complex128')
+model_f = copy.deepcopy(trans_ising_model)
+model_f.parametrize_hamiltonian(*[L, J, g])
+ground_state = model_f.ground_state 
+vector_to_copy = np.array(ground_state, dtype='complex128')
 norm = np.linalg.norm(vector_to_copy)
 vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
-model_0 = copy.deepcopy(lr_trans_ising_model)
-model_0.parametrize_hamiltonian(*[L, 0, alpha, g])
+model_0 = copy.deepcopy(trans_ising_model)
+model_0.parametrize_hamiltonian(*[L, 0, g])
 
 
 
@@ -44,17 +45,17 @@ parameters = {
     # physical system
     # =======================================================================
     'n_sites':  L,
-    'n_steps': 10000,
+    'n_steps': 3,
     't_initial': 0.0,
-    't_final': 10.0, # This is the tau in the article.
+    't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'LongRangeTransIsing', #
+    'system_class': 'TransIsing', #
     #  also sets entangling gate alpha
     'ham_params': {
         'J': J,
         #  #  g: x, h: z
         'g': g,
-        'h': 2.0,
+        'h': h,
         'alpha': alpha, # In Adrien's code, it was 2.0 but it make more sense to use 3.0 w.r.t. the model of the Hamiltonian.
         #'m_c': 0.5,
         #'w_c': 1.0,
