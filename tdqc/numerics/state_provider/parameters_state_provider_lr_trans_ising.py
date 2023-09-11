@@ -1,6 +1,7 @@
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
+from math import pi 
 from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
@@ -24,9 +25,11 @@ def tensor_prod(*arg):
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
 # sys.argv = [name_of_the_program, L, J, g]
+print("sys.argv:{}".format(sys.argv))
 L = int(sys.argv[1])
 J = float(sys.argv[2])
 g = float(sys.argv[3])
+ferro_angle = float(sys.argv[4])
 h = g
 alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for system_class !!
@@ -61,7 +64,8 @@ parameters = {
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': 'ferro',
+    'initial_state': 'ferro_with_angle', #'ferro',
+    'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 
     #  digital simulator:

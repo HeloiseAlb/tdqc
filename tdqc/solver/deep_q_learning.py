@@ -34,7 +34,7 @@ from abc import ABCMeta, abstractmethod
 import random
 from collections import namedtuple
 import numpy as np
-#import sys 
+import sys 
 import json
 #from pathlib import Path
 import time
@@ -395,7 +395,7 @@ class DQLWithReplayMemory(DeepQLearning):
             initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
             rewards = self.run()
             end_time = time.time()
-            parametername = 'lrti_noPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+            parametername = 'lrti_noPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])
             self.save_best_encountered_actions('json',
                                                     'best_gate_sequence'+parametername+'.json')
             try:
@@ -418,6 +418,7 @@ class DQLWithReplayMemory(DeepQLearning):
                 'time_compute_reward_sum': self.time_compute_reward_sum,
                 'time_select_action_sum': self.time_select_action_sum,
                 'time_reduced_density_matrix': self.env.time_reduced_density_matrix_iteration,
+                'initial_state': str(self.env.initial_state), 
                 #  'ground_state_energy': ground_state_energy,
                 #  'final_reward': rewards[-1],
                 }   

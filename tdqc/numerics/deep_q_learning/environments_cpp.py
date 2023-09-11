@@ -10,6 +10,7 @@ The way the states are used to feed the neural networks depends on the actual
 NN model used, coded in models.py.
 """
 
+from optparse import Option
 import sys
 from scipy.linalg import logm, expm, eigh, inv
 import numpy as np
@@ -20,7 +21,7 @@ import numba
 import cython
 from typing import Optional 
 import tdqc.numerics.deep_q_learning.environments_cpp2 as env_cpp
-
+from tdqc.numerics.ed.models_ed import State
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
 
 spin_op= {
@@ -59,6 +60,7 @@ class QuantumEnv():
                  range_one: float,
                  range_all: float,
                  entangling_gates_dir: str ='jx',
+                 ferro_angle: Optional[float]=None,
                  # average_exponent: float =1.0, #useless
                  # periodic_boundary_conditions: bool =False,
                  **other_params)-> None:
@@ -89,9 +91,17 @@ class QuantumEnv():
         if self.n_directions != 2:
             raise NotImplementedError(f'not implemented for n_directions = '
                                       f'{self.n_directions}.')
-    
-        self.set_initial_state(seed_initial_state,
-                               initial_state)
+        if initial_state == "ferro_with_angle":
+            if ferro_angle == None:
+                raise ValueError('For initial_state == ferro_with_angle, the variable ferro_angle'
+                             'must be a float not a None.')
+            self.ferro_angle = ferro_angle
+            self.set_initial_state(seed_initial_state,
+                                    initial_state,
+                                    ferro_angle)
+        else:
+            self.set_initial_state(seed_initial_state,
+                                   initial_state)
         self.state = self.state_real+1j*self.state_imag
         self.set_coupling_matrix()
         self.reset()
@@ -150,7 +160,7 @@ class QuantumEnv():
     def get_n_sites(self)-> int:
         return self.n_sites
 
-    def set_initial_state(self, seed: Optional[int], initial_state: str)-> None:
+    def set_initial_state(self, seed: Optional[int], initial_state: str, angle_ferro=None)-> None:
         if initial_state == 'random_product_state':
             np.random.seed(seed)
             #  randomly directed vector on the unit sphere
@@ -167,15 +177,28 @@ class QuantumEnv():
             rstate = tensor_prod(*spinors)
             self.state_real = rstate.real
             self.state_imag = rstate.imag
+            self.initial_state = self.state_real + 1j*self.state_imag
         elif initial_state == 'ferro':
             self.state_real = np.zeros(2**self.n_sites)
             self.state_real[0] = 1.0
             self.state_imag = np.zeros(2 ** self.n_sites)
+            self.initial_state = self.state_real + 1j*self.state_imag
+        elif initial_state == 'ferro_with_angle':
+            self.state_real = np.zeros(2**self.n_sites)
+            self.state_real[0] = 1.0
+            self.state_imag = np.zeros(2 ** self.n_sites)
+            temporary_vec_state = self.state_real + 1j*self.state_imag
+            state = State(temporary_vec_state)
+            state.rotate_parallel_spins(angle_ferro)
+            self.initial_state = state.get_vector_state()
+            self.state_real = np.real(self.initial_state)
+            self.state_imag = np.imag(self.initial_state)
         elif initial_state == 'antiferro':
             self.state_imag = np.zeros(2**self.n_sites)
             spinors = [np.array([1.0, 0.0]) if _ % 2 == 0
                        else np.array([0.0, 1.0]) for _ in range(self.n_sites)]
             self.state_real = tensor_prod(*spinors)
+            self.initial_state = self.state_real + 1j*self.state_imag
         elif initial_state == 'ground_state':
             # this part is not checked
             if self.system_class == 'LongRangeIsing':
@@ -189,13 +212,14 @@ class QuantumEnv():
                 ground_state = lri_model.ground_states
                 self.state_real = ground_state.real
                 self.state_imag = ground_state.imag
+                self.initial_state = self.state_real + 1j*self.state_imag
             else:
                 raise ValueError('initial_state = ground_state is not implemented for'
                              'your system_class.')
         else:
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
-        self.initial_state = self.state_real + 1j*self.state_imag
+        
         print("self.initial_state in set_initial_state:{}".format(self.initial_state))
         # the flip is used to be consitent with how states are encoded in
         # the QuDyn library. 
