@@ -30,7 +30,6 @@ cpdef np.ndarray globalize_op(np.ndarray local_op, int site, int L):
     tensor_0 = np.identity(1, dtype='complex128')    
     for i in range(0,site,1):
         tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
-        print("hello")
     tensor_0 = np.kron(tensor_0,local_op)
     for i in range(site+1,L,1):
         tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))

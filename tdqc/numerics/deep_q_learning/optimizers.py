@@ -1,6 +1,8 @@
 """Module defining optimizers
 
-They are used to calculate the action maximizing Q(s, a) = argmax_a Q(s, a)
+They are used to calculate the action maximizing Q(s, a) = argmax_a Q(s, a).
+
+Héloïse: That is, I think, to perform the backward propagation.  
 """
 
 
@@ -11,7 +13,15 @@ class Optimizer:
     def __init__(self, initialization):
         self.initialization = initialization
 
-    def initialize(self, n_inits, dim):
+    def initialize(self, n_inits: int, dim: int)-> np.ndarray:
+        """
+        Initialize the matrix 'a_inits' based on the specified initialization strategy.
+        Parameters:
+            n_inits (int): Number of initializations.
+            dim (int): Dimension of each initialization vector (2 * n_sites + 1).
+        Returns:
+            a_inits (numpy.ndarray): A matrix containing initialized values.
+        """
         if self.initialization == 'random':
             a_inits = np.random.uniform(-1, 1, size=(n_inits, dim))
         elif self.initialization == 'uniform':
@@ -30,49 +40,49 @@ class Optimizer:
         return a_inits
 
 
-class NAGOptimizer(Optimizer):
-    def __init__(self,
-                 learning_rate,
-                 momentum,
-                 convergence_threshold,
-                 n_iterations,
-                 n_inits,
-                 initialization
-                 ):
-        self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.convergence_threshold = convergence_threshold
-        self.n_inits = n_inits
-        self.n_iterations = n_iterations
-        super().__init__(initialization)
+# class NAGOptimizer(Optimizer):
+#     def __init__(self,
+#                  learning_rate,
+#                  momentum,
+#                  convergence_threshold,
+#                  n_iterations,
+#                  n_inits,
+#                  initialization
+#                  ):
+#         self.learning_rate = learning_rate
+#         self.momentum = momentum
+#         self.convergence_threshold = convergence_threshold
+#         self.n_inits = n_inits
+#         self.n_iterations = n_iterations
+#         super().__init__(initialization)
 
-    def run(self, dim, evaluate_output, evaluate_gradient):
-        """
-        maximize output q(a) following the update rule
-                v_t = γ * v_{t-1} + η * ∇J(a + γ * v_{t-1})
-        γ: momentum, η: learning_rate, J: cost function, v: update vector
-        """
+#     def run(self, dim: int, evaluate_output: callable, evaluate_gradient: callable):
+#         """
+#         maximize output q(a) following the update rule
+#                 v_t = γ * v_{t-1} + η * ∇J(a + γ * v_{t-1})
+#         γ: momentum, η: learning_rate, J: cost function, v: update vector
+#         """
 
-        a_inits = self.initialize(n_inits=self.n_inits, dim=dim)
-        q_max = -np.infty
-        a_max = a_inits[0]
-        for i, a in enumerate(a_inits):
-            update_vec = 0.0 * a
-            for i_iter in range(self.n_iterations):
-                update_vec *= self.momentum
-                grad = evaluate_gradient(a + update_vec)
-                update_vec += self.learning_rate * grad
-                a, a_old = a + update_vec, a
-                #  if (i_iter > 10 and
-                #          np.linalg.norm(a-a_old) < self.convergence_threshold):
-                if (np.linalg.norm(a-a_old) < self.convergence_threshold):
-                    break
+#         a_inits = self.initialize(n_inits=self.n_inits, dim=dim)
+#         q_max = -np.infty
+#         a_max = a_inits[0]
+#         for i, a in enumerate(a_inits):
+#             update_vec = 0.0 * a
+#             for i_iter in range(self.n_iterations):
+#                 update_vec *= self.momentum
+#                 grad = evaluate_gradient(a + update_vec)
+#                 update_vec += self.learning_rate * grad
+#                 a, a_old = a + update_vec, a
+#                 #  if (i_iter > 10 and
+#                 #          np.linalg.norm(a-a_old) < self.convergence_threshold):
+#                 if (np.linalg.norm(a-a_old) < self.convergence_threshold):
+#                     break
 
-            q = evaluate_output(a)
-            if q > q_max:
-                a_max, q_max = a, q
+#             q = evaluate_output(a)
+#             if q > q_max:
+#                 a_max, q_max = a, q
 
-        return (a_max, q_max)
+#         return (a_max, q_max)
 
 
 class AdamOptimizer(Optimizer):
@@ -95,7 +105,7 @@ class AdamOptimizer(Optimizer):
         self.n_iterations = n_iterations
         super().__init__(initialization)
 
-    def run(self, dim, evaluate_output, evaluate_gradient):
+    def run(self, dim: int, evaluate_output: callable, evaluate_gradient: callable):
         """
         maximize output q(a) following the update rule
                 g_t = ∇J(a)
@@ -114,7 +124,6 @@ class AdamOptimizer(Optimizer):
         q_max = -np.infty
         a_max = a_inits[0]
         for i, a in enumerate(a_inits):
-            update_vec = 0.0 * a
             m_t, v_t = 0.0, 0.0
             for t in range(self.n_iterations):
                 grad = evaluate_gradient(a)

@@ -59,9 +59,8 @@ class QuantumEnv():
                  seed_initial_state: Optional[int],
                  range_one: float,
                  range_all: float,
-                 entangling_gates_dir: str ='jx',
+                 entangling_gates_dir: str ='jx', # Useless
                  ferro_angle: Optional[float]=None,
-                 # average_exponent: float =1.0, #useless
                  # periodic_boundary_conditions: bool =False,
                  **other_params)-> None:
         
@@ -134,9 +133,7 @@ class QuantumEnv():
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
             for l in range(0, self.n_sites-1, 1):
-                matrix_1 = list_glob_operators[l] 
-                matrix_2 = list_glob_operators[l+1]
-                coupling_matrix += np.dot(matrix_1,matrix_2)
+                coupling_matrix += np.dot(list_glob_operators[l], list_glob_operators[l+1])
             self.coupling_matrix = -coupling_matrix
         elif self.system_class == 'LongRangeTransIsing':
             # NB: I have taken into consideration the minus sign before the J of this model 
@@ -200,7 +197,7 @@ class QuantumEnv():
             self.state_real = tensor_prod(*spinors)
             self.initial_state = self.state_real + 1j*self.state_imag
         elif initial_state == 'ground_state':
-            # this part is not checked
+            # This part has not been checked.
             if self.system_class == 'LongRangeIsing':
                 lri_model = Model("lri_model", hamiltonian_lri)
                 L = self.n_sites
@@ -305,10 +302,10 @@ class QuantumEnv():
         jx_angle_list = self.system.jx_gate_list
         hx_angle_list = self.system.hx_gate_list
         hz_angle_list = self.system.hz_gate_list
-        for step in range(0,self.n_steps,1):
+        for step in range(0, self.n_steps, 1):
             state = np.dot(U_xx(jx_angle_list[step]),state)
             #print('state after U_xx:{} is {}'.format(U_xx(jx_angle_list[step]),state))
-            for site in range(0,self.n_sites,1):
+            for site in range(0, self.n_sites, 1):
                 if self.system.gate_order == "xz":
                     U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
                     state = np.dot(U_x_site,state)
@@ -451,8 +448,8 @@ def relative_entropy(rho1: np.ndarray, rho2: np.ndarray, positiveDefinite:bool=T
         eVals2 = np.maximum(eVals2, 0)
         relativeEntropy = 0
         for index1, value1 in enumerate(eVals1):
-            subsum_index1 = 0
             if value1 > 0:
+                subsum_index1 = 0
                 relativeEntropy += value1 * (log(value1))
                 for index2, value2 in enumerate(eVals2):
                     if value2 > 0 :
