@@ -41,7 +41,7 @@ import tensorflow.keras as keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, InputLayer
 import tensorflow.keras.backend as K
-from tdqc.numerics.deep_q_learning.optimizers import NAGOptimizer, AdamOptimizer
+from tdqc.numerics.deep_q_learning.optimizers import AdamOptimizer #, NAGOptimizer
 
 
 print('Tensorflow verion: ', tf.__version__)
@@ -139,200 +139,200 @@ class StateActionNeuralNetwork():
                              evaluate_gradient)
 
 
-class MultiDeepQNetwork():
-    def __init__(self,
-                 tf_seed,
-                 max_q_optimizer,
-                 **other_params
-                 ):
-        tf.random.set_seed(tf_seed)
-        self.sess = tf.compat.v1.keras.backend.get_session()
-        self.max_q_optimizer = max_q_optimizer
+# class MultiDeepQNetwork():
+#     def __init__(self,
+#                  tf_seed,
+#                  max_q_optimizer,
+#                  **other_params
+#                  ):
+#         tf.random.set_seed(tf_seed)
+#         self.sess = tf.compat.v1.keras.backend.get_session()
+#         self.max_q_optimizer = max_q_optimizer
 
-    def build_networks(self):
-        raise NotImplementedError
+#     def build_networks(self):
+#         raise NotImplementedError
 
-    def update_target(self):
-        for network, target_network in zip(self.networks,
-                                           self.target_networks):
-            # use np.array?
-            target_network.set_weights(network.get_weights())
+#     def update_target(self):
+#         for network, target_network in zip(self.networks,
+#                                            self.target_networks):
+#             # use np.array?
+#             target_network.set_weights(network.get_weights())
 
-    def compile(self, optimizer, loss, metrics):
-        for network in self.networks:
-            network.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+#     def compile(self, optimizer, loss, metrics):
+#         for network in self.networks:
+#             network.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-    def get_max_output(self, step, state, use_target):
-        raise NotImplementedError
+#     def get_max_output(self, step, state, use_target):
+#         raise NotImplementedError
 
-    def fit(self, action_sequences, ys, batch_size, epochs):
-        raise NotImplementedError
-
-
-class InterStepMultiDQN(MultiDeepQNetwork):
-    def __init__(self,
-                 n_steps,
-                 action_dim,
-                 architectures,
-                 **other_params
-                 ):
-
-        super().__init__(**other_params)
-        self.n_networks = n_steps
-        self.action_dim = action_dim
-        if len(architectures) == 1:
-            self.architectures = architectures * self.n_networks
-        elif len(architectures) == self.n_networks:
-            self.architectures = architectures
-        else:
-            raise ValueError()
-        self.build_networks()
-        for target_network in self.target_networks:
-            target_network.model.summary()
-
-    def build_networks(self):
-        self.networks = []
-        self.target_networks = []
-        for n, architecture in enumerate(self.architectures):
-            network = StateActionNeuralNetwork(
-                state_dim=n*self.action_dim,
-                action_dim=self.action_dim,
-                architecture=architecture,
-                sess=self.sess,
-                max_q_optimizer=self.max_q_optimizer
-            )
-            target_network = StateActionNeuralNetwork(
-                state_dim=n*self.action_dim,
-                action_dim=self.action_dim,
-                architecture=architecture,
-                sess=self.sess,
-                max_q_optimizer=self.max_q_optimizer
-            )
-            self.networks.append(network)
-            self.target_networks.append(target_network)
-
-    def get_max_output(self, step, state, use_target):
-        if use_target:
-            network = self.target_networks[step]
-        else:
-            network = self.networks[step]
-        return network.get_max_output(state)
-
-    def fit(self, action_sequences, ys, batch_size, epochs):
-        for n in range(self.n_networks):
-            #  state: [a_0, ..., a_{n-1}], action: a_{n}
-            #  => train = [a_0, ..., a_n].flatten() for each training sample
-            train = action_sequences[:, :n+1, :].reshape(
-                action_sequences.shape[0], -1
-            )
-            y = ys[:, n]
-
-            assert len(train) == batch_size, ('training data was '
-                                              'not properly processed')
-            assert len(y) == batch_size, ('training data was '
-                                          'not properly processed')
-
-            self.networks[n].model.fit(train, y, batch_size=batch_size,
-                                       epochs=epochs, verbose=0)
+#     def fit(self, action_sequences, ys, batch_size, epochs):
+#         raise NotImplementedError
 
 
-class IntraStepMultiDQN(MultiDeepQNetwork):
-    def __init__(self,
-                 n_steps,
-                 action_dims,
-                 architectures,
-                 **other_params
-                 ):
+# class InterStepMultiDQN(MultiDeepQNetwork):
+#     def __init__(self,
+#                  n_steps,
+#                  action_dim,
+#                  architectures,
+#                  **other_params
+#                  ):
 
-        super().__init__(**other_params)
-        if not isinstance(action_dims, list):
-            raise TypeError
-        self.action_dims = action_dims
-        self.n_networks = n_steps * len(self.action_dims)
+#         super().__init__(**other_params)
+#         self.n_networks = n_steps
+#         self.action_dim = action_dim
+#         if len(architectures) == 1:
+#             self.architectures = architectures * self.n_networks
+#         elif len(architectures) == self.n_networks:
+#             self.architectures = architectures
+#         else:
+#             raise ValueError()
+#         self.build_networks()
+#         for target_network in self.target_networks:
+#             target_network.model.summary()
 
-        if len(architectures) == 1:
-            self.architectures = architectures * self.n_networks
-        elif len(architectures) == self.n_networks:
-            self.architectures = architectures
-        else:
-            raise ValueError()
-        self.build_networks()
-        for target_network in self.target_networks:
-            target_network.model.summary()
+#     def build_networks(self):
+#         self.networks = []
+#         self.target_networks = []
+#         for n, architecture in enumerate(self.architectures):
+#             network = StateActionNeuralNetwork(
+#                 state_dim=n*self.action_dim,
+#                 action_dim=self.action_dim,
+#                 architecture=architecture,
+#                 sess=self.sess,
+#                 max_q_optimizer=self.max_q_optimizer
+#             )
+#             target_network = StateActionNeuralNetwork(
+#                 state_dim=n*self.action_dim,
+#                 action_dim=self.action_dim,
+#                 architecture=architecture,
+#                 sess=self.sess,
+#                 max_q_optimizer=self.max_q_optimizer
+#             )
+#             self.networks.append(network)
+#             self.target_networks.append(target_network)
 
-    def build_networks(self):
-        self.networks = []
-        self.target_networks = []
-        state_dim, action_dim = 0, 0
-        for n, archi in enumerate(self.architectures):
-            state_dim += action_dim
-            action_dim = self.action_dims[n % len(self.action_dims)]
+#     def get_max_output(self, step, state, use_target):
+#         if use_target:
+#             network = self.target_networks[step]
+#         else:
+#             network = self.networks[step]
+#         return network.get_max_output(state)
 
-            network = StateActionNeuralNetwork(
-                state_dim=state_dim,
-                action_dim=action_dim,
-                architecture=archi,
-                sess=self.sess,
-                max_q_optimizer=self.max_q_optimizer
-            )
-            target_network = StateActionNeuralNetwork(
-                state_dim=state_dim,
-                action_dim=action_dim,
-                architecture=archi,
-                sess=self.sess,
-                max_q_optimizer=self.max_q_optimizer
-            )
+#     def fit(self, action_sequences, ys, batch_size, epochs):
+#         for n in range(self.n_networks):
+#             #  state: [a_0, ..., a_{n-1}], action: a_{n}
+#             #  => train = [a_0, ..., a_n].flatten() for each training sample
+#             train = action_sequences[:, :n+1, :].reshape(
+#                 action_sequences.shape[0], -1
+#             )
+#             y = ys[:, n]
 
-            self.networks.append(network)
-            self.target_networks.append(target_network)
+#             assert len(train) == batch_size, ('training data was '
+#                                               'not properly processed')
+#             assert len(y) == batch_size, ('training data was '
+#                                           'not properly processed')
 
-    def get_max_output(self, step, state, use_target):
-        if use_target:
-            networks = self.target_networks
-        else:
-            networks = self.networks
-        n_net = step * len(self.action_dims)
+#             self.networks[n].model.fit(train, y, batch_size=batch_size,
+#                                        epochs=epochs, verbose=0)
 
-        state = np.array(state, dtype=np.float32).flatten()
-        state_dim = state.shape[0]
-        state = np.concatenate([state, np.zeros(sum(self.action_dims),
-                                                dtype=np.float32)])
 
-        full_step_action = np.zeros(sum(self.action_dims))
-        i_a = 0
-        for i_net, action_dim in enumerate(self.action_dims):
-            a, q = networks[n_net + i_net].get_max_output(state[:state_dim])
-            assert a.shape[0] == self.action_dims[i_net]
-            full_step_action[i_a: i_a + self.action_dims[i_net]] = a
-            state[state_dim: state_dim + a.shape[0]] = a
-            state_dim += a.shape[0]
-            i_a += a.shape[0]
-        # do it in three step, adding action result to next network state
-        return (full_step_action, None)
+# class IntraStepMultiDQN(MultiDeepQNetwork):
+#     def __init__(self,
+#                  n_steps,
+#                  action_dims,
+#                  architectures,
+#                  **other_params
+#                  ):
 
-    def fit(self, action_sequences, ys, batch_size, epochs):
-        train = action_sequences.reshape(action_sequences.shape[0], -1)
-        # for a given sample i, all ys[i, :] should be equal
-        for n in range(self.n_networks):
-            #  state: [a_0, ..., a_{n-1}], action: a_{n}
-            #  => train = [a_0, ..., a_n].flatten() for each training sample
-            #  train = action_sequences[:, :n+1, :].reshape(
-            #      action_sequences.shape[0], -1
-            #  )
-            y = ys[:, 0]
+#         super().__init__(**other_params)
+#         if not isinstance(action_dims, list):
+#             raise TypeError
+#         self.action_dims = action_dims
+#         self.n_networks = n_steps * len(self.action_dims)
 
-            assert len(train) == batch_size, ('training data was '
-                                              'not properly processed')
-            assert len(y) == batch_size, ('training data was '
-                                          'not properly processed')
+#         if len(architectures) == 1:
+#             self.architectures = architectures * self.n_networks
+#         elif len(architectures) == self.n_networks:
+#             self.architectures = architectures
+#         else:
+#             raise ValueError()
+#         self.build_networks()
+#         for target_network in self.target_networks:
+#             target_network.model.summary()
 
-            self.networks[n].model.fit(
-                train[:, :self.networks[n].input_dim],
-                y,
-                batch_size=batch_size,
-                epochs=epochs,
-                verbose=0
-            )
+#     def build_networks(self):
+#         self.networks = []
+#         self.target_networks = []
+#         state_dim, action_dim = 0, 0
+#         for n, archi in enumerate(self.architectures):
+#             state_dim += action_dim
+#             action_dim = self.action_dims[n % len(self.action_dims)]
+
+#             network = StateActionNeuralNetwork(
+#                 state_dim=state_dim,
+#                 action_dim=action_dim,
+#                 architecture=archi,
+#                 sess=self.sess,
+#                 max_q_optimizer=self.max_q_optimizer
+#             )
+#             target_network = StateActionNeuralNetwork(
+#                 state_dim=state_dim,
+#                 action_dim=action_dim,
+#                 architecture=archi,
+#                 sess=self.sess,
+#                 max_q_optimizer=self.max_q_optimizer
+#             )
+
+#             self.networks.append(network)
+#             self.target_networks.append(target_network)
+
+#     def get_max_output(self, step, state, use_target):
+#         if use_target:
+#             networks = self.target_networks
+#         else:
+#             networks = self.networks
+#         n_net = step * len(self.action_dims)
+
+#         state = np.array(state, dtype=np.float32).flatten()
+#         state_dim = state.shape[0]
+#         state = np.concatenate([state, np.zeros(sum(self.action_dims),
+#                                                 dtype=np.float32)])
+
+#         full_step_action = np.zeros(sum(self.action_dims))
+#         i_a = 0
+#         for i_net, action_dim in enumerate(self.action_dims):
+#             a, q = networks[n_net + i_net].get_max_output(state[:state_dim])
+#             assert a.shape[0] == self.action_dims[i_net]
+#             full_step_action[i_a: i_a + self.action_dims[i_net]] = a
+#             state[state_dim: state_dim + a.shape[0]] = a
+#             state_dim += a.shape[0]
+#             i_a += a.shape[0]
+#         # do it in three step, adding action result to next network state
+#         return (full_step_action, None)
+
+#     def fit(self, action_sequences, ys, batch_size, epochs):
+#         train = action_sequences.reshape(action_sequences.shape[0], -1)
+#         # for a given sample i, all ys[i, :] should be equal
+#         for n in range(self.n_networks):
+#             #  state: [a_0, ..., a_{n-1}], action: a_{n}
+#             #  => train = [a_0, ..., a_n].flatten() for each training sample
+#             #  train = action_sequences[:, :n+1, :].reshape(
+#             #      action_sequences.shape[0], -1
+#             #  )
+#             y = ys[:, 0]
+
+#             assert len(train) == batch_size, ('training data was '
+#                                               'not properly processed')
+#             assert len(y) == batch_size, ('training data was '
+#                                           'not properly processed')
+
+#             self.networks[n].model.fit(
+#                 train[:, :self.networks[n].input_dim],
+#                 y,
+#                 batch_size=batch_size,
+#                 epochs=epochs,
+#                 verbose=0
+#             )
 
 
 class SingleDeepQNetwork():
