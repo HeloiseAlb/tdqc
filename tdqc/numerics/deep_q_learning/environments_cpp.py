@@ -453,7 +453,7 @@ def relative_entropy(rho1: np.ndarray, rho2: np.ndarray, positiveDefinite:bool=T
                 relativeEntropy += value1 * (log(value1))
                 for index2, value2 in enumerate(eVals2):
                     if value2 > 0 :
-                        subsum_index1 += abs( np.dot(eVecs2[:, index2],eVecs1[:, index1]))**2 * log(value2)
+                        subsum_index1 += abs( np.dot(np.conj(eVecs2[:, index2]),eVecs1[:, index1]))**2 * log(value2)
                 relativeEntropy -= value1 * subsum_index1
         return np.real(relativeEntropy)
     else:
