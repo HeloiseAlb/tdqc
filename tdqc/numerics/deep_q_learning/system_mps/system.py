@@ -34,8 +34,8 @@ class LongRangeIsing():
         subprocess.call("echo 'Here we call the MPS code to simulate the gate sequence'", shell=True)
 
     def get_ground_state_energy(self):
-
-        return 0.
+        print("Function to be implemented.")
+        return 0
 
 
     def set_target_state(self, set_rho_target):
