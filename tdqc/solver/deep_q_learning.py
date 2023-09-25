@@ -388,7 +388,7 @@ class DQLWithReplayMemory(DeepQLearning):
         initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
         rewards = self.run()
         end_time = time.time()
-        parametername = 'lrti_noPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
+        parametername = 'lrti_PD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
         self.save_best_encountered_actions('json',
                                                 'best_gate_sequence'+parametername+'.json')
         try:
