@@ -84,9 +84,9 @@ class EDSolver(Solver):
     def save_state(self,):
         parameter_name = 'state_ED_N'+str(self.__state.n_sites)+'t_final'+str(self.t_final)+'model'+str(self.__model.name)
         try:
-            reward_filename = parametername+'.npy'
-            with open(reward_filename, 'wb') as f:
+            state_filename = parameter_name+'.npy'
+            with open(state_filename, 'wb') as f:
                 np.save(f, self.__final_state)
         except Exception as e:
-            print(reward_filename+' could not be saved.')
+            print(state_filename+' could not be saved.')
             print('--->', e)
