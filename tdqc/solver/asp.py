@@ -1,9 +1,12 @@
 import numpy as np
-# from math import log2
+import cmath 
+from math import log, isnan
 import json
+from scipy.linalg import expm, eigh, logm
+from typing import Optional 
 from tdqc.interfaces.solver import Solver
 from tdqc.numerics.ed.models_ed import State, Model
-from scipy.linalg import expm
+
 
 spin_op= {
     "I": np.array([[1+0j,0+0j],[0+0j,1+0j]],dtype = 'complex128'),
@@ -24,6 +27,7 @@ def tensor_prod(*arg):
     #  for i in range(1, len(arg)):
     #      res = np.kron(res, arg[len(arg) - i - 1])
     return res
+
 
 def globalize_op(local_op, site, L):
     """" Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
@@ -87,6 +91,8 @@ class AdiaStatePrepa(Solver):
         self.__final_state = None 
         self.__list_fidelities = None
         self.__list_gaps = None
+        self.__list_transition_matrix_element = None 
+        self.__final_reward = None 
         self.__delta_t = (self.__t_final-self.__t_initial)/self.__n_steps
         self.set_initial_state()
         self.set_coupling_matrix()
@@ -94,7 +100,7 @@ class AdiaStatePrepa(Solver):
     def set_initial_state(self,)-> None:
         # The initial state is the GS of the initial hamiltonian H_0.
         # Here, I consider the ground state is non-degenerate.
-        # To do: Code the case where it is degenerate. 
+        # To do: Code the case where it is degenerate.
         ground_state = self.__model_0.ground_state 
         init_vec_state = np.array(ground_state,dtype='complex128')
         norm = np.linalg.norm(init_vec_state)
@@ -133,10 +139,6 @@ class AdiaStatePrepa(Solver):
                                           ' for TransIsing and LongRangeIsing.')
         
 
-    @property
-    def time_evolution(self):
-        # It returns the amplitudes of the time evolution.
-        return self.__time_evolution
     
 
     # Define the time-dependent Hamiltonian H(t) using a linear schedule
@@ -170,7 +172,7 @@ class AdiaStatePrepa(Solver):
                 state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         else:
-            # Else apply the Trotterization circuit.
+            # Else, apply the Trotterization circuit.
             r = state_t_n.reshape(-1)
             time_evolution[0, :] = state_t_n.reshape(-1)
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
@@ -186,54 +188,6 @@ class AdiaStatePrepa(Solver):
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
-    def generate_data_files(self,):
-        if (self.__final_state == None):
-            # If the method solve have not run yet. 
-            self.solve()
-        parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
-
-        # Generate the file with the time evolution amplitudes.
-        try:
-            amplitude_filename = 'amplitude_'+parametername+'.npy'
-            with open(amplitude_filename, 'wb') as f:
-                np.save(f, self.time_evolution)
-        except Exception as e:
-            print(amplitude_filename+' could not be saved.')
-            print('--->', e)
-        
-        # Generate the file with the final state.
-        try:
-            finalstate_filename = 'finalstate_'+parametername+'.npy'
-            with open(finalstate_filename, 'wb') as f:
-                np.save(f, self.final_state.get_vector_state())
-        except Exception as e:
-            print(finalstate_filename+' could not be saved.')
-            print('--->', e)
-
-        # Generate the file with the parameters.
-        info_dic = {
-            'Hamiltonian parameters': self.ham_params,
-            'Initial_state': str(self.__initial_state.get_density_matrix()),
-            'Final fidelity': str(self.__list_fidelities[-1]),
-            'H_0 model': self.__model_0.name,
-            'H_0 hamiltonian': str(self.__model_0.hamiltonian),
-            'H_f model': self.__model_f.name,
-            'H_f hamiltonian': str(self.__model_f.hamiltonian),
-            'Initial time': self.__t_initial,
-            'Final time': self.__t_final,
-            'Time step (delta t)': self.__delta_t,
-            'Ground state of H_f': str(self.__model_f.ground_states),
-            'Minimum energy gap with the GS': str(np.min(self.list_gaps)),
-            'max_{0=<s=<1} |<l=1,s|dH/ds|l=0,s>|': np.max(self.__list_transition_matrix_element)
-            }   
-        try:
-            result_info_filename = 'results_info'+parametername+'.json'
-            with open(result_info_filename, 'w') as f:
-                json.dump(info_dic, f, indent=2)
-            print(result_info_filename+' written.')
-        except Exception as e:
-            print(result_info_filename+' could not be saved.')
-            print('--->', e)
 
     def save_gate_sequence(self,):
         parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
@@ -254,25 +208,64 @@ class AdiaStatePrepa(Solver):
             print(f'`{filename}` could not be saved.')
             print('--> ', e)
 
-    
-        
-    @property
-    def n_steps(self):
-        return self.__n_steps
+    def reduced_density_matrix(self, rho_init: np.ndarray, site1: int, site2: int, n_qubits: int)-> np.ndarray:
+        """ Return the reduced density matrix of the subsystem made of sites site1 and site2 for rho. So a 4-by-4 matrix. """    
+        rho = rho_init 
+        if site1>site2:
+            site1, site2 = site2, site1
+        if site1>0:
+            n1, n2 = int(2**(site1)), int(2**(n_qubits-site1))
+            rho = rho.reshape([n1, n2, n1, n2])
+            rho = np.trace(rho, axis1=0, axis2=2)
+            n_qubits -= site1
+            site2 -= site1
+        if site2>1:
+            n1, n2 = int(2**(site2-1)), int(2**(n_qubits-site2))
+            rho = rho.reshape([2,n1,n2,2,n1,n2])
+            rho = np.trace(rho, axis1=1, axis2=4)
+            n_qubits -= site2-1
+        if n_qubits>2:
+            n2 = int(2**(n_qubits-2))
+            rho = rho.reshape([4, n2, 4, n2])
+            rho = np.trace(rho, axis1=1, axis2=3)
+        rho = rho.reshape([4, 4])
+        return rho
 
-    @property
-    def final_state(self):
-        return self.__final_state
+    def relative_entropy(self, rho1: np.ndarray, rho2: np.ndarray, positiveDefinite: bool)-> float:
+        if positiveDefinite:
+            # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
+            eVals1, eVecs1 = eigh(rho1) 
+            eVals1 = np.maximum(eVals1, 0)
+            eVals2, eVecs2 = eigh(rho2) 
+            eVals2 = np.maximum(eVals2, 0)
+            relativeEntropy = 0
+            for index1, value1 in enumerate(eVals1):
+                subsum_index1 = 0
+                if value1 > 0:
+                    relativeEntropy += value1 * (log(value1))
+                    for index2, value2 in enumerate(eVals2):
+                        if value2 > 0 :
+                            subsum_index1 += abs( np.dot(np.conj(eVecs2[:, index2]), eVecs1[:, index1]))**2 * log(value2)
+                    relativeEntropy -= value1 * subsum_index1
+            return np.real(relativeEntropy)
+        else:
+            return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
 
-    @property
-    def t_final(self,):
-        return self.__t_final
+    def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, positiveDefinite: Optional[bool]=False)-> float:
+        n_qubits = self.__n_sites
+        sum_measures = 0
+        for j in range(0,n_qubits-1):
+            for k in range(j+1, n_qubits):
+                sum_measures += cmath.sqrt(self.relative_entropy(self.reduced_density_matrix(rho1, j, k, n_qubits), self.reduced_density_matrix(rho2, j, k, n_qubits), positiveDefinite))
+        if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
+            r_local = 0.0 + 1j*0.0
+            print("sum_measures was Nan, r_local taken to be 0")
+        else:
+            r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures  
+        return max(0, r_local.real)
 
-    @property
-    def system_class(self,):
-        return self.__system_class
 
-    def compute_list_fidelities_and_energy_gaps(self,):
+    def compute_property_lists(self,):
         if self.__final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of fidelities")
         step = (self.__t_final - self.__t_initial) / self.__n_steps
@@ -289,7 +282,7 @@ class AdiaStatePrepa(Solver):
         for idx, t_n in enumerate(t_list):
             H_t_n = self.H(t_n)
             state_t_n = self.__time_evolution[idx,:]
-            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_ground_state_and_energy_gap(H_t_n, state_t_n, all_gs = False)
+            ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_properties(H_t_n, state_t_n, all_gs = False)
             fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
@@ -297,16 +290,71 @@ class AdiaStatePrepa(Solver):
             list_eigenvalues[idx,:] = eig_values
             list_eigenvectors[idx,:,:] = eig_vectors
             list_transition_matrix_element[idx] = transition_matrix_element
-        
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
         self.__list_difference_energy_with_gs_hamiltonian = list_difference_energy_with_gs_hamiltonian
         self.__list_eigenvalues = list_eigenvalues
         self.__list_eigenvectors = list_eigenvectors
         self.__list_transition_matrix_element = list_transition_matrix_element
-        
 
-    def compute_ground_state_and_energy_gap(self, H_matrix, state_vector, all_gs = True):
+        
+    def generate_data_files(self,):
+        if (self.__final_state == None):
+            # If the method solve has not run yet. 
+            self.solve()
+        parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+
+        # Generate the file with the time evolution amplitudes.
+        try:
+            amplitude_filename = 'amplitude_'+parametername+'.npy'
+            with open(amplitude_filename, 'wb') as f:
+                np.save(f, self.time_evolution)
+        except Exception as e:
+            print(amplitude_filename+' could not be saved.')
+            print('--->', e)
+        
+        # Generate the file with the final state.
+        try:
+            finalstate_filename = 'finalstate_'+parametername+'.npy'
+            with open(finalstate_filename, 'wb') as f:
+                np.save(f, self.final_state.get_vector_state())
+        except Exception as e:
+            print(finalstate_filename+' could not be saved.')
+            print('--->', e)
+        final_state = self.__final_state.get_vector_state()
+        rho_final = np.tensordot(np.conjugate(final_state), final_state, axes=0)
+        self.__final_reward = self.local_reward(rho_final, self.get_rho_target())
+
+        # Generate the file with the parameters.
+        info_dic = {
+            'Hamiltonian parameters': self.ham_params,
+            'Initial_state': str(self.__initial_state.get_density_matrix()),
+            'Final fidelity': str(self.__list_fidelities[-1]),
+            'H_0 model': self.__model_0.name,
+            'H_0 hamiltonian': str(self.__model_0.hamiltonian),
+            'H_f model': self.__model_f.name,
+            'H_f hamiltonian': str(self.__model_f.hamiltonian),
+            'Initial time': self.__t_initial,
+            'Final time': self.__t_final,
+            'Time step (delta t)': self.__delta_t,
+            'Ground state of H_f': str(self.__model_f.ground_states),
+            'Minimum energy gap with the GS': str(np.min(self.list_gaps)),
+            'max_{0=<s=<1} |<l=1,s|dH/ds|l=0,s>|': np.max(self.__list_transition_matrix_element),
+            'Final local reward': self.__final_reward
+            }   
+        try:
+            result_info_filename = 'results_info'+parametername+'.json'
+            with open(result_info_filename, 'w') as f:
+                json.dump(info_dic, f, indent=2)
+            print(result_info_filename+' written.')
+        except Exception as e:
+            print(result_info_filename+' could not be saved.')
+            print('--->', e)
+
+
+
+
+    def compute_properties(self, H_matrix, state_vector, all_gs = True):
         """
         Returns:
             ground_states: np.array: the ground states of the Hamiltonian H_matrix.
@@ -352,62 +400,7 @@ class AdiaStatePrepa(Solver):
         """
         sorted_eigenvalues = np.sort(eigenvalues)
         gap = sorted_eigenvalues[1] - sorted_eigenvalues[0]
-        return gap
-
-    
-    @property
-    def list_difference_energy_with_gs_hamiltonian(self,)-> np.ndarray:
-        if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of energies")
-        else:
-            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
-                self.compute_list_fidelities_and_energy_gaps()
-            return self.__list_difference_energy_with_gs_hamiltonian
-    
-    @property
-    def list_eigenvalues(self,)-> np.ndarray:
-        if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of eigenvalues")
-        else:
-            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
-                self.compute_list_fidelities_and_energy_gaps()
-            return self.__list_eigenvalues
-
-    @property
-    def list_eigenvectors(self,)-> np.ndarray:
-        if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of eigenvectors")
-        else:
-            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
-                self.compute_list_fidelities_and_energy_gaps()
-            return self.__list_eigenvectors
-
-    @property
-    def list_fidelities(self,)-> np.ndarray:
-        if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
-        else:
-            if type(self.__list_fidelities) == type(None):
-                self.compute_list_fidelities_and_energy_gaps()
-            return self.__list_fidelities
-
-    @property
-    def list_gaps(self,)-> np.ndarray:
-        if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of energy gaps")
-        else:
-            if type(self.__list_gaps) == type(None):
-                self.compute_list_fidelities_and_energy_gaps()
-            return self.__list_gaps
-
-    @property
-    def list_transition_matrix_element(self,)-> np.ndarray:
-        if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of transition matrix elements of H")
-        else:
-            if type(self.__list_transition_matrix_element) == type(None):
-                self.compute_list_fidelities_and_energy_gaps()
-            return self.__list_transition_matrix_element       
+        return gap       
 
     def get_rho_target(self,)-> np.ndarray:
         # Attention: it does not correspond to the ground state of the final Hamiltonian 
@@ -501,7 +494,6 @@ class AdiaStatePrepa(Solver):
         return new_vec_state
 
 
-
     def compute_transition_matrix_element(self, eigenvalues: np.ndarray, eigenvectors: np.ndarray)-> float:
         """
         This function requires that the initial Hamiltonian is the 
@@ -526,5 +518,89 @@ class AdiaStatePrepa(Solver):
         projection = np.dot(second_smallest_eigenvector, np.dot(dH_ds, smallest_eigenvector))
 
         return np.abs(projection)
+
+    @property
+    def time_evolution(self):
+        # It returns the amplitudes of the time evolution.
+        return self.__time_evolution
+
+    @property
+    def n_steps(self):
+        return self.__n_steps
+
+    @property
+    def final_state(self):
+        return self.__final_state
+
+    @property
+    def t_final(self,):
+        return self.__t_final
+
+    @property
+    def system_class(self,):
+        return self.__system_class
+    
+    @property
+    def list_difference_energy_with_gs_hamiltonian(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of energies.")
+        else:
+            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
+                self.compute_property_lists()
+            return self.__list_difference_energy_with_gs_hamiltonian
+    
+    @property
+    def list_eigenvalues(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of eigenvalues.")
+        else:
+            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
+                self.compute_property_lists()
+            return self.__list_eigenvalues
+
+    @property
+    def list_eigenvectors(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of eigenvectors.")
+        else:
+            if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
+                self.compute_property_lists()
+            return self.__list_eigenvectors
+
+    @property
+    def list_fidelities(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of fidelities.")
+        else:
+            if type(self.__list_fidelities) == type(None):
+                self.compute_property_lists()
+            return self.__list_fidelities
+
+    @property
+    def list_gaps(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of energy gaps.")
+        else:
+            if type(self.__list_gaps) == type(None):
+                self.compute_property_lists()
+            return self.__list_gaps
+
+    @property
+    def list_transition_matrix_element(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of transition matrix elements of H.")
+        else:
+            if type(self.__list_transition_matrix_element) == type(None):
+                self.compute_property_lists()
+            return self.__list_transition_matrix_element
+
+    @property
+    def final_reward(self,)-> float:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the local reward of the final state.")
+        else:
+            if type(self.__final_reward) == type(None):
+                self.compute_property_lists()
+            return self.__final_reward
 
 
