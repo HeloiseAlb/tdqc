@@ -8,8 +8,6 @@ import numpy as np
 from math import log2, cos, sin
 import cmath
 
-
-
 h_bar = 1 # 1.054571817*10**(-34) # in J.s
 
 spin_op= {
@@ -201,6 +199,13 @@ def hamiltonian_lr_trans_ising(L, J, alpha, h):
 
 lr_trans_ising_model = Model("lr_trans_ising_model", hamiltonian_lr_trans_ising)
 
+def hamiltonian_trans_field(L, h, ferro_angle):
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    H -= cos(ferro_angle) * sum([globalize_op(spin_op["sigma_z"], j, L) for j in range(0,L,1)])
+    H += sin(ferro_angle) * sum([globalize_op(spin_op["sigma_y"], j, L) for j in range(0,L,1)])
+    return h*H
+
+trans_field_model = Model("lr_trans_ising_model", hamiltonian_trans_field)
 
 class State(object):
     '''
@@ -261,4 +266,3 @@ class State(object):
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of quantum systems composed of two-level subsystems."    
-

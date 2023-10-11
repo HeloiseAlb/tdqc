@@ -1,6 +1,6 @@
 import numpy as np
 import cmath 
-from math import log, isnan
+from math import log, isnan, cos, sin 
 import json
 from scipy.linalg import expm, eigh, logm
 from typing import Optional 
@@ -83,6 +83,10 @@ class AdiaStatePrepa(Solver):
         if "ferro_angle" in settings and settings['ferro_angle'] != 0: 
             self.__gate_along_y = True
             self.__ferro_angle = settings['ferro_angle']
+            if not "ferro_gate_order" in settings:
+                raise ValueError("Error loading asp-solver settings, 'ferro_gate_order' parameter not found")
+            else:
+                self.__ferro_gate_order = settings["ferro_gate_order"]
         else: 
             self.__gate_along_y = False
         # Define the initial Hamiltonian H_0 and the final Hamiltonian H_f
@@ -178,12 +182,14 @@ class AdiaStatePrepa(Solver):
             self.list_hz_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
             if self.__gate_along_y:
                 self.list_hy_angle = np.ones([self.__n_steps, self.__n_sites], dtype='float') 
-            for idx, t_n in enumerate(t_list[:]):    
-                coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(idx)
+            for idx, t_n in enumerate(t_list[:]):
+                coupling_matrix_angle, hx_angle, hy_angle, hz_angle = self.define_gate_angles(idx)
                 self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
                 self.list_hx_angle[idx] = hx_angle
+                if self.__gate_along_y:
+                    self.list_hy_angle[idx] = hy_angle
                 self.list_hz_angle[idx] = hz_angle
-                state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hz_angle)
+                state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
@@ -352,8 +358,6 @@ class AdiaStatePrepa(Solver):
             print('--->', e)
 
 
-
-
     def compute_properties(self, H_matrix, state_vector, all_gs = True):
         """
         Returns:
@@ -418,9 +422,9 @@ class AdiaStatePrepa(Solver):
         target = self.__final_state.get_vector_state()
         return target
 
-    def define_gate_angles(self, index):
+    def define_gate_angles(self, index:int) -> tuple:
         """
-        The gates are defined to realize the Trotterization of the Hamiltonian.
+        The gates are defined to realize the adiabatic state preparation of the Hamiltonian.
         """
         # I need to implement difference way to weight the H_0 and H_f. For 
         # the moment, it is only possible linearly w.r.t. the time. 
@@ -429,23 +433,23 @@ class AdiaStatePrepa(Solver):
             coupling_matrix_angle = self.ham_params['J'] * self.__delta_t * index / self.__n_steps
             hx_angle = self.ham_params['g'] * self.__delta_t
             hz_angle = self.ham_params['h'] * self.__delta_t
-            return coupling_matrix_angle, hx_angle, hz_angle
+            return coupling_matrix_angle, hx_angle, None, hz_angle
         elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
             coupling_matrix_angle = self.ham_params['J'] * self.__delta_t * index / self.__n_steps
             if self.__gate_along_y:
                 # TO BE MODIFIED
-                hz_angle = self.ham_params['g'] * self.__delta_t
-                hy_angle = self.ham_params['g'] * self.__delta_t
-                return coupling_matrix_angle, None, hz_angle
+                hz_angle = self.ham_params['g'] * self.__delta_t * (index/self.__n_steps +(1-index/self.__n_steps)*cos(self.__ferro_angle))
+                hy_angle = self.ham_params['g'] * self.__delta_t * (1- index/self.__n_steps) * sin(self.__ferro_angle)
+                return coupling_matrix_angle, None, hy_angle, hz_angle
             else: # If not self.__gate_along_y
                 hz_angle = self.ham_params['g'] * self.__delta_t
-                return coupling_matrix_angle, None, hz_angle 
+                return coupling_matrix_angle, None, None, hz_angle
         else:
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
                                           ' for TransIsing and LongRangeIsing.')
         
-    def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hz_angle)-> np.ndarray:
+    def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)-> np.ndarray:
         """ Apply the sequence of gates onto the initial state and return the final state.
         Args:
             state (np.ndarray): The state vector.
@@ -462,23 +466,39 @@ class AdiaStatePrepa(Solver):
         """
         # Define the universal quantum gate set used in Markus article. 
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
+        if self.__gate_along_y:
+            U_y = lambda theta : expm(-1j*theta*spin_op['sigma_y'])
         sum_U_xx = self.coupling_matrix 
         U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
         # Those gate lists are in fact lists of angles.
         state = np.dot(U_xx(coupling_matrix_angle), state)
         if hx_angle != None:       
             U_x = lambda theta : expm(-1j * theta * spin_op['sigma_x'])
-            for site in range(0, self.__n_sites, 1):
-                if self.__gate_order == "xz":
+            if self.__gate_order == "xz":
+                for site in range(0, self.__n_sites, 1):
                     U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
                     state = np.dot(U_x_site, state)
                     U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
                     state = np.dot(U_z_site, state)
-                elif self.__gate_order == "zx":
-                    U_z_site = globalize_op(U_z(hz_angle), site,self.__n_sites)
+            elif self.__gate_order == "zx":
+                for site in range(0, self.__n_sites, 1):
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
                     state = np.dot(U_z_site, state)
-                    U_x_site = globalize_op(U_x(hx_angle), site,self.__n_sites)
+                    U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
                     state = np.dot(U_x_site, state)
+        elif self.__gate_along_y: # Equivalent to hy_angle !=None: 
+            if self.__ferro_gate_order == "zy":
+                for site in range(0, self.__n_sites, 1):
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
+                    U_y_site = globalize_op(U_y(hy_angle), site, self.__n_sites)
+                    state = np.dot(U_y_site, state)
+            elif self.__ferro_gate_order == "yz":
+                for site in range(0, self.__n_sites, 1):
+                    U_y_site = globalize_op(U_y(hy_angle), site, self.__n_sites)
+                    state = np.dot(U_y_site, state)
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
         else:
             for site in range(0, self.__n_sites, 1):
                 U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
@@ -494,8 +514,6 @@ class AdiaStatePrepa(Solver):
         # Input to simulate the imaginary time evolution, by default, it is the real time evolution.
         if imaginary:
             delta_t = -1j * delta_t
-        eig_values, eig_vectors = model.eig_values, model.eig_vectors
-        
         new_vec_state = np.dot(expm(-1j * delta_t * model.hamiltonian), init_vec_state)
         return new_vec_state
 

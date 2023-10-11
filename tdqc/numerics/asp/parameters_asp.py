@@ -4,7 +4,8 @@ from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
 import sys
-from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
+from math import pi
+from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model, trans_field_model
 from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.state_provider import StateProvider
 
@@ -22,21 +23,22 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = int(sys.argv[1])
-J = float(sys.argv[2])
-g = float(sys.argv[3]) 
+L = 4 #int(sys.argv[1])
+J = 1 #float(sys.argv[2])
+g = 1.8 #float(sys.argv[3]) 
+ferro_angle = pi*0.5 #float(sys.argv[4]) 
 h = g # The notation can be confusing. It is the h of the Transversal Long range Ising model.
 alpha = int(2)
-model_f = copy.deepcopy(trans_ising_model)
-model_f.parametrize_hamiltonian(*[L, J, g])
+model_f = copy.deepcopy(lr_trans_ising_model)
+model_f.parametrize_hamiltonian(*[L, J, alpha, h])
 ground_state = model_f.ground_state 
 vector_to_copy = np.array(ground_state, dtype='complex128')
 norm = np.linalg.norm(vector_to_copy)
 vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
-model_0 = copy.deepcopy(trans_ising_model)
-model_0.parametrize_hamiltonian(*[L, 0, g])
+model_0 = copy.deepcopy(trans_field_model)
+model_0.parametrize_hamiltonian(*[L, h, ferro_angle])
 
 
 
@@ -49,7 +51,7 @@ parameters = {
     't_initial': 0.0,
     't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
-    'system_class': 'TransIsing', #
+    'system_class': 'LongRangeTransIsing', #
     #  also sets entangling gate alpha
     'ham_params': {
         'J': J,
@@ -65,7 +67,9 @@ parameters = {
     'model_f': model_f,
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': 'ferro',
+    'initial_state': 'ferro_with_angle', #'ferro',
+    'ferro_angle': ferro_angle*pi,
+    'ferro_gate_order': 'zy', # It can be 'zy' or 'yz'.
     'seed_initial_state': None, # 42,
 
     #  digital simulator:

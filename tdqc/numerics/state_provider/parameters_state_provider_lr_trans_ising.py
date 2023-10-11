@@ -104,7 +104,7 @@ parameters = {
     #  'network_type': 'MultiInterStep',
     #  'network_type': 'MultiIntraStep',
     'network_type': 'SingleDense',
-    'seed': 2,
+    'seed': None,# 2,
     'architectures': [[(150, 'tanh'),
                        (40, 'relu'),
                        #  (20, 'relu'),

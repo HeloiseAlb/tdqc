@@ -6,9 +6,6 @@ import sys
 import cmath
 import math
 from tdqc.numerics.ed.exact_diagonalisation import *
-
-#import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 #%%
@@ -31,7 +28,7 @@ def test_asp_solver_structure():
     from tdqc.numerics.asp.parameters_asp import parameters
     solver = AdiaStatePrepa()
     solver.load_settings(parameters)
-    
+  
     assert callable(getattr(solver, 'solve', None)), "ASPSolver has a method solve"
     solver.solve()
     # It must be possible to get the list of amplitudes obtained from solve.
@@ -77,10 +74,9 @@ def test_fidelity_and_evolution_amplitude():
     print("Fidelity with the ground state:{}".format(abs(np.vdot(np.conj(ground_state_h_f),final_state))))
     print("Fidelity with a random state:{}".format(abs(np.vdot(np.conj(random_state),final_state))))
 
-
-# %%
+test_fidelity_and_evolution_amplitude()
+#%%
 @pytest.mark.fast
-
 def compute_transition_matrix_element(H, eigenvalues, eigenvectors):
         # Sort eigenvalues and eigenvectors in ascending order
         sorted_indices = np.argsort(eigenvalues)
@@ -98,3 +94,16 @@ H= np.identity(4)
 eigval , eigvec = np.linalg.eigh(H) 
 absolute_projection_value = compute_transition_matrix_element(H, eigval, eigvec)
 print(absolute_projection_value)
+
+#%%
+def test_correction_ground_state_hamiltonian():
+    from math import pi
+    from tdqc.solver.asp import AdiaStatePrepa
+    from tdqc.numerics.asp.parameters_asp import parameters
+    solver = AdiaStatePrepa()
+    solver.load_settings(parameters)    
+    solver.set_initial_state()
+    print(solver.initial_state.get_vector_state())
+
+
+# %%

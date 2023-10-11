@@ -8,10 +8,9 @@ import math
 
 import matplotlib.pyplot as plt
 from tdqc.numerics.ed.exact_diagonalisation import *
-
 from tdqc.solver.asp import AdiaStatePrepa
 from tdqc.numerics.ed.models_ed import State
-from tdqc.numerics.asp.parameters_asp_lri import parameters
+from tdqc.numerics.asp.parameters_asp_lrti import parameters
 
 #%%
 def plot_eigenvalues_evolution():
