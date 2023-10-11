@@ -7,7 +7,6 @@ from typing import Optional
 from tdqc.interfaces.solver import Solver
 from tdqc.numerics.ed.models_ed import State, Model
 
-
 spin_op= {
     "I": np.array([[1+0j,0+0j],[0+0j,1+0j]],dtype = 'complex128'),
     "sigma_x": np.array([[0+0j,1+0j],[1+0j,0+0j]],dtype = 'complex128'),
@@ -27,7 +26,6 @@ def tensor_prod(*arg):
     #  for i in range(1, len(arg)):
     #      res = np.kron(res, arg[len(arg) - i - 1])
     return res
-
 
 def globalize_op(local_op, site, L):
     """" Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
@@ -82,8 +80,11 @@ class AdiaStatePrepa(Solver):
             raise ValueError("Error loading asp-solver settings, 'gate_order' parameter not found")
         else:
             self.__gate_order = settings["gate_order"]
-
-
+        if "ferro_angle" in settings and settings['ferro_angle'] != 0: 
+            self.__gate_along_y = True
+            self.__ferro_angle = settings['ferro_angle']
+        else: 
+            self.__gate_along_y = False
         # Define the initial Hamiltonian H_0 and the final Hamiltonian H_f
         #self.H_0 = self.__model_0.model_hamiltonian
         #self.H_f = self.__model_f.model_hamiltonian
@@ -137,9 +138,6 @@ class AdiaStatePrepa(Solver):
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
                                           ' for TransIsing and LongRangeIsing.')
-        
-
-    
 
     # Define the time-dependent Hamiltonian H(t) using a linear schedule
     ### I need to implement the one using a non linear schedule.
@@ -178,8 +176,10 @@ class AdiaStatePrepa(Solver):
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
             self.list_hx_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
             self.list_hz_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
+            if self.__gate_along_y:
+                self.list_hy_angle = np.ones([self.__n_steps, self.__n_sites], dtype='float') 
             for idx, t_n in enumerate(t_list[:]):    
-                coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles()
+                coupling_matrix_angle, hx_angle, hz_angle = self.define_gate_angles(idx)
                 self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
                 self.list_hx_angle[idx] = hx_angle
                 self.list_hz_angle[idx] = hz_angle
@@ -418,7 +418,7 @@ class AdiaStatePrepa(Solver):
         target = self.__final_state.get_vector_state()
         return target
 
-    def define_gate_angles(self,):
+    def define_gate_angles(self, index):
         """
         The gates are defined to realize the Trotterization of the Hamiltonian.
         """
@@ -426,14 +426,20 @@ class AdiaStatePrepa(Solver):
         # the moment, it is only possible linearly w.r.t. the time. 
         if self.__system_class == 'LongRangeIsing':
             # Trotter sequence only implemented for n_directions = 2.
-            coupling_matrix_angle = self.ham_params['J'] * self.__delta_t
+            coupling_matrix_angle = self.ham_params['J'] * self.__delta_t * index / self.__n_steps
             hx_angle = self.ham_params['g'] * self.__delta_t
             hz_angle = self.ham_params['h'] * self.__delta_t
             return coupling_matrix_angle, hx_angle, hz_angle
         elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
-            coupling_matrix_angle = self.ham_params['J']*self.__delta_t
-            hz_angle = self.ham_params['g'] * self.__delta_t
-            return coupling_matrix_angle, None, hz_angle 
+            coupling_matrix_angle = self.ham_params['J'] * self.__delta_t * index / self.__n_steps
+            if self.__gate_along_y:
+                # TO BE MODIFIED
+                hz_angle = self.ham_params['g'] * self.__delta_t
+                hy_angle = self.ham_params['g'] * self.__delta_t
+                return coupling_matrix_angle, None, hz_angle
+            else: # If not self.__gate_along_y
+                hz_angle = self.ham_params['g'] * self.__delta_t
+                return coupling_matrix_angle, None, hz_angle 
         else:
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
@@ -531,6 +537,10 @@ class AdiaStatePrepa(Solver):
     @property
     def final_state(self):
         return self.__final_state
+
+    @property
+    def initial_state(self):
+        return self.__initial_state
 
     @property
     def t_final(self,):
