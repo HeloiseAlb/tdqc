@@ -74,7 +74,6 @@ def test_fidelity_and_evolution_amplitude():
     print("Fidelity with the ground state:{}".format(abs(np.vdot(np.conj(ground_state_h_f),final_state))))
     print("Fidelity with a random state:{}".format(abs(np.vdot(np.conj(random_state),final_state))))
 
-test_fidelity_and_evolution_amplitude()
 #%%
 @pytest.mark.fast
 def compute_transition_matrix_element(H, eigenvalues, eigenvectors):

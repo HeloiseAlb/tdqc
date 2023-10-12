@@ -196,7 +196,7 @@ class AdiaStatePrepa(Solver):
     
 
     def save_gate_sequence(self,):
-        parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+        parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
         filename = 'gate_sequence'+parametername+'.json'
         try:
             jx_gates, hx_gates, hz_gates = self.list_coupling_matrix_angles, self.list_hx_angle, self.list_hz_angle 
@@ -296,6 +296,7 @@ class AdiaStatePrepa(Solver):
             list_eigenvalues[idx,:] = eig_values
             list_eigenvectors[idx,:,:] = eig_vectors
             list_transition_matrix_element[idx] = transition_matrix_element
+        self.__ground_state_h_f = ground_state_h_t_n
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
         self.__list_difference_energy_with_gs_hamiltonian = list_difference_energy_with_gs_hamiltonian
@@ -308,7 +309,7 @@ class AdiaStatePrepa(Solver):
         if (self.__final_state == None):
             # If the method solve has not run yet. 
             self.solve()
-        parametername = 'ASP_ti'+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+        parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
 
         # Generate the file with the time evolution amplitudes.
         try:
@@ -329,7 +330,7 @@ class AdiaStatePrepa(Solver):
             print('--->', e)
         final_state = self.__final_state.get_vector_state()
         rho_final = np.tensordot(np.conjugate(final_state), final_state, axes=0)
-        self.__final_reward = self.local_reward(rho_final, self.get_rho_target())
+        self.__final_reward = self.local_reward(rho_final, self.get_ground_state_h_f())
 
         # Generate the file with the parameters.
         info_dic = {
@@ -407,12 +408,22 @@ class AdiaStatePrepa(Solver):
         return gap       
 
     def get_rho_target(self,)-> np.ndarray:
-        # Attention: it does not correspond to the ground state of the final Hamiltonian 
+        # Caution: it does not correspond to the ground state of the final Hamiltonian 
         # but to the final state. This method aims to be used by the DQL solver. 
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_density_matrix()
         return target
+
+
+    def get_ground_state_h_f(self,)-> np.ndarray:
+        # Caution: it does not correspond to the ground state of the final Hamiltonian 
+        # but to the final state. This method aims to be used by the DQL solver. 
+        if (self.__final_state == None):
+            raise ValueError("The method solve need to be run before in order to get the target_state")
+        ground_state_h_f = self.__ground_state_h_f
+        rho_ground_state_h_f = np.tensordot(np.conjugate(ground_state_h_f), ground_state_h_f, axes=0)
+        return rho_ground_state_h_f
 
     def get_state_target(self,)-> np.ndarray:
         # Attention: it does not correspond to the ground state of the final Hamiltonian 
