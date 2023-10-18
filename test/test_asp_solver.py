@@ -105,4 +105,3 @@ def test_correction_ground_state_hamiltonian():
     print(solver.initial_state.get_vector_state())
 
 
-# %%

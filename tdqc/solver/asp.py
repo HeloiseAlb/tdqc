@@ -1,7 +1,8 @@
 import numpy as np
 import cmath 
-from math import log, isnan, cos, sin 
+from math import log, isnan, cos, sin  
 import json
+import sys 
 from scipy.linalg import expm, eigh, logm
 from typing import Optional 
 from tdqc.interfaces.solver import Solver
@@ -103,53 +104,83 @@ class AdiaStatePrepa(Solver):
         self.set_coupling_matrix()
 
     def set_initial_state(self,)-> None:
-        # The initial state is the GS of the initial hamiltonian H_0.
-        # Here, I consider the ground state is non-degenerate.
+        """
+        It sets the initial state to be the GS of the initial hamiltonian H_0.
+        Here, I consider the ground state is non-degenerate.
+        """
         # To do: Code the case where it is degenerate.
         ground_state = self.__model_0.ground_state 
-        init_vec_state = np.array(ground_state,dtype='complex128')
+        init_vec_state = np.array(ground_state, dtype='complex128')
         norm = np.linalg.norm(init_vec_state)
-        init_vec_state = init_vec_state / norm
+        init_vec_state /= norm
         self.__initial_state = State(init_vec_state)
     
     def set_coupling_matrix(self,)-> None:
-        dim = int(2**self.__n_sites)
+        """
+        This method creates the coupling matrix that appears in the part of the Hamiltonian
+        linked to the spin interactions. Once, it has been created, it is stored in the attribute
+        self.coupling_matrix.  
+        """
+        dim = int(2 ** self.__n_sites)
         list_glob_operators =  [None] * self.__n_sites
-        for site in range(0,self.__n_sites,1):
-            list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.__n_sites)  
-        coupling_matrix = np.zeros((dim,dim),dtype='complex128')
-        if self.__system_class == 'LongRangeIsing':
-            for l in range(0,self.__n_sites,1):
+        for site in range(0, self.__n_sites, 1):
+            list_glob_operators[site] = globalize_op(spin_op["sigma_x"], site, self.__n_sites)  
+        coupling_matrix = np.zeros((dim, dim), dtype='complex128')
+        if self.__system_class == 'LongRangeIsing' or self.__system_class == 'LongRangeTransIsing':
+            for l in range(0, self.__n_sites, 1):
                 matrix_1 = list_glob_operators[l] 
-                for k in range(l+1,self.__n_sites,1):
+                for k in range(l+1, self.__n_sites, 1):
                     matrix_2 = list_glob_operators[k]
-                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.ham_params['alpha']
+                    coupling_matrix += np.dot(matrix_1, matrix_2) / (k-l)**self.ham_params['alpha']
             self.coupling_matrix = coupling_matrix
         elif self.__system_class == 'TransIsing':
             for l in range(0, self.__n_sites-1, 1):
                 matrix_1 = list_glob_operators[l] 
                 matrix_2 = list_glob_operators[l+1]
-                coupling_matrix += np.dot(matrix_1,matrix_2)
+                coupling_matrix += np.dot(matrix_1, matrix_2)
             self.coupling_matrix = coupling_matrix
-        elif self.__system_class == 'LongRangeTransIsing':
-            for l in range(0, self.__n_sites, 1):
-                matrix_1 = list_glob_operators[l] 
-                for k in range(l+1,self.__n_sites,1):
-                    matrix_2 = list_glob_operators[k]
-                    coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.ham_params['alpha']
-            self.coupling_matrix = coupling_matrix
+        else:
+            raise NotImplementedError('Trotter sequence not implemented'
+                                          ' for your system_class. Only implemented'
+                                          ' for TransIsing, LongRangeTransIsing and LongRangeIsing.')
+   
+    def H(self, t: float)->np.ndarray:
+        """
+        It defines the time-dependent Hamiltonian, also called the adiabatic evolution
+        Hamiltonian. It is a linear schedule. 
+        """
+        # I need to implement the one using a non linear schedule.
+        T = self.__t_final
+        H_t = (1 - t/T)*self.__model_0.hamiltonian + (t/T)*self.__model_f.hamiltonian
+        return H_t
+
+    def define_gate_angles(self, index: int) -> tuple:
+        """
+        The gates are defined to realize the adiabatic state preparation of the Hamiltonian.
+        """
+        # I need to implement difference way to weight the H_0 and H_f. For 
+        # the moment, it is only possible linearly w.r.t. the time. The 
+        if self.__system_class == 'LongRangeIsing':
+            # Trotter sequence only implemented for n_directions = 2.
+            # Need to be checked. 
+            coupling_matrix_angle = - self.ham_params['J'] * self.__delta_t * index / self.__n_steps
+            hx_angle = self.ham_params['g'] * self.__delta_t
+            hz_angle = self.ham_params['h'] * self.__delta_t
+            return coupling_matrix_angle, hx_angle, None, hz_angle
+        elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
+            coupling_matrix_angle = - self.ham_params['J'] * self.__delta_t * index / self.__n_steps
+            if self.__gate_along_y:
+                hy_angle = self.ham_params['g'] * self.__delta_t * (1- index/self.__n_steps) * sin(self.__ferro_angle)
+                hz_angle = - self.ham_params['g'] * self.__delta_t * (index/self.__n_steps +(1-index/self.__n_steps)*cos(self.__ferro_angle))
+                return coupling_matrix_angle, None, hy_angle, hz_angle
+            else: # If not self.__gate_along_y
+                hz_angle = - self.ham_params['g'] * self.__delta_t
+                return coupling_matrix_angle, None, None, hz_angle
         else:
             raise NotImplementedError('Trotter sequence not implemented'
                                           ' for your system_class. Only implemented'
                                           ' for TransIsing and LongRangeIsing.')
 
-    # Define the time-dependent Hamiltonian H(t) using a linear schedule
-    ### I need to implement the one using a non linear schedule.
-   
-    def H(self, t):
-        T = self.__t_final
-        H_t = (1 - t/T)*self.__model_0.hamiltonian + (t/T)*self.__model_f.hamiltonian
-        return H_t
 
     def solve(self, ED = False)-> None:
         """
@@ -162,7 +193,6 @@ class AdiaStatePrepa(Solver):
         """
         state_t_n = self.__initial_state.get_vector_state()
         time_step = self.__delta_t
-        site_list = [l for l in range(1, self.__n_sites, 1)]
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
         time_evolution = np.zeros([self.__n_steps + 1, 2**self.__n_sites], dtype='complex128') 
         inv_temperature = 1
@@ -175,13 +205,13 @@ class AdiaStatePrepa(Solver):
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         else:
             # Else, apply the Trotterization circuit.
-            r = state_t_n.reshape(-1)
             time_evolution[0, :] = state_t_n.reshape(-1)
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
             self.list_hx_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
-            self.list_hz_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
             if self.__gate_along_y:
                 self.list_hy_angle = np.ones([self.__n_steps, self.__n_sites], dtype='float') 
+            self.list_hz_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
+
             for idx, t_n in enumerate(t_list[:]):
                 coupling_matrix_angle, hx_angle, hy_angle, hz_angle = self.define_gate_angles(idx)
                 self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
@@ -196,7 +226,10 @@ class AdiaStatePrepa(Solver):
     
 
     def save_gate_sequence(self,):
-        parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
+        if self.__gate_along_y == True: 
+            parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4]) 
+        else:
+            parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
         filename = 'gate_sequence'+parametername+'.json'
         try:
             jx_gates, hx_gates, hz_gates = self.list_coupling_matrix_angles, self.list_hx_angle, self.list_hz_angle 
@@ -309,8 +342,10 @@ class AdiaStatePrepa(Solver):
         if (self.__final_state == None):
             # If the method solve has not run yet. 
             self.solve()
-        parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
-
+        if self.__gate_along_y == True: 
+            parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])
+        else:
+            parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
         # Generate the file with the time evolution amplitudes.
         try:
             amplitude_filename = 'amplitude_'+parametername+'.npy'
@@ -331,12 +366,13 @@ class AdiaStatePrepa(Solver):
         final_state = self.__final_state.get_vector_state()
         rho_final = np.tensordot(np.conjugate(final_state), final_state, axes=0)
         self.__final_reward = self.local_reward(rho_final, self.get_ground_state_h_f())
-
+        final_fidelity = self.__list_fidelities[-1]
+        final_fidelity = final_fidelity.real
         # Generate the file with the parameters.
         info_dic = {
             'Hamiltonian parameters': self.ham_params,
             'Initial_state': str(self.__initial_state.get_density_matrix()),
-            'Final fidelity': str(self.__list_fidelities[-1]),
+            'Final fidelity': final_fidelity, 
             'H_0 model': self.__model_0.name,
             'H_0 hamiltonian': str(self.__model_0.hamiltonian),
             'H_f model': self.__model_f.name,
@@ -408,8 +444,12 @@ class AdiaStatePrepa(Solver):
         return gap       
 
     def get_rho_target(self,)-> np.ndarray:
-        # Caution: it does not correspond to the ground state of the final Hamiltonian 
-        # but to the final state. This method aims to be used by the DQL solver. 
+        """
+        Caution: this method does not correspond to the ground state of the final Hamiltonian 
+        but to the final state. This method aims to be used by the DQL solver. 
+        Returns:
+            np.ndarray: the final density matrix of the ASP solver. 
+        """ 
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_density_matrix()
@@ -417,8 +457,10 @@ class AdiaStatePrepa(Solver):
 
 
     def get_ground_state_h_f(self,)-> np.ndarray:
-        # Caution: it does not correspond to the ground state of the final Hamiltonian 
-        # but to the final state. This method aims to be used by the DQL solver. 
+        """
+        Returns:
+            rho_ground_state_h_f [np.ndarray]: the ground state of the final Hamiltonian, H_f. 
+        """ 
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         ground_state_h_f = self.__ground_state_h_f
@@ -426,39 +468,16 @@ class AdiaStatePrepa(Solver):
         return rho_ground_state_h_f
 
     def get_state_target(self,)-> np.ndarray:
-        # Attention: it does not correspond to the ground state of the final Hamiltonian 
-        # but to the final state. This method aims to be used by the DQL solver. 
+        """
+        Caution: this method does not correspond to the ground state of the final Hamiltonian 
+        but to the final state. This method aims to be used by the DQL solver. 
+        Returns:
+            np.ndarray: the final vector state of the ASP solver. 
+        """
         if (self.__final_state == None):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_vector_state()
         return target
-
-    def define_gate_angles(self, index:int) -> tuple:
-        """
-        The gates are defined to realize the adiabatic state preparation of the Hamiltonian.
-        """
-        # I need to implement difference way to weight the H_0 and H_f. For 
-        # the moment, it is only possible linearly w.r.t. the time. 
-        if self.__system_class == 'LongRangeIsing':
-            # Trotter sequence only implemented for n_directions = 2.
-            coupling_matrix_angle = self.ham_params['J'] * self.__delta_t * index / self.__n_steps
-            hx_angle = self.ham_params['g'] * self.__delta_t
-            hz_angle = self.ham_params['h'] * self.__delta_t
-            return coupling_matrix_angle, hx_angle, None, hz_angle
-        elif self.__system_class == 'TransIsing' or self.__system_class == 'LongRangeTransIsing':
-            coupling_matrix_angle = self.ham_params['J'] * self.__delta_t * index / self.__n_steps
-            if self.__gate_along_y:
-                # TO BE MODIFIED
-                hz_angle = self.ham_params['g'] * self.__delta_t * (index/self.__n_steps +(1-index/self.__n_steps)*cos(self.__ferro_angle))
-                hy_angle = self.ham_params['g'] * self.__delta_t * (1- index/self.__n_steps) * sin(self.__ferro_angle)
-                return coupling_matrix_angle, None, hy_angle, hz_angle
-            else: # If not self.__gate_along_y
-                hz_angle = self.ham_params['g'] * self.__delta_t
-                return coupling_matrix_angle, None, None, hz_angle
-        else:
-            raise NotImplementedError('Trotter sequence not implemented'
-                                          ' for your system_class. Only implemented'
-                                          ' for TransIsing and LongRangeIsing.')
         
     def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)-> np.ndarray:
         """ Apply the sequence of gates onto the initial state and return the final state.

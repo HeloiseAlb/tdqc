@@ -122,7 +122,7 @@ def hamiltonian_xxz(L, Jxy, Jzz, PDB=False):
     return H
 xxz_model = Model("xxz_model", hamiltonian_xxz)
 
-def hamiltonian_lri(L,J,alpha,m_x,m_z):
+def hamiltonian_lri(L, J, alpha, m_x, m_z):
     """
     hamiltonian_lri returns the Hamiltonian matrix of a one-dimensional spin chain with L sites, 
     where each site is represented by a two-level quantum system or a spin-1/2 particle.
@@ -205,7 +205,7 @@ def hamiltonian_trans_field(L, h, ferro_angle):
     H += sin(ferro_angle) * sum([globalize_op(spin_op["sigma_y"], j, L) for j in range(0,L,1)])
     return h*H
 
-trans_field_model = Model("lr_trans_ising_model", hamiltonian_trans_field)
+trans_field_model = Model("transverse_field", hamiltonian_trans_field)
 
 class State(object):
     '''
