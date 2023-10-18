@@ -125,19 +125,15 @@ class QuantumEnv():
             # self.coupling_matrix_S = eig_vec 
             # self.coupling_matrix_S_inv = inv(eig_vec)
         elif self.system_class == 'TransIsing':
-            # NB: I have taken into consideration the minus sign before the J of this model 
-            # in the function set_coupling_matrix. 
             dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
-            for site in range(0,self.n_sites,1):
+            for site in range(0, self.n_sites, 1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
             coupling_matrix = np.zeros((dim,dim),dtype='complex128')
             for l in range(0, self.n_sites-1, 1):
                 coupling_matrix += np.dot(list_glob_operators[l], list_glob_operators[l+1])
-            self.coupling_matrix = -coupling_matrix
-        elif self.system_class == 'LongRangeTransIsing':
-            # NB: I have taken into consideration the minus sign before the J of this model 
-            # in the function set_coupling_matrix. 
+            self.coupling_matrix = coupling_matrix
+        elif self.system_class == 'LongRangeTransIsing': 
             dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
             for site in range(0, self.n_sites, 1):
@@ -148,7 +144,7 @@ class QuantumEnv():
                 for k in range(l+1, self.n_sites, 1):
                     matrix_2 = list_glob_operators[k]
                     coupling_matrix += np.dot(matrix_1,matrix_2)/(k-l)**self.alpha
-            self.coupling_matrix = -coupling_matrix
+            self.coupling_matrix = coupling_matrix
 
 
     def get_action_dim(self)-> int:
