@@ -2,7 +2,7 @@
 
 This environement uses physical systems defined in system_cpp, coded in c++.
 Only the derived class DynamicalEvolution is usable.
-(There used to be more)
+(There used to be more).
 
 States are stored as list of previous actions. Because the initial wave function is fixed, this completely defines to the actual state,
 the quantum wave (albeit maybe not uniquely).

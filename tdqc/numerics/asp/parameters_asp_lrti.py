@@ -21,9 +21,9 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-L = int(sys.argv[1])
-J = float(sys.argv[2])
-g = float(sys.argv[3]) 
+L = 8 #int(sys.argv[1])
+J = 1.0 #float(sys.argv[2])
+g = 5.0 #float(sys.argv[3]) 
 h = g
 alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for model_0 and system_class !!
@@ -64,6 +64,7 @@ parameters = {
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
     'initial_state': 'ferro',
+    'ferro_gate_order': 'zy',
     'seed_initial_state': None, # 42,
 
     #  digital simulator:

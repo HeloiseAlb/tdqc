@@ -94,6 +94,7 @@ class AdiaStatePrepa(Solver):
         #self.H_0 = self.__model_0.model_hamiltonian
         #self.H_f = self.__model_f.model_hamiltonian
         #self.__time_evolution = None
+        self.dim = int(2 ** self.__n_sites)
         self.__final_state = None 
         self.__list_fidelities = None
         self.__list_gaps = None
@@ -120,8 +121,9 @@ class AdiaStatePrepa(Solver):
         This method creates the coupling matrix that appears in the part of the Hamiltonian
         linked to the spin interactions. Once, it has been created, it is stored in the attribute
         self.coupling_matrix.  
+        It contains neither the value of J nor the sign placed in front of the sum.
         """
-        dim = int(2 ** self.__n_sites)
+        dim = self.dim 
         list_glob_operators =  [None] * self.__n_sites
         for site in range(0, self.__n_sites, 1):
             list_glob_operators[site] = globalize_op(spin_op["sigma_x"], site, self.__n_sites)  
@@ -134,6 +136,7 @@ class AdiaStatePrepa(Solver):
                     coupling_matrix += np.dot(matrix_1, matrix_2) / (k-l)**self.ham_params['alpha']
             self.coupling_matrix = coupling_matrix
         elif self.__system_class == 'TransIsing':
+            # Interaction only between the next nearest neighbours. 
             for l in range(0, self.__n_sites-1, 1):
                 matrix_1 = list_glob_operators[l] 
                 matrix_2 = list_glob_operators[l+1]
@@ -144,7 +147,7 @@ class AdiaStatePrepa(Solver):
                                           ' for your system_class. Only implemented'
                                           ' for TransIsing, LongRangeTransIsing and LongRangeIsing.')
    
-    def H(self, t: float)->np.ndarray:
+    def h(self, t: float)->np.ndarray:
         """
         It defines the time-dependent Hamiltonian, also called the adiabatic evolution
         Hamiltonian. It is a linear schedule. 
@@ -157,6 +160,7 @@ class AdiaStatePrepa(Solver):
     def define_gate_angles(self, index: int) -> tuple:
         """
         The gates are defined to realize the adiabatic state preparation of the Hamiltonian.
+        The angles carry the signes. 
         """
         # I need to implement difference way to weight the H_0 and H_f. For 
         # the moment, it is only possible linearly w.r.t. the time. The 
@@ -181,6 +185,63 @@ class AdiaStatePrepa(Solver):
                                           ' for your system_class. Only implemented'
                                           ' for TransIsing and LongRangeIsing.')
 
+    def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)-> np.ndarray:
+        """ Apply the sequence of gates onto the initial state and return the final state.
+        Args:
+            state (np.ndarray): The state vector.
+            coupling_matrix_angle (float): The angle of the entangling gate.
+            hx_angle (float or None): The angle of the x-rotation gates. It is just one float 
+                even if one x-rotation gate is applied on each qubit because the angles are all 
+                equal. It may be None in the case of the (long range or not) transverse Ising 
+                model because then the Trotterization does not require x-rotation gates.
+            hz_angle (float): The angle of the z-rotation gates. It is just one float 
+                even if one z-rotation gate is applied on each qubit because the angles are all 
+                equal.
+        Returns:
+            np.array: The updated state vector.
+        """
+        # Define the universal quantum gate set used in Markus article. 
+        U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
+        if self.__gate_along_y:
+            U_y = lambda theta : expm(-1j*theta*spin_op['sigma_y'])
+        sum_U_xx = self.coupling_matrix 
+        U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
+
+        # Apply the gates on the state. 
+        state = np.dot(U_xx(coupling_matrix_angle), state)
+        if hx_angle != None:       
+            U_x = lambda theta : expm(-1j * theta * spin_op['sigma_x'])
+            if self.__gate_order == "xz":
+                for site in range(0, self.__n_sites, 1):
+                    U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
+                    state = np.dot(U_x_site, state)
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
+            elif self.__gate_order == "zx":
+                for site in range(0, self.__n_sites, 1):
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
+                    U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
+                    state = np.dot(U_x_site, state)
+        elif self.__gate_along_y: # Equivalent to hy_angle != None: 
+            # If this loop if ran, hx_angle == None. 
+            if self.__ferro_gate_order == "zy":
+                for site in range(0, self.__n_sites, 1):
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
+                    U_y_site = globalize_op(U_y(hy_angle), site, self.__n_sites)
+                    state = np.dot(U_y_site, state)
+            elif self.__ferro_gate_order == "yz":
+                for site in range(0, self.__n_sites, 1):
+                    U_y_site = globalize_op(U_y(hy_angle), site, self.__n_sites)
+                    state = np.dot(U_y_site, state)
+                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                    state = np.dot(U_z_site, state)
+        else: # In this case, hx_angle == None and hy_angle == None.  
+            for site in range(0, self.__n_sites, 1):
+                U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
+                state = np.dot(U_z_site, state)
+        return state
 
     def solve(self, ED = False)-> None:
         """
@@ -196,29 +257,28 @@ class AdiaStatePrepa(Solver):
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
         time_evolution = np.zeros([self.__n_steps + 1, 2**self.__n_sites], dtype='complex128') 
         inv_temperature = 1
-        if ED:
+        if ED: # Apply the ED algorithm.
             time_evolution[0, :] = state_t_n.reshape(-1)
             for idx, t_n in enumerate(t_list[:]):
-                model = Model("instanteneous_hamiltonian", lambda: self.H(t_n))
+                model = Model("instanteneous_hamiltonian", lambda: self.h(t_n))
                 model.parametrize_hamiltonian()
                 state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
-        else:
-            # Else, apply the Trotterization circuit.
+        else: # Else, apply the ASP algorithm discretized via Trotterization.
             time_evolution[0, :] = state_t_n.reshape(-1)
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
-            self.list_hx_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
+            self.list_hx_angles = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
             if self.__gate_along_y:
-                self.list_hy_angle = np.ones([self.__n_steps, self.__n_sites], dtype='float') 
-            self.list_hz_angle = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
+                self.list_hy_angles = np.ones([self.__n_steps, self.__n_sites], dtype='float') 
+            self.list_hz_angles = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
 
             for idx, t_n in enumerate(t_list[:]):
                 coupling_matrix_angle, hx_angle, hy_angle, hz_angle = self.define_gate_angles(idx)
                 self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
-                self.list_hx_angle[idx] = hx_angle
+                self.list_hx_angles[idx] = hx_angle
                 if self.__gate_along_y:
-                    self.list_hy_angle[idx] = hy_angle
-                self.list_hz_angle[idx] = hz_angle
+                    self.list_hy_angles[idx] = hy_angle
+                self.list_hz_angles[idx] = hz_angle
                 state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)
                 time_evolution[idx + 1, :] = state_t_n.reshape(-1)
         self.__time_evolution = time_evolution
@@ -232,7 +292,7 @@ class AdiaStatePrepa(Solver):
             parametername = 'ASP_'+str(self.__model_f.name)+'N'+str(self.__n_sites)+'n_steps'+str(self.__n_steps)+'t_final'+str(self.__t_final)+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])
         filename = 'gate_sequence'+parametername+'.json'
         try:
-            jx_gates, hx_gates, hz_gates = self.list_coupling_matrix_angles, self.list_hx_angle, self.list_hz_angle 
+            jx_gates, hx_gates, hz_gates = self.list_coupling_matrix_angles, self.list_hx_angles, self.list_hz_angles 
 
             steps = [
                 [('jx', list(jx_gate)), ('hz', list(hz_gate)),
@@ -305,30 +365,41 @@ class AdiaStatePrepa(Solver):
 
 
     def compute_property_lists(self,):
+        """
+        It stores as attributes the np.ndarray of the following properties:
+        - self.__ground_state_h_f: the ground state of the time-dependent Hamiltonian
+        - self.__list_fidelities: the fidelities of the state with the ground state of the time-dependent Hamiltonian
+        - self.__list_gaps:
+        - self.__list_difference_energy_with_gs_hamiltonian:
+        - self.__list_eigenvalues:
+        - self.__list_eigenvectors: 
+        - self.__list_transition_matrix_element: 
+        The values of those array are computed for each 
+        """
         if self.__final_state == None:
             raise ValueError("The method solve need to be run before in order to get the list of fidelities")
-        step = (self.__t_final - self.__t_initial) / self.__n_steps
-        site_list = [l for l in range(1, self.__n_sites, 1)]
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
-        list_fidelities = np.zeros(self.__n_steps, dtype='complex128')  
-        list_gaps = np.zeros(self.__n_steps, dtype='complex128') 
-        list_difference_energy_with_gs_hamiltonian = np.zeros(self.__n_steps, dtype='complex128')
-
-        dim = int(2**self.__n_sites)
-        list_eigenvalues = np.zeros((self.__n_steps, dim))
-        list_eigenvectors = np.zeros((self.__n_steps, dim, dim))
+        dim = self.dim 
+        
+        list_fidelities = np.zeros(self.__n_steps, dtype='float')  
+        list_gaps = np.zeros(self.__n_steps, dtype='float') 
+        list_difference_energy_with_gs_hamiltonian = np.zeros(self.__n_steps, dtype='float')
+        list_eigenvalues = np.zeros((self.__n_steps, dim), dtype='float')
+        list_eigenvectors = np.zeros((self.__n_steps, dim, dim), dtype='float')
         list_transition_matrix_element = np.zeros(self.__n_steps, dtype='float')
+        list_ground_state_h_t_n = np.zeros((self.__n_steps, dim), dtype='float')
+
         for idx, t_n in enumerate(t_list):
-            H_t_n = self.H(t_n)
+            H_t_n = self.h(t_n)
             state_t_n = self.__time_evolution[idx,:]
             ground_state_h_t_n, gap_h_t_n, difference_energy_with_gs_hamiltonian, eig_values, eig_vectors, transition_matrix_element = self.compute_properties(H_t_n, state_t_n, all_gs = False)
-            fidelity = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_fidelities[idx] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
             list_gaps[idx] = gap_h_t_n
             list_difference_energy_with_gs_hamiltonian[idx] = difference_energy_with_gs_hamiltonian
             list_eigenvalues[idx,:] = eig_values
             list_eigenvectors[idx,:,:] = eig_vectors
             list_transition_matrix_element[idx] = transition_matrix_element
+            list_ground_state_h_t_n[idx] = ground_state_h_t_n
         self.__ground_state_h_f = ground_state_h_t_n
         self.__list_fidelities = list_fidelities
         self.__list_gaps = list_gaps
@@ -336,6 +407,7 @@ class AdiaStatePrepa(Solver):
         self.__list_eigenvalues = list_eigenvalues
         self.__list_eigenvectors = list_eigenvectors
         self.__list_transition_matrix_element = list_transition_matrix_element
+        self.__list_ground_state_h_t_n = list_ground_state_h_t_n
 
         
     def generate_data_files(self,):
@@ -367,7 +439,6 @@ class AdiaStatePrepa(Solver):
         rho_final = np.tensordot(np.conjugate(final_state), final_state, axes=0)
         self.__final_reward = self.local_reward(rho_final, self.get_ground_state_h_f())
         final_fidelity = self.__list_fidelities[-1]
-        final_fidelity = final_fidelity.real
         # Generate the file with the parameters.
         info_dic = {
             'Hamiltonian parameters': self.ham_params,
@@ -479,61 +550,7 @@ class AdiaStatePrepa(Solver):
         target = self.__final_state.get_vector_state()
         return target
         
-    def apply_gate_sequence(self, state, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)-> np.ndarray:
-        """ Apply the sequence of gates onto the initial state and return the final state.
-        Args:
-            state (np.ndarray): The state vector.
-            coupling_matrix_angle (float): The angle of the entangling gate.
-            hx_angle (float or None): The angle of the x-rotation gates. It is just one float 
-                even if one x-rotation gate is applied on each qubit because the angles are all 
-                equal. It may be None in the case of the (long range or not) transverse Ising 
-                model because then the Trotterization does not require x-rotation gates.
-            hz_angle (float): The angle of the z-rotation gates. It is just one float 
-                even if one z-rotation gate is applied on each qubit because the angles are all 
-                equal.
-        Returns:
-            np.array: The updated state vector.
-        """
-        # Define the universal quantum gate set used in Markus article. 
-        U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
-        if self.__gate_along_y:
-            U_y = lambda theta : expm(-1j*theta*spin_op['sigma_y'])
-        sum_U_xx = self.coupling_matrix 
-        U_xx = lambda theta : expm(-1j*theta*sum_U_xx)
-        # Those gate lists are in fact lists of angles.
-        state = np.dot(U_xx(coupling_matrix_angle), state)
-        if hx_angle != None:       
-            U_x = lambda theta : expm(-1j * theta * spin_op['sigma_x'])
-            if self.__gate_order == "xz":
-                for site in range(0, self.__n_sites, 1):
-                    U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
-                    state = np.dot(U_x_site, state)
-                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
-                    state = np.dot(U_z_site, state)
-            elif self.__gate_order == "zx":
-                for site in range(0, self.__n_sites, 1):
-                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
-                    state = np.dot(U_z_site, state)
-                    U_x_site = globalize_op(U_x(hx_angle), site, self.__n_sites)
-                    state = np.dot(U_x_site, state)
-        elif self.__gate_along_y: # Equivalent to hy_angle !=None: 
-            if self.__ferro_gate_order == "zy":
-                for site in range(0, self.__n_sites, 1):
-                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
-                    state = np.dot(U_z_site, state)
-                    U_y_site = globalize_op(U_y(hy_angle), site, self.__n_sites)
-                    state = np.dot(U_y_site, state)
-            elif self.__ferro_gate_order == "yz":
-                for site in range(0, self.__n_sites, 1):
-                    U_y_site = globalize_op(U_y(hy_angle), site, self.__n_sites)
-                    state = np.dot(U_y_site, state)
-                    U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
-                    state = np.dot(U_z_site, state)
-        else:
-            for site in range(0, self.__n_sites, 1):
-                U_z_site = globalize_op(U_z(hz_angle), site, self.__n_sites)
-                state = np.dot(U_z_site, state)
-        return state
+
                 
 
     def apply_ed_evolution(self, init_vec_state, model, delta_t, imaginary=False, h_bar=1):
@@ -646,11 +663,20 @@ class AdiaStatePrepa(Solver):
     @property
     def list_transition_matrix_element(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of transition matrix elements of H.")
+            raise ValueError("The method solve need to be run before in order to get the list of transition matrix elements of H(t).")
         else:
             if type(self.__list_transition_matrix_element) == type(None):
                 self.compute_property_lists()
             return self.__list_transition_matrix_element
+
+    @property
+    def list_ground_state_h_t_n(self,)-> np.ndarray:
+        if self.final_state == None:
+            raise ValueError("The method solve need to be run before in order to get the list of ground state of H(t).")
+        else:
+            if type(self.__list_ground_state_h_t_n) == type(None):
+                self.compute_property_lists()
+            return self.__list_ground_state_h_t_n
 
     @property
     def final_reward(self,)-> float:

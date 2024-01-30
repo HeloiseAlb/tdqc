@@ -1,20 +1,25 @@
 #%%
-import pytest
-import tdqc
+# import pytest
+# import tdqc
+from time import time
 import numpy as np
-import sys 
-import cmath
-import math
+# import sys 
+# import cmath
+from math import pi
 
 import matplotlib.pyplot as plt
 from tdqc.numerics.ed.exact_diagonalisation import *
 from tdqc.solver.asp import AdiaStatePrepa
-from tdqc.numerics.ed.models_ed import State
+# from tdqc.numerics.ed.models_ed import State
 from tdqc.numerics.asp.parameters_asp_lrti import parameters
 
 #%%
 def plot_eigenvalues_evolution():
+    parameters["n_steps"] = 10
+    ham_params = parameters["ham_params"]
+    h = ham_params['h']
     t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]    
+    print(h)
     L = parameters["n_sites"]
     solver = AdiaStatePrepa()
     solver.load_settings(parameters)
@@ -40,11 +45,11 @@ def plot_eigenvalues_evolution():
     # Set labels and title
     plt.xlabel('Time')
     plt.ylabel('Energy')
-    plt.title('Evolution of each eigenvalues')
-    plt.legend()
+    plt.title(f'Evolution of each eigenvalues for h={h}')
+    #plt.legend()
 
     # Save the plot
-    plt.savefig(f'evolution_eigenvalues_N{L}_lrtIsing.png')
+    plt.savefig(f'evolution_eigenvalues_N{L}_h{h}_lrtIsing.png')
 
 #plot_eigenvalues_evolution()
 
@@ -59,8 +64,15 @@ Plot the time evolution of the selected variables among:
 plot_fidelities = True
 plot_amplitudes = True
 plot_eigenvector_probabilities = True
-generate_files = True
-
+generate_files = False
+parameters["n_steps"] = 100
+g = 2.5
+h = g
+ferro_angle = 0
+ham_params={'J': 1.0, 'g': g, 'h': h, 'alpha': int(2)}
+parameters["ham_params"]= ham_params
+parameters['initial_state'] = 'ferro'
+parameters['ferro_angle'] = ferro_angle*pi
 t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]   
 
 L = parameters["n_sites"]
@@ -68,21 +80,40 @@ solver = AdiaStatePrepa()
 solver.load_settings(parameters)
 solver.solve(ED = False)
 fidelities = solver.list_fidelities
+time_evolution = solver.time_evolution
+list_ground_state_h_t_n = solver.list_ground_state_h_t_n
 
+#%%
+list_projections_on_gs = np.zeros(len(t_list))
+for t, state_t_n in enumerate(time_evolution[:-1]):
+    ground_state_h_t_n = list_ground_state_h_t_n[t]
+    #print("ground_state_h_t_n:{}".format(ground_state_h_t_n))
+    list_projections_on_gs[t] = abs(np.vdot(np.conj(ground_state_h_t_n), state_t_n))
+    print("list_projections_on_gs[t]:{}".format(list_projections_on_gs[t]))
+plt.plot(t_list, abs(list_projections_on_gs))
+plt.xlabel('time t')
+plt.ylabel('Fidelities')
+plt.title('Absolute value of the fidelity between state \n of the system at time t and the ground state \n of the Hamiltonian at time t: H(t)')
+plt.savefig(f'my_plot_projections_on_gs_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}_g{g}_ferro_angle{ferro_angle}.png')
+plt.show(block=False)
+
+
+#%%
 
 gaps = solver.list_gaps
 list_difference_energy_with_gs_hamiltonian = solver.list_difference_energy_with_gs_hamiltonian
 #print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
 
-if plot_fidelities:
-    
-    fig1 = plt.figure() 
-    plt.plot(t_list,abs(fidelities[:]))
-    plt.xlabel('time t')
-    plt.ylabel('Fidelities')
-    plt.title('Absolute value of the fidelity between state \n of the system at time t and the ground state \n of the Hamiltonian at time t: H(t)')
-    plt.savefig(f'my_plot_fidelities_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+#if plot_fidelities:
+#fig1 = plt.figure() 
+plt.plot(t_list, abs(fidelities[:]))
+plt.xlabel('time t')
+plt.ylabel('Fidelities')
+plt.title('Absolute value of the fidelity between state \n of the system at time t and the ground state \n of the Hamiltonian at time t: H(t)')
+#plt.savefig(f'my_plot_fidelities_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+plt.show(block=False)
 
+#%%
 # Is T long enough?
 delta_s_H = -parameters['model_0'].hamiltonian + parameters['model_f'].hamiltonian
 _, singular_values, _ = np.linalg.svd(delta_s_H)
@@ -105,7 +136,10 @@ plt.xlabel('time t')
 
 plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$')
 plt.title('Energy of the system at time t')
-plt.savefig(f'list_energies_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+if generate_files:
+    plt.savefig(f'list_energies_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+else:
+    plt.show()
 
 amplitudes = solver.time_evolution
 if plot_amplitudes:
@@ -119,7 +153,10 @@ if plot_amplitudes:
     plt.ylabel('Probability')
     plt.title('Probabilities of the states in the basis {|0>,|1>,...,|2**L-1>}')
     plt.legend(legend_list)
-    plt.savefig(f'amplitudes_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+    if generate_files:
+        plt.savefig(f'amplitudes_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+    else:
+        plt.show()
 
 if plot_eigenvector_probabilities:
     fig4 = plt.figure()
@@ -139,7 +176,10 @@ if plot_eigenvector_probabilities:
     plt.ylabel('P_{E}')
     plt.title('Probabilities of the states in the eigenbasis')
     plt.legend(legend_list)
-    plt.savefig(f'eigenvector_proba_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+    if generate_files:
+        plt.savefig(f'eigenvector_proba_N{L}_system{solver.system_class}_nsteps{solver.n_steps}_tfinal{solver.t_final}.png')
+    else:
+        plt.show()
     
 if generate_files:
     solver.generate_data_files()

@@ -64,7 +64,7 @@ parameters = {
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': 'ferro_with_angle', #'ferro',
+    'initial_state': 'ferro_with_angle', #'ferro', #'ferro',
     'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 

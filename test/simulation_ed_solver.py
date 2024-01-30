@@ -19,7 +19,7 @@ def save_state(vector_to_save, L, J, g, model_f):
         print(reward_filename+' could not be saved.')
         print('--->', e)
 
-L = 10
+L = 12
 J = 1
 g = 0.2
 h = g

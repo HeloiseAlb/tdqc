@@ -288,7 +288,7 @@ class DQLWithReplayMemory(DeepQLearning):
         super().__init__()
         self.seetings_replay_memory_loaded = False    
         
-    def load_seetings_replay_memory(self,capacity, sampling_size, NN_optimizer, n_epochs,loss='logcosh', *args, **kwargs):
+    def load_seetings_replay_memory(self, capacity, sampling_size, NN_optimizer, n_epochs,loss='logcosh', *args, **kwargs):
 
         self.model.compile(optimizer=NN_optimizer, loss=loss,
                            metrics=['mse', 'mae'])
