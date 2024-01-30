@@ -338,7 +338,7 @@ class DynamicalEvolution(QuantumEnv):
         
         self.final_state = final_state
         rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)     
-        return self.local_reward(rho_DQS, rho_target, n_qubits)
+        return self.local_reward(rho_target, rho_DQS, n_qubits)
 
     def get_ground_state_energy(self, return_eigenvectors: bool=False)-> float:
         """Return the ground state energy."""

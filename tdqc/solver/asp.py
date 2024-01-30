@@ -353,12 +353,12 @@ class AdiaStatePrepa(Solver):
     def local_reward(self, rho1: np.ndarray, rho2: np.ndarray, positiveDefinite: Optional[bool]=False)-> float:
         n_qubits = self.__n_sites
         sum_measures = 0
-        for j in range(0,n_qubits-1):
+        for j in range(0, n_qubits-1):
             for k in range(j+1, n_qubits):
                 sum_measures += cmath.sqrt(self.relative_entropy(self.reduced_density_matrix(rho1, j, k, n_qubits), self.reduced_density_matrix(rho2, j, k, n_qubits), positiveDefinite))
         if sum_measures == float('inf') or isnan(sum_measures.real) or isnan(sum_measures.imag):
             r_local = 0.0 + 1j*0.0
-            print("sum_measures was Nan, r_local taken to be 0")
+            print("sum_measures was Nan, r_local taken to be 0.")
         else:
             r_local = 1 - 2/(n_qubits*(n_qubits-1)) * sum_measures  
         return max(0, r_local.real)
@@ -437,7 +437,7 @@ class AdiaStatePrepa(Solver):
             print('--->', e)
         final_state = self.__final_state.get_vector_state()
         rho_final = np.tensordot(np.conjugate(final_state), final_state, axes=0)
-        self.__final_reward = self.local_reward(rho_final, self.get_ground_state_h_f())
+        self.__final_reward = self.local_reward(self.get_ground_state_h_f(), rho_final)
         final_fidelity = self.__list_fidelities[-1]
         # Generate the file with the parameters.
         info_dic = {
