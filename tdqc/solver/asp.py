@@ -1,8 +1,10 @@
+from operator import index
 import numpy as np
 import cmath 
 from math import log, isnan, cos, sin  
 import json
 import sys 
+
 from scipy.linalg import expm, eigh, logm
 from typing import Optional 
 from tdqc.interfaces.solver import Solver
@@ -154,7 +156,7 @@ class AdiaStatePrepa(Solver):
         """
         # I need to implement the one using a non linear schedule.
         T = self.__t_final
-        H_t = (1 - t/T)*self.__model_0.hamiltonian + (t/T)*self.__model_f.hamiltonian
+        H_t = (1 - t/T) * self.__model_0.hamiltonian + (t/T) * self.__model_f.hamiltonian
         return H_t
 
     def define_gate_angles(self, index: int) -> tuple:
@@ -166,7 +168,7 @@ class AdiaStatePrepa(Solver):
         # the moment, it is only possible linearly w.r.t. the time. The 
         if self.__system_class == 'LongRangeIsing':
             # Trotter sequence only implemented for n_directions = 2.
-            # Need to be checked. 
+            # That needs to be checked. 
             coupling_matrix_angle = - self.ham_params['J'] * self.__delta_t * index / self.__n_steps
             hx_angle = self.ham_params['g'] * self.__delta_t
             hz_angle = self.ham_params['h'] * self.__delta_t
@@ -254,18 +256,17 @@ class AdiaStatePrepa(Solver):
         """
         state_t_n = self.__initial_state.get_vector_state()
         time_step = self.__delta_t
-        t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
+        t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps+1)]
         time_evolution = np.zeros([self.__n_steps + 1, 2**self.__n_sites], dtype='complex128') 
         inv_temperature = 1
         if ED: # Apply the ED algorithm.
-            time_evolution[0, :] = state_t_n.reshape(-1)
             for idx, t_n in enumerate(t_list[:]):
                 model = Model("instanteneous_hamiltonian", lambda: self.h(t_n))
                 model.parametrize_hamiltonian()
-                state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
-                time_evolution[idx + 1, :] = state_t_n.reshape(-1)
+                time_evolution[idx, :] = state_t_n.reshape(-1)
+                if idx != len(t_list)-1:
+                    state_t_n = self.apply_ed_evolution(state_t_n.reshape(-1), model, time_step, imaginary=False, h_bar=1)
         else: # Else, apply the ASP algorithm discretized via Trotterization.
-            time_evolution[0, :] = state_t_n.reshape(-1)
             self.list_coupling_matrix_angles = np.zeros([self.__n_steps, 1], dtype='float') 
             self.list_hx_angles = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
             if self.__gate_along_y:
@@ -273,14 +274,15 @@ class AdiaStatePrepa(Solver):
             self.list_hz_angles = np.zeros([self.__n_steps, self.__n_sites], dtype='float') 
 
             for idx, t_n in enumerate(t_list[:]):
-                coupling_matrix_angle, hx_angle, hy_angle, hz_angle = self.define_gate_angles(idx)
-                self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
-                self.list_hx_angles[idx] = hx_angle
-                if self.__gate_along_y:
-                    self.list_hy_angles[idx] = hy_angle
-                self.list_hz_angles[idx] = hz_angle
-                state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)
-                time_evolution[idx + 1, :] = state_t_n.reshape(-1)
+                time_evolution[idx, :] = state_t_n.reshape(-1)
+                if idx != len(t_list)-1:
+                    coupling_matrix_angle, hx_angle, hy_angle, hz_angle = self.define_gate_angles(idx)
+                    self.list_coupling_matrix_angles[idx] = coupling_matrix_angle
+                    self.list_hx_angles[idx] = hx_angle
+                    if self.__gate_along_y:
+                        self.list_hy_angles[idx] = hy_angle
+                    self.list_hz_angles[idx] = hz_angle
+                    state_t_n = self.apply_gate_sequence(state_t_n, coupling_matrix_angle, hx_angle, hy_angle, hz_angle)
         self.__time_evolution = time_evolution
         self.__final_state = State(state_t_n) # It is an instance of the class State()
     
@@ -374,10 +376,11 @@ class AdiaStatePrepa(Solver):
         - self.__list_eigenvalues:
         - self.__list_eigenvectors: 
         - self.__list_transition_matrix_element: 
+        - self.__list_ground_state_h_t_n: the list of the ground states of the instantaneous Hamiltonians. 
         The values of those array are computed for each 
         """
         if self.__final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of fidelities")
+            raise ValueError("The method solve needs to be run before in order to get the list of fidelities")
         t_list = [t for t in np.linspace(self.__t_initial, self.__t_final, self.__n_steps)]
         dim = self.dim 
         
@@ -522,7 +525,7 @@ class AdiaStatePrepa(Solver):
             np.ndarray: the final density matrix of the ASP solver. 
         """ 
         if (self.__final_state == None):
-            raise ValueError("The method solve need to be run before in order to get the target_state")
+            raise ValueError("The method solve needs to be run before in order to get the target_state")
         target = self.__final_state.get_density_matrix()
         return target
 
@@ -533,7 +536,7 @@ class AdiaStatePrepa(Solver):
             rho_ground_state_h_f [np.ndarray]: the ground state of the final Hamiltonian, H_f. 
         """ 
         if (self.__final_state == None):
-            raise ValueError("The method solve need to be run before in order to get the target_state")
+            raise ValueError("The method solve needs to be run before in order to get the target_state.")
         ground_state_h_f = self.__ground_state_h_f
         rho_ground_state_h_f = np.tensordot(np.conjugate(ground_state_h_f), ground_state_h_f, axes=0)
         return rho_ground_state_h_f
@@ -546,7 +549,7 @@ class AdiaStatePrepa(Solver):
             np.ndarray: the final vector state of the ASP solver. 
         """
         if (self.__final_state == None):
-            raise ValueError("The method solve need to be run before in order to get the target_state")
+            raise ValueError("The method solve needs to be run before in order to get the target_state")
         target = self.__final_state.get_vector_state()
         return target
         
@@ -618,7 +621,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_difference_energy_with_gs_hamiltonian(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of energies.")
+            raise ValueError("The method solve needs to be run before in order to get the list of energies.")
         else:
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_property_lists()
@@ -627,7 +630,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_eigenvalues(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of eigenvalues.")
+            raise ValueError("The method solve needs to be run before in order to get the list of eigenvalues.")
         else:
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_property_lists()
@@ -636,7 +639,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_eigenvectors(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of eigenvectors.")
+            raise ValueError("The method solve needs to be run before in order to get the list of eigenvectors.")
         else:
             if type(self.__list_difference_energy_with_gs_hamiltonian) == type(None):
                 self.compute_property_lists()
@@ -645,7 +648,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_fidelities(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of fidelities.")
+            raise ValueError("The method solve needs to be run before in order to get the list of fidelities.")
         else:
             if type(self.__list_fidelities) == type(None):
                 self.compute_property_lists()
@@ -654,7 +657,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_gaps(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of energy gaps.")
+            raise ValueError("The method solve needs to be run before in order to get the list of energy gaps.")
         else:
             if type(self.__list_gaps) == type(None):
                 self.compute_property_lists()
@@ -663,7 +666,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_transition_matrix_element(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of transition matrix elements of H(t).")
+            raise ValueError("The method solve needs to be run before in order to get the list of transition matrix elements of H(t).")
         else:
             if type(self.__list_transition_matrix_element) == type(None):
                 self.compute_property_lists()
@@ -672,7 +675,7 @@ class AdiaStatePrepa(Solver):
     @property
     def list_ground_state_h_t_n(self,)-> np.ndarray:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the list of ground state of H(t).")
+            raise ValueError("The method solve needs to be run before in order to get the list of ground state of H(t).")
         else:
             if type(self.__list_ground_state_h_t_n) == type(None):
                 self.compute_property_lists()
@@ -681,7 +684,7 @@ class AdiaStatePrepa(Solver):
     @property
     def final_reward(self,)-> float:
         if self.final_state == None:
-            raise ValueError("The method solve need to be run before in order to get the local reward of the final state.")
+            raise ValueError("The method solve needs to be run before in order to get the local reward of the final state.")
         else:
             if type(self.__final_reward) == type(None):
                 self.compute_property_lists()

@@ -65,7 +65,6 @@ parameters = {
     },
     'model_0': model_0,
     'model_f': model_f,
-    'initial_state': 'ferro_with_angle',#'ferro', #, 'antiferro', 'random_product_state', 
     'ferro_angle': ferro_angle*pi,
     'ferro_gate_order': 'zy', # It can be 'zy' or 'yz'.
     'seed_initial_state': None, # 42,

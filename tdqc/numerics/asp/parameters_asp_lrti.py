@@ -2,6 +2,7 @@ from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
 import sys
+from math import pi
 from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
 from tdqc.numerics.ed.models_ed import State
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
@@ -62,9 +63,9 @@ parameters = {
     'model_0': model_0,
     'model_f': model_f,
     # 'initial_state': 'random_product_state', 
-    # 'initial_state': 'antiferro',
-    'initial_state': 'ferro',
+    # 'initial_state': 'antiferro','ferro', 
     'ferro_gate_order': 'zy',
+    # 'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 
     #  digital simulator:

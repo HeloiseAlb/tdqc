@@ -4,7 +4,6 @@
 from time import time
 import numpy as np
 # import sys 
-# import cmath
 from math import pi
 
 import matplotlib.pyplot as plt
@@ -65,10 +64,10 @@ plot_fidelities = True
 plot_amplitudes = True
 plot_eigenvector_probabilities = True
 generate_files = False
-parameters["n_steps"] = 100
-g = 2.5
+parameters["n_steps"] = 3
+g = 1.2
 h = g
-ferro_angle = 0
+ferro_angle = 0.3
 ham_params={'J': 1.0, 'g': g, 'h': h, 'alpha': int(2)}
 parameters["ham_params"]= ham_params
 parameters['initial_state'] = 'ferro'
@@ -128,7 +127,7 @@ if t_limit < parameters["t_initial"]- parameters["t_final"]:
     print("The simulation time is not long enough to apply the adiabatic therorem.")
 
 fig2 = plt.figure() 
-plt.plot(t_list,list_difference_energy_with_gs_hamiltonian.real)
+plt.plot(t_list, list_difference_energy_with_gs_hamiltonian.real)
 plt.xlabel('time t')
 #plt.ylabel(r'$\langle$ $\psi$(t)|H(t)|$\psi$(t)$\rangle$ - E_0(t)')
 #plt.title('Difference between energy of the system at time t \n and the ground state energy \n of the Hamiltonian at time t: H(t)')

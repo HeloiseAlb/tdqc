@@ -25,22 +25,22 @@ from tdqc.numerics.ed.models_ed import State
 from tdqc.numerics.deep_q_learning.system_py.system import SpinSystem as sy
 
 spin_op= {
-    "I": np.array([[1+0j,0+0j],[0+0j,1+0j]],dtype = 'complex128'),
-    "sigma_x": np.array([[0+0j,1+0j],[1+0j,0+0j]],dtype = 'complex128'),
-    "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
-    "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
-    "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
-    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+    "I": np.array([[1+0j,0+0j],[0+0j,1+0j]], dtype = 'complex128'),
+    "sigma_x": np.array([[0+0j,1+0j],[1+0j,0+0j]], dtype = 'complex128'),
+    "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]], dtype = 'complex128'),
+    "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]], dtype = 'complex128'),
+    "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]], dtype = 'complex128'),
+    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]], dtype = 'complex128')}
 
 def globalize_op(local_op: np.ndarray, site: int, L: int)-> np.ndarray:
     """ Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
     """
     tensor_0 = np.identity(1, dtype='complex128')
-    for i in range(0,site,1):
+    for i in range(0, site, 1):
         tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
     tensor_0 = np.kron(tensor_0,local_op)
-    for i in range(site+1,L,1):
+    for i in range(site+1, L, 1):
         tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
     return tensor_0
 
@@ -107,12 +107,12 @@ class QuantumEnv():
         self.time_reduced_density_matrix_iteration = 0
         
     def set_coupling_matrix(self,)-> None:
+        dim = int(2**self.n_sites)
         if self.system_class == 'LongRangeIsing':
-            dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
             for site in range(0,self.n_sites,1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
-            coupling_matrix = np.zeros((dim,dim),dtype='complex128')
+            coupling_matrix = np.zeros((dim,dim), dtype='complex128')
             for l in range(0, self.n_sites, 1):
                 matrix_1 = list_glob_operators[l] 
                 for k in range(l+1, self.n_sites, 1):
@@ -125,7 +125,6 @@ class QuantumEnv():
             # self.coupling_matrix_S = eig_vec 
             # self.coupling_matrix_S_inv = inv(eig_vec)
         elif self.system_class == 'TransIsing':
-            dim = int(2**self.n_sites)
             list_glob_operators =  [None] * self.n_sites
             for site in range(0, self.n_sites, 1):
                 list_glob_operators[site] = globalize_op(spin_op["sigma_x"],site, self.n_sites)  
@@ -344,8 +343,6 @@ class DynamicalEvolution(QuantumEnv):
         """Return the ground state energy."""
         energy = self.system.get_ground_state_energy()
         return energy
-
-
 
     def initial_action_sequence(self, all_zeros: bool=False):
         """Return an initial list of actions for each step.
