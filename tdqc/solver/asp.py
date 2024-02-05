@@ -157,6 +157,8 @@ class AdiaStatePrepa(Solver):
         # I need to implement the one using a non linear schedule.
         T = self.__t_final
         H_t = (1 - t/T) * self.__model_0.hamiltonian + (t/T) * self.__model_f.hamiltonian
+        if self.__t_initial != 0: 
+            raise ValueError("The parameter 't_initial' must be set to zero or the ASP implementation needs to be modifies.")
         return H_t
 
     def define_gate_angles(self, index: int) -> tuple:
@@ -261,7 +263,7 @@ class AdiaStatePrepa(Solver):
         inv_temperature = 1
         if ED: # Apply the ED algorithm.
             for idx, t_n in enumerate(t_list[:]):
-                model = Model("instanteneous_hamiltonian", lambda: self.h(t_n))
+                model = Model("instantaneous_hamiltonian", lambda: self.h(t_n))
                 model.parametrize_hamiltonian()
                 time_evolution[idx, :] = state_t_n.reshape(-1)
                 if idx != len(t_list)-1:

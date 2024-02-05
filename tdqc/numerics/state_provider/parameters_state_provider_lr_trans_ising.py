@@ -8,8 +8,6 @@ from tdqc.numerics.ed.models_ed import State
 from tdqc.solver.state_provider import StateProvider
 import sys 
 
-print("sys.argv from parameter:{}".format(sys.argv))
-
 def tensor_prod(*arg):
     """
     tensor_prod(a1, a2) = np.kron(a1, a2).
@@ -64,7 +62,7 @@ parameters = {
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': 'ferro_with_angle', #'ferro', #'ferro',
+    'initial_state': 'ferro',#'ferro_with_angle', #'ferro',
     'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 
@@ -155,7 +153,7 @@ parameters = {
         'beta_2': 0.999,
         'epsilon': 1e-8, 
         #  'n_initial_actions': 5,
-        'n_initial_actions': 5,
+        'n_initial_actions': 5, #5 
         #'n_iterations': 1000,
         'n_iterations': 50, #500
         'convergence_threshold': 0.005,

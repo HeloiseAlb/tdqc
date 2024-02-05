@@ -1,9 +1,5 @@
 #%%
-# import pytest
-# import tdqc
-from time import time
 import numpy as np
-# import sys 
 from math import pi
 
 import matplotlib.pyplot as plt
@@ -14,11 +10,11 @@ from tdqc.numerics.asp.parameters_asp_lrti import parameters
 
 #%%
 def plot_eigenvalues_evolution():
-    parameters["n_steps"] = 10
     ham_params = parameters["ham_params"]
-    h = ham_params['h']
+    h =  ham_params['h']
+    ferro_angle =  format(parameters['ferro_angle']/pi, '.1f')  
+    n_steps = parameters["n_steps"]
     t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]    
-    print(h)
     L = parameters["n_sites"]
     solver = AdiaStatePrepa()
     solver.load_settings(parameters)
@@ -48,9 +44,9 @@ def plot_eigenvalues_evolution():
     #plt.legend()
 
     # Save the plot
-    plt.savefig(f'evolution_eigenvalues_N{L}_h{h}_lrtIsing.png')
+    plt.savefig(f'evolution_eigenvalues_N{L}_h{h}_ferro_angle{ferro_angle}_n_steps{parameters["n_steps"]}_lrtIsing.png')
 
-#plot_eigenvalues_evolution()
+plot_eigenvalues_evolution()
 
 #%%
 #def plot_time_evolution(plot_fidelities = True, plot_amplitudes = True, plot_eigenvector_probabilities = True):
@@ -67,13 +63,11 @@ generate_files = False
 parameters["n_steps"] = 3
 g = 1.2
 h = g
-ferro_angle = 0.3
+ferro_angle = 0.1
 ham_params={'J': 1.0, 'g': g, 'h': h, 'alpha': int(2)}
 parameters["ham_params"]= ham_params
-parameters['initial_state'] = 'ferro'
 parameters['ferro_angle'] = ferro_angle*pi
 t_list = [t for t in np.linspace(parameters["t_initial"], parameters["t_final"], parameters["n_steps"])]   
-
 L = parameters["n_sites"]
 solver = AdiaStatePrepa()
 solver.load_settings(parameters)
@@ -102,7 +96,6 @@ plt.show(block=False)
 gaps = solver.list_gaps
 list_difference_energy_with_gs_hamiltonian = solver.list_difference_energy_with_gs_hamiltonian
 #print("average fidelity: {}".format(np.average(abs(fidelities[:]))))
-
 #if plot_fidelities:
 #fig1 = plt.figure() 
 plt.plot(t_list, abs(fidelities[:]))

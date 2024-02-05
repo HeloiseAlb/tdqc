@@ -24,8 +24,9 @@ def tensor_prod(*arg):
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
 L = 8 #int(sys.argv[1])
 J = 1.0 #float(sys.argv[2])
-g = 5.0 #float(sys.argv[3]) 
+g = 0.5 #float(sys.argv[3]) 
 h = g
+ferro_angle = 0.2
 alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for model_0 and system_class !!
 model_f.parametrize_hamiltonian(*[L, J, alpha, h]) 
@@ -65,7 +66,7 @@ parameters = {
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro','ferro', 
     'ferro_gate_order': 'zy',
-    # 'ferro_angle': ferro_angle*pi,
+    'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 
     #  digital simulator:
@@ -73,109 +74,6 @@ parameters = {
     'gate_order': 'zx',
     'entangling_gates_dir': 'jx',
 
-    # =======================================================================
-    # environment and reinforcement learning
-    # =======================================================================
-    #  'env_type': 'DynamicalEvolution',
-    'env_type': 'DynamicalEvolution_cpp',
-    'algorithm': 'DQN_ReplayMemory',
-    'range_all': 0.2,
-    'range_one': 0.4,
-    'exploration': 'gaussian',
-    #  'exploration': 'uniform'
-
-    #  type of reward
-    #  'measurement': 'fidelity',
-    'average_exponent': 0.5, #useless
-
-    # q_learning parameters:
-    'n_episodes': 50000,#int(5e4),
-    #  'n_episodes': 100,
-
-    'epsilon_max': 1.0,
-    'epsilon_min': 0.005,
-    # corresponds to pp=0.9 with n_episode = 1e5
-    'epsilon_decay': 0.9999411315398542,
-    'n_epochs': 1,
-    'model_update_spacing': 20, #20
-    'n_simulations': 1,
-    # =======================================================================
-    # neural networks
-    # =======================================================================
-    #  'network_type': 'MultiInterStep',
-    #  'network_type': 'MultiIntraStep',
-    'network_type': 'SingleDense',
-    'seed': 2,
-    'architectures': [[(150, 'tanh'),
-                       (40, 'relu'),
-                       #  (20, 'relu'),
-                       (1, 'sigmoid')]],
-    #  'architectures': [[(50, 'tanh'),
-    #                     (20, 'relu'),
-    #                     #  (20, 'relu'),
-    #                     (1, 'sigmoid')]],
-    #  'architectures': [[(40, 'tanh'),
-    #                     (40, 'relu'),
-    #                     #  (20, 'relu'),
-    #                     (1, 'sigmoid')],
-    #                    [(40, 'tanh'),
-    #                     (40, 'relu'),
-    #                     #  (20, 'relu'),
-    #                     (1, 'sigmoid')],
-    #                    [(60, 'tanh'),
-    #                     (40, 'relu'),
-    #                     #  (20, 'relu'),
-    #                     (1, 'sigmoid')]],
-    #  'max_q_optimizer': {
-    #      'algorithm': 'NAG',
-    #      'momentum': 0.9,
-    #      'learning_rate': 0.6,
-    #      #  'learning_rate': 0.2,
-    #      #  'n_initial_actions': 5,
-    #      'n_initial_actions': 15,
-    #      #  'n_initial_actions': 30,
-    #      #  'n_iterations': 20,
-    #      #  'n_iterations': 500,
-    #      'n_iterations': 20,
-    #      #  'n_iterations': 5001,
-    #      #  'n_iterations': 100,
-    #      #  'n_iterations': 6,
-    #      'convergence_threshold': 0.005,
-    #      #  'convergence_threshold': 0.01,
-    #      #  'action_initialization': 'random'
-    #      'action_initialization': 'uniform'
-    #      #  'action_initialization': 'fixed random'
-    #  },
-
-    'max_q_optimizer': {
-        # To perform backpropagation on Q_behavior.
-        'algorithm': 'adam',
-        # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
-        'learning_rate': 0.005,#005,#0.6,#005
-        'beta_1': 0.9,
-        'beta_2': 0.999,
-        'epsilon': 1e-8, 
-        #  'n_initial_actions': 5,
-        'n_initial_actions': 5,
-        #'n_iterations': 1000,
-        'n_iterations': 50, #500
-        'convergence_threshold': 0.005,
-        'action_initialization': 'random'
-        #  'action_initialization': 'uniform'
-        #  'action_initialization': 'fixed random'
-    },
-
-    'target_params':{
-            'solver': StateProvider(),
-            'mode': 'state_copier',
-            'state_to_copy': state_to_copy
-            }
     }
 
 
-parameters_replay_memory = {
-    'capacity': 50,
-    'sampling_size': 50,
-    'NN_optimizer': 'adam',
-    'n_epochs': 1
-   }
