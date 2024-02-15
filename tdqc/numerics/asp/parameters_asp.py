@@ -26,7 +26,7 @@ def tensor_prod(*arg):
 L = int(sys.argv[1])
 J = float(sys.argv[2])
 g = float(sys.argv[3]) 
-ferro_angle = pi*float(sys.argv[4]) 
+ferro_angle = float(sys.argv[4]) 
 h = g # The notation can be confusing. It is the h of the Transversal Long range Ising model.
 alpha = int(2)
 model_f = copy.deepcopy(lr_trans_ising_model)
