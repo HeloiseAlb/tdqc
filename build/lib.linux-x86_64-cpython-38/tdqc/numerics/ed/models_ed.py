@@ -5,10 +5,8 @@ import numpy as np
 from numpy import linalg
 import scipy as sci
 import numpy as np
-from math import log2
+from math import log2, cos, sin
 import cmath
-
-
 
 h_bar = 1 # 1.054571817*10**(-34) # in J.s
 
@@ -20,7 +18,7 @@ spin_op= {
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')} 
 
-def globalize_op(local_op,site,L):
+def globalize_op(local_op: np.ndarray, site: int, L: int):
     '''
     Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
@@ -63,6 +61,7 @@ class Model(object):
         self.__eig_values = eig_values
         self.__eig_vectors = eig_vectors
         self.__ground_states = self.calculate_ground_states(eig_values,eig_vectors)
+        self.__ground_state = self.__ground_states[:,0]
 
     @property
     def hamiltonian(self,):
@@ -87,6 +86,12 @@ class Model(object):
         if self.__ground_states is None:
             raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the ground_states.")
         return self.__ground_states
+
+    @property
+    def ground_state(self,):
+        if self.__ground_state is None:
+            raise ValueError("The method parametrize_hamiltonian need to be run before in order to get the ground_states.")
+        return self.__ground_state
 
     @classmethod
     def class_method(cls):
@@ -117,7 +122,7 @@ def hamiltonian_xxz(L, Jxy, Jzz, PDB=False):
     return H
 xxz_model = Model("xxz_model", hamiltonian_xxz)
 
-def hamiltonian_lri(L,J,alpha,m_x,m_z):
+def hamiltonian_lri(L, J, alpha, m_x, m_z):
     """
     hamiltonian_lri returns the Hamiltonian matrix of a one-dimensional spin chain with L sites, 
     where each site is represented by a two-level quantum system or a spin-1/2 particle.
@@ -147,12 +152,10 @@ lri_model = Model("lri_model", hamiltonian_lri)
 
 def hamiltonian_trans_ising(L, J, h):
     '''
-    Hamiltonian of the transverse field Ising model 
-    taken from PhysRevLett.111.147205 equation 9. 
-
+    Hamiltonian of the transverse field Ising model. We consider only the nearest neighbor interactions. 
+    
     L: an integer that specifies the number of sites in the spin chain
     J: a floating-point number that controls the strength of the spin-spin interactions
-    alpha: a floating-point number that controls the decay of the interactions with distance
     h: a floating-point number corresponding to the strength of the transverse field
     return H: 2^L x 2^L complex array representing the Hamiltonian matrix in the computational basis. 
     '''
@@ -165,10 +168,44 @@ def hamiltonian_trans_ising(L, J, h):
     for j in range(0, L-1, 1):
         H += -J * np.dot(list_glob_operators[j], list_glob_operators[j+1])
     for j in range(0, L, 1):
-        H += h * globalize_op(spin_op["sigma_z"], j, L)
+        H += -h * globalize_op(spin_op["sigma_z"], j, L)
     return H
 
 trans_ising_model = Model("trans_ising_model", hamiltonian_trans_ising)
+
+
+def hamiltonian_lr_trans_ising(L, J, alpha, h):
+    '''
+    Hamiltonian of the long range transverse field Ising model 
+    taken from PhysRevLett.111.147205 equation 9. 
+    
+    L: an integer that specifies the number of sites in the spin chain
+    J: a floating-point number that controls the strength of the spin-spin interactions
+    h: a floating-point number corresponding to the strength of the transverse field
+    return H: 2^L x 2^L complex array representing the Hamiltonian matrix in the computational basis. 
+    '''
+    # Non Periodic Boundary Conditions
+    list_glob_operators =  [None] * L
+    # Create the list of global operators
+    for site in range(0, L, 1):
+        list_glob_operators[site] = globalize_op(spin_op["sigma_x"], site, L)    
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    for j in range(0, L-1):
+        for k in range(j+1, L):
+            H -= J * ((k-j)**(-alpha)) * np.dot(list_glob_operators[j], list_glob_operators[k])
+    for j in range(0, L, 1):
+        H -= h * globalize_op(spin_op["sigma_z"], j, L)
+    return H
+
+lr_trans_ising_model = Model("lr_trans_ising_model", hamiltonian_lr_trans_ising)
+
+def hamiltonian_trans_field(L, h, ferro_angle):
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    H -= cos(ferro_angle) * sum([globalize_op(spin_op["sigma_z"], j, L) for j in range(0,L,1)])
+    H += sin(ferro_angle) * sum([globalize_op(spin_op["sigma_y"], j, L) for j in range(0,L,1)])
+    return h*H
+
+trans_field_model = Model("transverse_field", hamiltonian_trans_field)
 
 class State(object):
     '''
@@ -215,6 +252,16 @@ class State(object):
     def get_density_matrix(self,):
         self._density_mat = np.tensordot(np.conjugate(self.vec_state), self.vec_state, axes=0)
         return self._density_mat
+
+    def rotate_parallel_spins(self, rotation_angle: float):
+        """
+        Apply an X-axis rotation to each qubit with the specified angle rotation_angle.
+        """
+        x_rotation_gate = np.array([[cos(rotation_angle/2), -1j*sin(rotation_angle/2)], [-1j*sin(rotation_angle/2), cos(rotation_angle/2)]])
+        for qubit in range(self.n_sites):
+            global_gate = globalize_op(x_rotation_gate, qubit, self.n_sites)
+            self.vec_state = np.dot(global_gate, self.vec_state) 
+
     
     @classmethod
     def class_method(cls):

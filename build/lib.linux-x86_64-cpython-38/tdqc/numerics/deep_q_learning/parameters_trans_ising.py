@@ -22,6 +22,7 @@ def tensor_prod(*arg):
 # Initializing model
 L = 10 # 10 # Must be the same as n_sites. It is the number of sites in the physical system.
 J = 1.0
+g = 2.0
 h = 2.0
 alpha = int(3)
 model = copy.deepcopy(trans_ising_model)
@@ -39,11 +40,11 @@ parameters = {
     'system_class': 'TransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
-        'J': 1.0,
+        'J': J,
         #  #  g: x, h: z
-        'g': 2.0,
-        'h': 2.0,
-        'alpha': 3.0, # In Adrien's code, it was 2.0 but it make more sense to use 3.0 w.r.t. the model of the Hamiltonian.
+        'g': g,
+        'h': h,
+        'alpha': alpha, # In Adrien's code, it was 2.0 but it make more sense to use 3.0 w.r.t. the model of the Hamiltonian.
         'm_c': 0.5,
         'w_c': 1.0,
         'j_c': 1.0

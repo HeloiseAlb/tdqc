@@ -34,7 +34,7 @@ from abc import ABCMeta, abstractmethod
 import random
 from collections import namedtuple
 import numpy as np
-#import sys 
+import sys 
 import json
 #from pathlib import Path
 import time
@@ -62,10 +62,6 @@ class DeepQLearning(Solver):
         """
         Initialize settings stored in local variable self.__settings
         """
-        if not "n_simulations" in settings:
-            self.n_simulations = 1
-        else: 
-            self.n_simulations = settings["n_simulations"]
         if not "n_episodes" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'n_episodes' parameter not found")
         self.n_episodes = settings["n_episodes"]
@@ -163,7 +159,7 @@ class DeepQLearning(Solver):
                              'EnergyMinimizer_cpp']:
             self.best_encountered_rewards = (
                 [0]*(len(self.best_encountered_actions) - 1)
-                + [self.env.reward(self.best_encountered_actions,self.rho_target)]
+                + [self.env.reward(self.best_encountered_actions,state_target=self.state_target)]
             )
             
         print('Final reward of the initial action sequence'
@@ -268,7 +264,6 @@ class DeepQLearning(Solver):
     def get_rho_target_from_other_solver(self,)-> np.ndarray:
         target_params = self.__target_params
         if not "state" in target_params:
-            print("self.env.initial_state:{}".format(self.env.initial_state.shape))
             initial_state = self.env.initial_state
             n_sites = self.env.get_n_sites()
             np.reshape(initial_state, (2**n_sites))
@@ -293,7 +288,7 @@ class DQLWithReplayMemory(DeepQLearning):
         super().__init__()
         self.seetings_replay_memory_loaded = False    
         
-    def load_seetings_replay_memory(self,capacity, sampling_size, NN_optimizer, n_epochs,loss='logcosh', *args, **kwargs):
+    def load_seetings_replay_memory(self, capacity, sampling_size, NN_optimizer, n_epochs,loss='logcosh', *args, **kwargs):
 
         self.model.compile(optimizer=NN_optimizer, loss=loss,
                            metrics=['mse', 'mae'])
@@ -324,7 +319,8 @@ class DQLWithReplayMemory(DeepQLearning):
             # env.step modifies env.current_state
             # (state is env.current_state)
             time_start_compute_reward = time.time()
-            state, reward, done, _ = self.env.step(action,rho_target=self.rho_target)
+            # state, reward, done, _ = self.env.step(action,rho_target=self.rho_target)
+            state, reward, done, _ = self.env.step(action, state_target=self.state_target)
             reward_sequence.append(reward)
             time_end_compute_reward = time.time()
             self.time_compute_reward_sum += time_end_compute_reward - time_start_compute_reward
@@ -388,63 +384,67 @@ class DQLWithReplayMemory(DeepQLearning):
         rho_target = self.get_rho_target_from_other_solver()
         intermediate_time = time.time()
 
-        for simul in range(0,self.n_simulations,1):
-            # The loop here is not working because it does not initialize the NN. 
-            # Get the initial reward (useful to get the Trotter reward).
-            # note: when the initial actions are random, the seed is not the same.
-            initial_action_sequence = self.env.initial_action_sequence(False)
-            initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)
-            #  print("The initial reward is (Trotter or random) ", initial_reward)
-            rewards = self.run()
-            end_time = time.time()
-            parametername = 'NoPD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'simulations'+str(simul)+'t_final'+str(self.t_final)
-            self.save_best_encountered_actions('json',
-                                                    'best_gate_sequence'+parametername+'.json')
-            try:
-                reward_filename = 'rewards'+parametername+'.npy'
-                with open(reward_filename, 'wb') as f:
-                    np.save(f, rewards)
-            except Exception as e:
-                print(reward_filename+' could not be saved.')
-                print('--->', e)
-            info_dic = {
-                #  'parameters': parameters,
-                'initial_reward': initial_reward,
-                'best_reward': str(self.best_encountered_rewards),
-                'total_time': end_time - start_time,
-                'deep_q_learning_time': end_time - intermediate_time,
-                'ed_time': intermediate_time - start_time,
-                'best_final_state': str(self.best_final_state),
-                'target_state': str(self.state_target),
-                'time_fit_network_sum': self.time_fit_network_sum,
-                'time_compute_reward_sum': self.time_compute_reward_sum,
-                'time_select_action_sum': self.time_select_action_sum,
-                'time_reduced_density_matrix': self.env.time_reduced_density_matrix_iteration,
-                #  'ground_state_energy': ground_state_energy,
-                #  'final_reward': rewards[-1],
-                }   
-            try: 
-                exploration_vs_exploitation_filename = 'exploration_vs_exploitation'+parametername+'.npy'
-                with open(exploration_vs_exploitation_filename, 'wb') as f:
-                    np.save(f, self.exploration_vs_exploitation)
-            except Exception as e:
-                print(exploration_vs_exploitation_filename+' could not be saved.')
-                print('--->', e)
-            try: 
-                best_final_state_filename = 'best_final_state'+parametername+'.npy'
-                with open(best_final_state_filename, 'wb') as f:
-                    np.save(f, self.best_final_state)
-            except Exception as e:
-                print(best_final_state_filename+' could not be saved.')
-                print('--->', e)
-            try:
-                result_info_filename = 'results_info'+parametername+'.json'
-                with open(result_info_filename, 'w') as f:
-                    json.dump(info_dic, f, indent=2)
-                print(result_info_filename+' written.')
-            except Exception as e:
-                print(result_info_filename+' could not be saved.')
-                print('--->', e)
+        # note: when the initial actions are random, the seed is not the same.
+        initial_action_sequence = self.env.initial_action_sequence(False)
+        initial_reward = self.env.reward(action_sequence=initial_action_sequence,state_target=self.state_target)
+        rewards = self.run()
+        end_time = time.time()
+        parametername = 'lrti_PD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
+        self.save_best_encountered_actions('json',
+                                                'best_gate_sequence'+parametername+'.json')
+        try:
+            reward_filename = 'rewards'+parametername+'.npy'
+            with open(reward_filename, 'wb') as f:
+                np.save(f, rewards)
+        except Exception as e:
+            print(reward_filename+' could not be saved.')
+            print('--->', e)
+        info_dic = {
+            'parameters': self.ham_params,
+            'initial_reward': initial_reward,
+            'best_reward': str(self.best_encountered_rewards),
+            'total_time': end_time - start_time,
+            'deep_q_learning_time': end_time - intermediate_time,
+            'ed_time': intermediate_time - start_time,
+            'best_final_state': str(self.best_final_state),
+            'target_state': str(self.state_target),
+            'time_fit_network_sum': self.time_fit_network_sum,
+            'time_compute_reward_sum': self.time_compute_reward_sum,
+            'time_select_action_sum': self.time_select_action_sum,
+            'time_reduced_density_matrix': self.env.time_reduced_density_matrix_iteration,
+            'initial_state': str(self.env.initial_state), 
+            #  'ground_state_energy': ground_state_energy,
+            #  'final_reward': rewards[-1],
+            }   
+        try: 
+            exploration_vs_exploitation_filename = 'exploration_vs_exploitation'+parametername+'.npy'
+            with open(exploration_vs_exploitation_filename, 'wb') as f:
+                np.save(f, self.exploration_vs_exploitation)
+        except Exception as e:
+            print(exploration_vs_exploitation_filename+' could not be saved.')
+            print('--->', e)
+        try: 
+            best_final_state_filename = 'best_final_state'+parametername+'.npy'
+            with open(best_final_state_filename, 'wb') as f:
+                np.save(f, self.best_final_state)
+        except Exception as e:
+            print(best_final_state_filename+' could not be saved.')
+            print('--->', e)
+        try:
+            result_info_filename = 'results_info'+parametername+'.json'
+            with open(result_info_filename, 'w') as f:
+                json.dump(info_dic, f, indent=2)
+            print(result_info_filename+' written.')
+        except Exception as e:
+            print(result_info_filename+' could not be saved.')
+            print('--->', e)
+        try:
+            target_state_filename = 'target_state'+parametername+'.npy'
+            with open(target_state_filename, 'wb') as f:
+                np.save(f, self.state_target)
+        except Exception as e:
+            print(reward_filename+' could not be saved.')
+            print('--->', e)
 
 
 Episode = namedtuple('Episode', ('action_sequence',

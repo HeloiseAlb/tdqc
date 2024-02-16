@@ -131,7 +131,7 @@ class Trotterization(Solver):
         rho_target = self.get_rho_target_from_other_solver()
         start_time = time.time()   
         self.action_trotterization = self.trotterization_circuit()
-        reward_trotterization = self.env.reward(action_sequence=self.action_trotterization,rho_target=rho_target)
+        reward_trotterization = self.env.reward(action_sequence=self.action_trotterization, rho_target=rho_target)
         end_time = time.time()
         parametername = 'trotterization_N'+str(self.env.n_sites)+'n_steps'+str(self.n_steps)+'t_final'+str(self.t_final)
         self.save_trotterization_actions('json',

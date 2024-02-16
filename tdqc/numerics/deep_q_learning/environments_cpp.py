@@ -338,7 +338,6 @@ class DynamicalEvolution(QuantumEnv):
         self.final_state = final_state
         rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)     
         return self.local_reward(rho_target, rho_DQS, n_qubits)
-        
 
     def get_ground_state_energy(self, return_eigenvectors: bool=False)-> float:
         """Return the ground state energy."""
@@ -400,58 +399,58 @@ class DynamicalEvolution(QuantumEnv):
         r_local = env_cpp.local_reward_cpp(rho1, rho2, n_qubits, positiveDefinite) 
         return r_local
 
-    # def reduced_density_matrix(self, rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
-    #     time_start = time.time()
-    #     """
-    #     Take as input a density matrix rho_init representing a quantum state, and two integers site1 and site2 that indicate 
-    #     the indices of two subsystems in the state. The function then returns the reduced density matrix obtained by tracing 
-    #     out all subsystems except for subsystems site1 and site2 which is a 4-by-4 matrix.
-    #     """
-    #     rho = rho_init 
-    #     if n_qubits == None:
-    #         n_qubits = int(log2(rho.shape[0]))
-    #     n = n_qubits
-    #     if site1>site2:
-    #         site1, site2 = site2, site1
-    #     if site1>0:
-    #         n1, n2 =int(2**(site1)), int(2**(n-site1))
-    #         rho = rho.reshape([n1, n2, n1, n2])
-    #         rho = np.trace(rho, axis1=0, axis2=2)
-    #         n -= site1
-    #         site2 -= site1
-    #     if site2>1:
-    #         n1, n2 = int(2**(site2-1)), int(2**(n-site2))
-    #         rho = rho.reshape([2,n1,n2,2,n1,n2])
-    #         rho = np.trace(rho,axis1=1,axis2=4)
-    #         n -= site2-1
-    #     if n>2:
-    #         n2 = int(2**(n-2))
-    #         rho = rho.reshape([4, n2, 4, n2])
-    #         rho = np.trace(rho, axis1=1, axis2=3)
-    #     rho = rho.reshape([4, 4])
-    #     time_end = time.time()
-    #     self.time_reduced_density_matrix_iteration += time_end - time_start
-    #     return rho
+    def reduced_density_matrix(self, rho_init: np.ndarray, site1: int, site2: int, n_qubits: int=None)-> np.ndarray:
+        time_start = time.time()
+        """
+        Take as input a density matrix rho_init representing a quantum state, and two integers site1 and site2 that indicate 
+        the indices of two subsystems in the state. The function then returns the reduced density matrix obtained by tracing 
+        out all subsystems except for subsystems site1 and site2 which is a 4-by-4 matrix.
+        """
+        rho = rho_init 
+        if n_qubits == None:
+            n_qubits = int(log2(rho.shape[0]))
+        n = n_qubits
+        if site1>site2:
+            site1, site2 = site2, site1
+        if site1>0:
+            n1, n2 =int(2**(site1)), int(2**(n-site1))
+            rho = rho.reshape([n1, n2, n1, n2])
+            rho = np.trace(rho, axis1=0, axis2=2)
+            n -= site1
+            site2 -= site1
+        if site2>1:
+            n1, n2 = int(2**(site2-1)), int(2**(n-site2))
+            rho = rho.reshape([2,n1,n2,2,n1,n2])
+            rho = np.trace(rho,axis1=1,axis2=4)
+            n -= site2-1
+        if n>2:
+            n2 = int(2**(n-2))
+            rho = rho.reshape([4, n2, 4, n2])
+            rho = np.trace(rho, axis1=1, axis2=3)
+        rho = rho.reshape([4, 4])
+        time_end = time.time()
+        self.time_reduced_density_matrix_iteration += time_end - time_start
+        return rho
 
-# def relative_entropy(rho1: np.ndarray, rho2: np.ndarray, positiveDefinite:bool=True)-> float:
-#     if positiveDefinite:
-#         # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
-#         eVals1, eVecs1 = eigh(rho1) 
-#         eVals1 = np.maximum(eVals1, 0)
-#         eVals2, eVecs2 = eigh(rho2)
-#         eVals2 = np.maximum(eVals2, 0)
-#         relativeEntropy = 0
-#         for index1, value1 in enumerate(eVals1):
-#             if value1 > 0:
-#                 subsum_index1 = 0
-#                 relativeEntropy += value1 * (log(value1))
-#                 for index2, value2 in enumerate(eVals2):
-#                     if value2 > 0 :
-#                         subsum_index1 += abs( np.dot(np.conj(eVecs2[:, index2]),eVecs1[:, index1]))**2 * log(value2)
-#                 relativeEntropy -= value1 * subsum_index1
-#         return np.real(relativeEntropy)
-#     else:
-#         return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
+def relative_entropy(rho1: np.ndarray, rho2: np.ndarray, positiveDefinite:bool=True)-> float:
+    if positiveDefinite:
+        # Diagonalization the matrix to compute the quantum relative entropy. The matrices must be hermitian positive semidefinite.
+        eVals1, eVecs1 = eigh(rho1) 
+        eVals1 = np.maximum(eVals1, 0)
+        eVals2, eVecs2 = eigh(rho2)
+        eVals2 = np.maximum(eVals2, 0)
+        relativeEntropy = 0
+        for index1, value1 in enumerate(eVals1):
+            if value1 > 0:
+                subsum_index1 = 0
+                relativeEntropy += value1 * (log(value1))
+                for index2, value2 in enumerate(eVals2):
+                    if value2 > 0 :
+                        subsum_index1 += abs( np.dot(np.conj(eVecs2[:, index2]),eVecs1[:, index1]))**2 * log(value2)
+                relativeEntropy -= value1 * subsum_index1
+        return np.real(relativeEntropy)
+    else:
+        return np.trace(np.dot(rho1,(logm(rho1)-logm(rho2))))
 
 def tensor_prod(*arg):
     """tensor_prod(a1, a2) = np.kron(a1, a2).

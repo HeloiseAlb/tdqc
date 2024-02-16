@@ -80,3 +80,13 @@ class EDSolver(Solver):
             raise ValueError("The method solve need to be run before in order to get the target_state")
         target = self.__final_state.get_vector_state()
         return target
+
+    def save_state(self,):
+        parameter_name = 'state_ED_N'+str(self.__state.n_sites)+'t_final'+str(self.t_final)+'model'+str(self.__model.name)
+        try:
+            state_filename = parameter_name+'.npy'
+            with open(state_filename, 'wb') as f:
+                np.save(f, self.__final_state)
+        except Exception as e:
+            print(state_filename+' could not be saved.')
+            print('--->', e)
