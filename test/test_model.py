@@ -1,3 +1,4 @@
+#%%
 import pytest
 import tdqc
 import matplotlib
@@ -8,6 +9,7 @@ import numpy as np
 from tdqc.numerics.ed.models_ed import *
 from tdqc.numerics.ed.exact_diagonalisation import *
 from tdqc.solver.ed import EDSolver
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_logger(record_testsuite_property):
     import logging
@@ -17,8 +19,7 @@ def setup_logger(record_testsuite_property):
 @pytest.mark.fast
 def test_model_structure():
     from tdqc.numerics.ed.models_ed import Model
-    
-    # A model must have a Hamilatonian (required for EDSolver.py)
+    # A model must have a Hamiltonian (required for EDSolver.py)
     # A model must have methods to get hamiltonian, eig_values,eig_vectors,ground_state (required for EDSolver.py)
 
 @pytest.mark.fast
@@ -50,8 +51,6 @@ def test_lri_model():
     print("psi_t_1:{}".format(psi_t_n._density_mat))
     t_list = [t for t in np.arange(t_initial,t_final,step)]
     pass
-
-test_lri_model()
 
 @pytest.mark.fast
 def test_ed_solver_structure():
@@ -132,8 +131,28 @@ def test_lri_model_solve():
     plt.savefig('test.png')
     #gs = ground_states(eig_values,eig_vectors)
 
-test_lri_model_solve()
+@pytest.mark.fast
+def test_fermionic_system():
+    from tdqc.numerics.ed.models_ed import f_dagger
+    
+    site=0
+    L=1
+    f_dagger_fct = f_dagger(site, L)
+    f_dagger_theory = np.array([[0,1], [0,0]])
+    assertion = (f_dagger_fct==f_dagger_theory)
+    assert assertion.all()
 
+    f_fct = f(site, L)
+    f_theory = np.array([[0,0], [-1,0]])
+    assertion = (f_fct==f_theory)
+    assert assertion.all()
+
+
+
+
+    
+
+test_fermionic_system()
 '''
     #print("Eigenvectors:{}".format(eig_vectors))
     print(eig_values)
@@ -187,3 +206,5 @@ test_lri_model_solve()
     plt.title('Time evolution of the projection of the state of the system onto the ground state(s)')
     plt.show()
 '''
+
+# %%

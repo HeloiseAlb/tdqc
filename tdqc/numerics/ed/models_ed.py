@@ -1,3 +1,17 @@
+"""
+This script encodes the classes Model and State. 
+Model is a class of model of Hamiltonian, in this file is encoded several instance of this class 
+corresponding to several models of Hamiltonian. One have to take care when using these instance to copy 
+then before to use them not to use directly the instance which will then be modify. 
+State is a class of encoding the quantum states. 
+
+CONVENTIONS
+spin down: [1,0]
+spin up: [0,1]
+The spin sites are number from the right to the left. 
+Ex: a system of 2 spins: spin site 0: |0> and spin site 1: |1> will be written |10>.
+"""
+
 #!/usr/bin/env python
 # coding: utf-8
 from scipy.linalg import expm
@@ -5,7 +19,8 @@ import numpy as np
 from numpy import linalg
 import scipy as sci
 import numpy as np
-from math import log2, cos, sin
+from typing import Optional
+from math import log2, cos, sin, pi
 import cmath
 
 h_bar = 1 # 1.054571817*10**(-34) # in J.s
@@ -23,14 +38,64 @@ def globalize_op(local_op: np.ndarray, site: int, L: int):
     Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
     '''
-    tensor_0 = np.identity(1,dtype = 'complex128')
-    for i in range(0,site,1):
-        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-    tensor_0 = np.kron(tensor_0,local_op)
-    for i in range(site+1,L,1):
-        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-    return tensor_0
+    if L<=0:
+        raise ValueError("L must be a non negative integer.")
+    elif L ==1:
+        return local_op
+    else:  
+        tensor_0 = np.identity(1,dtype = 'complex128')
+        for i in range(0,site,1):
+            tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+        tensor_0 = np.kron(tensor_0,local_op)
+        for i in range(site+1,L,1):
+            tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+        return tensor_0
 
+def f_dagger(site: int, L: int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    The site are numbered from 0 so we should have site<L.
+    '''
+    if site>=L:
+        raise ValueError("We should have site<L, the site being numbered from 0.")
+    return globalize_op(spin_op["sigma_+"], site, L)
+
+def f(site: int, L: int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    The site are numbered from 0 so we should have site<L.
+    '''
+    if site>=L:
+        raise ValueError("We should have site<L, the site being numbered from 0.")
+    return globalize_op(spin_op["sigma_-"], site, L)    
+
+def string(site: int, L: int, negative_sign: Optional[bool]=False)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    '''
+    if site == 0:
+        return np.identity(2**L)
+    else: #if site > 0: 
+        sum_operators = sum([np.dot(f_dagger(k,L), f(k,L)) for k in range(0, site, 1)])
+
+    if negative_sign:
+        return expm(-1j*pi*sum_operators)
+    else:
+        return expm(1j*pi*sum_operators)
+
+def creator(site: int, L:int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    Return the fermionin creator operator on the site site taking into account the string. 
+    '''
+    return np.dot(string(site, L, False),f_dagger(site, L))
+
+def annihilator(site: int, L:int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    Return the fermionin creator operator on the site site taking into account the string. 
+    '''
+    return np.dot(string(site, L, True),f(site, L))
 
 class Model(object):
     # Class attribute
