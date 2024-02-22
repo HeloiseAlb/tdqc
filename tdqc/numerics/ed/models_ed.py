@@ -272,6 +272,23 @@ def hamiltonian_trans_field(L, h, ferro_angle):
 
 trans_field_model = Model("transverse_field", hamiltonian_trans_field)
 
+def tight_binding_second_quantization_matrix(g: float, N: int)-> np.ndarray:
+    """
+    The tight-binding model in the language of second quantization. See equation 3.46 of the course 
+    Second quantization by Gabriel T. Landi, University of São Paulo. November 8, 2019
+    http://www.fmt.if.usp.br/~gtlandi/courses/second-quantization-4.pdf
+    N is the particle number.
+    g is the hopping integral. 
+    It is defined for open boundary conditions. 
+    """
+    H = np.zeros((2**(N), 2**(N)), dtype='complex128')
+    for k in range(0, N-1):
+        H+= np.dot(creator(k, N),annihilator(k+1, N))
+    H+=H.conj().T
+    return -g*H 
+
+tb_second_quantization = Model("tight_binding_second_quantization", tight_binding_second_quantization_matrix)
+
 class State(object):
     '''
     init_vec_state: type <class 'numpy.ndarray'>
