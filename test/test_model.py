@@ -38,7 +38,6 @@ def test_lri_model():
     # The initial state is a uniform superposition.
     initial_state = np.ones([2**L], dtype='complex128')/2**(L-1)
     psi_t_n = State(initial_state)
-    #print("psi_t_n.get_state_format_ml():{}".format(psi_t_n.get_state_format_ml()))
     H = model.hamiltonian
     eig_values,eig_vectors = np.linalg.eig(H)
     t_initial = 0
@@ -149,27 +148,32 @@ def test_fermionic_system():
 def test_tb_model():
     tb_2quanti = copy.deepcopy(tb_second_quantization)
     g = 1
-    N = 2
+    N = 3
     tb_2quanti.parametrize_hamiltonian(*[g,N])
     gs_per_site_list = []
     site_list = [l for l in range(1, N, 1)]
     # The initial state is a uniform superposition.
     initial_state = np.ones([2**N], dtype='complex128')/2**(N-1)
     psi_t_n = State(initial_state)
-    #print("psi_t_n.get_state_format_ml():{}".format(psi_t_n.get_state_format_ml()))
     H = tb_2quanti.hamiltonian
-    eig_values,eig_vectors = np.linalg.eig(H)
+    eig_values, eig_vectors = np.linalg.eigh(H)
+    #print("eig_values:{}".format(eig_values))
+    #print("eig_vectors:{}".format(eig_vectors))
+    for i, eif_v in enumerate(eig_vectors):
+        print("eigen_vector:{} with eigenval:{} ".format(eig_vectors[:, i],eig_values[i]))
+
     t_initial = 0
     t_final = 1
     step = 0.1
     exact_diagonalization = ExactDiagonalization(tb_2quanti, N, initial_state,t_final,t_initial,step)
     ground_state = exact_diagonalization.get_ground_state()
-    print("gs:{}".format(ground_state))
-    print("psi_t_0:{}".format(psi_t_n._density_mat))
+    #print("gs:{}".format(ground_state))
+    #print("psi_t_0:{}".format(psi_t_n._density_mat))
     psi_t_n.time_step_ed( tb_2quanti, delta_t = step, imaginary=False)
-    print("psi_t_1:{}".format(psi_t_n._density_mat))
+    #print("psi_t_1:{}".format(psi_t_n._density_mat))
     t_list = [t for t in np.arange(t_initial,t_final,step)]
-    pass
+    return eig_values
+    # pass
 
 
 
