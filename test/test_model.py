@@ -148,12 +148,12 @@ def test_fermionic_system():
 def test_tb_model():
     tb_2quanti = copy.deepcopy(tb_second_quantization)
     g = 1
-    N = 3
-    tb_2quanti.parametrize_hamiltonian(*[g,N])
+    L = 3
+    tb_2quanti.parametrize_hamiltonian(*[L,g])
     gs_per_site_list = []
-    site_list = [l for l in range(1, N, 1)]
+    site_list = [l for l in range(1, L, 1)]
     # The initial state is a uniform superposition.
-    initial_state = np.ones([2**N], dtype='complex128')/2**(N-1)
+    initial_state = np.ones([2**L], dtype='complex128')/2**(L-1)
     psi_t_n = State(initial_state)
     H = tb_2quanti.hamiltonian
     eig_values, eig_vectors = np.linalg.eigh(H)
@@ -165,7 +165,7 @@ def test_tb_model():
     t_initial = 0
     t_final = 1
     step = 0.1
-    exact_diagonalization = ExactDiagonalization(tb_2quanti, N, initial_state,t_final,t_initial,step)
+    exact_diagonalization = ExactDiagonalization(tb_2quanti, L, initial_state,t_final,t_initial,step)
     ground_state = exact_diagonalization.get_ground_state()
     #print("gs:{}".format(ground_state))
     #print("psi_t_0:{}".format(psi_t_n._density_mat))
