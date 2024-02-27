@@ -3,8 +3,9 @@ Here, I will run the simulations to prepare the ground state of the tight bindin
 in the second quantification. However, the circuit is the one from the previous simulation 
 (long range transverse Ising model). That is the structure of the circuit is the 
 Trotterization of the long range Ising model. This is expressed in the system_class. 
+For that reason, we also need the parameters for the LRTI model.  
 """
-
+#%%
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
@@ -29,33 +30,44 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-# sys.argv = [name_of_the_program, L, J, g]
+# sys.argv = [name_of_the_program, L, g, ferro_angle, sim]
 print("sys.argv:{}".format(sys.argv))
 L = int(sys.argv[1])
 g = float(sys.argv[2])
+h = g
 ferro_angle = float(sys.argv[3])
+J = 1
 alpha = int(2)
-model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for system_class !!
+model_f = copy.deepcopy(tb_second_quantization) # Change it also for system_class !!
 model_f.parametrize_hamiltonian(*[L, g])
-ground_states = model_f.ground_states 
-vector_to_copy = np.array(ground_states, dtype='complex128')
+ground_state = model_f.ground_state 
+# print("ground_state:{}".format(ground_state))
+vector_to_copy = np.array(ground_state, dtype='complex128')
 norm = np.linalg.norm(vector_to_copy)
 vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
+# I put the followimg parameters outside of the dictionary because they also appear in 
+# the name_for_file entry. 
+n_episodes = 50000
+t_final = 1.0 # This is the tau in the article.
 parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'n_sites':  L,
+    'name_for_file': 'tb_fermions_PD_N'+str(L)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
+    'n_sites': L,
     'n_steps': 3,
     't_initial': 0.0,
-    't_final': 1.0, # This is the tau in the article.
+    't_final': t_final, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'LongRangeTransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
         'g': g,
+        'alpha': int(2),
+        'h': h,
+        'J': J
     },
     
     # 'initial_state': 'random_product_state', 
@@ -85,7 +97,7 @@ parameters = {
     'average_exponent': 0.5, #useless
 
     # q_learning parameters:
-    'n_episodes': 50000,#int(5e4),
+    'n_episodes': n_episodes,#50000,#int(5e4),
     #  'n_episodes': 100,
 
     'epsilon_max': 1.0,
@@ -174,3 +186,4 @@ parameters_replay_memory = {
     'NN_optimizer': 'adam',
     'n_epochs': 1
    }
+# %%

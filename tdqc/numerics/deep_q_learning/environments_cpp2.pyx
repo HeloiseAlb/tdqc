@@ -117,11 +117,10 @@ cpdef float relative_entropy_cpp(np.ndarray rho1, np.ndarray rho2, bint positive
 cpdef float local_reward_cpp(np.ndarray rho1, np.ndarray rho2, int n_qubits, bint positiveDefinite): 
     cdef int j, k 
     cdef complex r_local, sum_measures # I changed "double complex" to "complex"
-    
     if n_qubits == None:
         n_qubits = int(log2(rho1.shape[0]))
     sum_measures = 0
-    for j in range(0,n_qubits-1):
+    for j in range(0, n_qubits-1):
         for k in range(j+1, n_qubits):
             sum_measures += cmath.sqrt(relative_entropy_cpp(reduced_density_matrix_cpp(rho1, j, k, n_qubits), reduced_density_matrix_cpp(rho2, j, k, n_qubits), positiveDefinite))
     

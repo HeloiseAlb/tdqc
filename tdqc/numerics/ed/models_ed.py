@@ -125,7 +125,7 @@ class Model(object):
         eig_values, eig_vectors = np.linalg.eigh(self.__hamiltonian) 
         self.__eig_values = eig_values
         self.__eig_vectors = eig_vectors
-        self.__ground_states = self.calculate_ground_states(eig_values,eig_vectors)
+        self.__ground_states = self.calculate_ground_states(eig_values, eig_vectors)
         self.__ground_state = self.__ground_states[:,0]
 
     @property
@@ -289,11 +289,11 @@ def tight_binding_second_quantization_matrix(L: int, g: float)-> np.ndarray:
 
 tb_second_quantization = Model("tight_binding_second_quantization", tight_binding_second_quantization_matrix)
 
-def fermion_star():
+def fermion_star(L: int)-> np.ndarray:
     """
     To do.
     """
-    H = np.zeros((2**(N), 2**(N)), dtype='complex128')
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
     return H
 
 class State(object):

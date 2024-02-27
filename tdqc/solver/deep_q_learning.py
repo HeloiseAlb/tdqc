@@ -92,6 +92,10 @@ class DeepQLearning(Solver):
             self.seed = settings["seed"]
         if not "ham_params" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'ham_params' parameter not found")
+        if not "name_for_file" in settings:
+            self.name_for_file = "lrti"
+        else: 
+            self.name_for_file = settings["name_for_file"]
         self.ham_params = settings["ham_params"]
         self.__target_params = settings["target_params"]
         self.__target_params["t_initial"] = settings["t_initial"]
@@ -388,7 +392,13 @@ class DQLWithReplayMemory(DeepQLearning):
         initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)        
         rewards = self.run()
         end_time = time.time()
-        parametername = 'lrti_PD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
+        if self.name_for_file == "lrti":
+            # I need to change the previous parameter files to create that is the parameter file. 
+            # Here, I did a change to have it working despite the difference of structure between the 
+            # parameter files. 
+            parametername = self.name_for_file+'_PD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
+        else: 
+            parametername = self.name_for_file
         self.save_best_encountered_actions('json',
                                                 'best_gate_sequence'+parametername+'.json')
         try:
