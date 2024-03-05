@@ -31,7 +31,7 @@ spin_op= {
     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
-    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')} 
+    "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')} 
 
 def globalize_op(local_op: np.ndarray, site: int, L: int):
     '''
@@ -40,7 +40,7 @@ def globalize_op(local_op: np.ndarray, site: int, L: int):
     '''
     if L<=0:
         raise ValueError("L must be a non negative integer.")
-    elif L ==1:
+    elif L == 1:
         return local_op
     else:  
         tensor_0 = np.identity(1,dtype = 'complex128')
@@ -88,14 +88,14 @@ def creator(site: int, L:int)-> np.ndarray:
     L is the total number of sites in the system.
     Return the fermionin creator operator on the site site taking into account the string. 
     '''
-    return np.dot(string(site, L, False),f_dagger(site, L))
+    return np.dot(string(site, L, False), f_dagger(site, L))
 
 def annihilator(site: int, L:int)-> np.ndarray:
     '''
     L is the total number of sites in the system.
     Return the fermionin creator operator on the site site taking into account the string. 
     '''
-    return np.dot(string(site, L, True),f(site, L))
+    return np.dot(string(site, L, True), f(site, L))
 
 class Model(object):
     # Class attribute
@@ -273,14 +273,14 @@ def hamiltonian_trans_field(L, h, ferro_angle):
 trans_field_model = Model("transverse_field", hamiltonian_trans_field)
 
 def tight_binding_second_quantization_matrix(L: int, g: float)-> np.ndarray:
-    """
+    '''
     The tight-binding model in the language of second quantization. See equation 3.46 of the course 
     Second quantization by Gabriel T. Landi, University of São Paulo. November 8, 2019
     http://www.fmt.if.usp.br/~gtlandi/courses/second-quantization-4.pdf
-    N is the particle number.
-    g is the hopping integral. 
+    L: the particle number,
+    g: the hopping integral, 
     It is defined for open boundary conditions. 
-    """
+    '''
     H = np.zeros((2**(L), 2**(L)), dtype='complex128')
     for k in range(0, L-1):
         H+= np.dot(creator(k, L),annihilator(k+1, L))
@@ -289,12 +289,61 @@ def tight_binding_second_quantization_matrix(L: int, g: float)-> np.ndarray:
 
 tb_second_quantization = Model("tight_binding_second_quantization", tight_binding_second_quantization_matrix)
 
-def fermion_star(L: int)-> np.ndarray:
-    """
-    To do.
-    """
+def anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)-> np.ndarray:
+    '''
+    The Anderson impurity model in the language of second quantization. See equation 1
+    of https://journals.aps.org/pr/pdf/10.1103/PhysRev.124.41. 
+    L: the number of spin sites. It is even because the system has 2 spin sites for the impurity 
+    and 2 spin sites per electron pair of the d shell of the metal. A model with L spin sites 
+    has then (L-2)/2 peripheral locations.
+    They are ordered as follow:
+    (0,1) are the 2 spin-sites of the impurity. The pairs (i, i+1) for i even in [2,L] are 
+    the sites with 2 spins each.
+    The even numbers number the spin up, the odd numbers number the spin down. 
+    E_k: the array of the energies of the free-electron state of momentum k_{index} (the chemical
+        potential). The index is the index in the array. The array needs to be correctly 
+        ordered such as the values correspond to their spin site. The array is of size (L-2)/2.
+    V_k: the array of the hybridization potential between impurity orbitals and conduction electrons
+        of momentum k_{index}. The index is the index in the array. The array needs to be correctly 
+        ordered such as the values correspond to their spin site. The array is of size (L-2)/2. 
+        They can be computed in terms of Wannier functions belonging to the band (see Eq. (6) 
+        of https://journals.aps.org/pr/pdf/10.1103/PhysRev.124.41).
+    E: distance with the Fermi surface.
+    U: the repulsive d-d interaction (that is the on–site Coulomb repulsion).
+    '''
     H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    n_peri_locations = int((L-2)/2) # The number of peripheral locations
+    creator_up_impurity = creator(0, L)
+    annihilator_up_impurity = annihilator(0, L)
+    creator_down_impurity = creator(1, L)
+    annihilator_down_impurity = annihilator(1, L)
+    for location in range(0, n_peri_locations, 1):
+        creator_loc_up = creator(2*location, L)
+        annihilator_loc_up = annihilator(2*location, L)
+        creator_loc_down = creator(2*location+1, L)
+        annihilator_loc_down = annihilator(2*location+1, L)
+        # Unperturbed energy of the free-electron system 
+        H += E_k[location] * ( np.dot(creator_loc_up, annihilator_loc_up) \
+            + np.dot(creator_loc_down, annihilator_loc_down))
+        # s-d interaction term
+        H += V_k[location] * (np.dot(creator_up_impurity, annihilator_loc_up) \
+            + np.dot(creator_down_impurity, annihilator_loc_down) \
+            + np.dot(creator_loc_up, annihilator_up_impurity) \
+            + np.dot(creator_loc_down, annihilator_down_impurity))     
+    number_opertor_up_impurity = np.matmul(creator_up_impurity, annihilator_up_impurity)
+    number_opertor_down_impurity = np.matmul(creator_down_impurity, annihilator_down_impurity)
+    # Unperturbed energy of the state of the impurity atom
+    H += E * (number_opertor_up_impurity + number_opertor_down_impurity)
+    print('number_opertor_up_impurity + number_opertor_down_impurity:{}'.format(number_opertor_up_impurity + number_opertor_down_impurity))
+    print('number_opertor_down_impurity:{}'.format( number_opertor_down_impurity))
+    print('number_opertor_up_impurity :{}'.format(number_opertor_up_impurity ))
+
+    # Replusive energy among the d functions
+
+    H += U * np.dot(number_opertor_up_impurity, number_opertor_down_impurity)
     return H
+
+anderson_impurity_model = Model("anderson_impurity_model", anderson_model)
 
 class State(object):
     '''
