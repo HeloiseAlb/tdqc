@@ -313,15 +313,16 @@ def anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)
     '''
     H = np.zeros((2**(L), 2**(L)), dtype='complex128')
     n_peri_locations = int((L-2)/2) # The number of peripheral locations
+
     creator_up_impurity = creator(0, L)
     annihilator_up_impurity = annihilator(0, L)
     creator_down_impurity = creator(1, L)
     annihilator_down_impurity = annihilator(1, L)
     for location in range(0, n_peri_locations, 1):
-        creator_loc_up = creator(2*location, L)
-        annihilator_loc_up = annihilator(2*location, L)
-        creator_loc_down = creator(2*location+1, L)
-        annihilator_loc_down = annihilator(2*location+1, L)
+        creator_loc_up = creator(2*location+2, L)
+        annihilator_loc_up = annihilator(2*location+2, L)
+        creator_loc_down = creator(2*location+3, L)
+        annihilator_loc_down = annihilator(2*location+3, L)
         # Unperturbed energy of the free-electron system 
         H += E_k[location] * ( np.dot(creator_loc_up, annihilator_loc_up) \
             + np.dot(creator_loc_down, annihilator_loc_down))
@@ -334,12 +335,7 @@ def anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)
     number_opertor_down_impurity = np.matmul(creator_down_impurity, annihilator_down_impurity)
     # Unperturbed energy of the state of the impurity atom
     H += E * (number_opertor_up_impurity + number_opertor_down_impurity)
-    print('number_opertor_up_impurity + number_opertor_down_impurity:{}'.format(number_opertor_up_impurity + number_opertor_down_impurity))
-    print('number_opertor_down_impurity:{}'.format( number_opertor_down_impurity))
-    print('number_opertor_up_impurity :{}'.format(number_opertor_up_impurity ))
-
     # Replusive energy among the d functions
-
     H += U * np.dot(number_opertor_up_impurity, number_opertor_down_impurity)
     return H
 

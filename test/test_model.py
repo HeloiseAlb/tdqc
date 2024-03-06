@@ -177,11 +177,11 @@ def test_tb_model():
 
 def test_anderson_model():
     anderson_instance = copy.deepcopy(anderson_impurity_model)
-    L = 2 # so 2 impurity sites
-    E_k = np.array([0,0,0])
-    V_k = np.array([0,0,0])
+    L = 4 # L=2 <=> 2 impurity sites; L=4 <=> 2 impurity sites and 2 spin sites
+    E_k = np.array([1,1,1,1])
+    V_k = np.array([0,0,0,0])
     E = 1
-    U = 0
+    U = 1
     anderson_instance.parametrize_hamiltonian(*[L, E_k, V_k, E, U])
     gs_per_site_list = []
     site_list = [l for l in range(1, L, 1)]
@@ -190,7 +190,6 @@ def test_anderson_model():
     psi_t_n = State(initial_state)
     H = anderson_instance.hamiltonian
     print("H:{}".format(H))
-
     eig_values, eig_vectors = np.linalg.eigh(H)
     #print("eig_values:{}".format(eig_values))
     #print("eig_vectors:{}".format(eig_vectors))
