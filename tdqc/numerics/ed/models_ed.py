@@ -8,8 +8,8 @@ State is a class of encoding the quantum states.
 CONVENTIONS
 spin down: [1,0]
 spin up: [0,1]
-The spin sites are number from the right to the left. 
-Ex: a system of 2 spins: spin site 0: |0> and spin site 1: |1> will be written |10>.
+The spin sites are number from the left to the right. 
+Ex: a system of 2 spins: spin site 0: |0> and spin site 1: |1> will be written |01>.
 """
 
 #!/usr/bin/env python
@@ -77,23 +77,22 @@ def string(site: int, L: int, negative_sign: Optional[bool]=False)-> np.ndarray:
         return np.identity(2**L)
     else: #if site > 0: 
         sum_operators = sum([np.dot(f_dagger(k,L), f(k,L)) for k in range(0, site, 1)])
-
-    if negative_sign:
-        return expm(-1j*pi*sum_operators)
-    else:
-        return expm(1j*pi*sum_operators)
+        if negative_sign:
+            return expm(-1j*pi*sum_operators)
+        else:
+            return expm(1j*pi*sum_operators)
 
 def creator(site: int, L:int)-> np.ndarray:
     '''
     L is the total number of sites in the system.
-    Return the fermionin creator operator on the site site taking into account the string. 
+    Return the fermionic creator operator on the site site taking into account the string. 
     '''
     return np.dot(string(site, L, False), f_dagger(site, L))
 
 def annihilator(site: int, L:int)-> np.ndarray:
     '''
     L is the total number of sites in the system.
-    Return the fermionin creator operator on the site site taking into account the string. 
+    Return the fermionic annihilator operator on the site site taking into account the string. 
     '''
     return np.dot(string(site, L, True), f(site, L))
 
@@ -289,7 +288,7 @@ def tight_binding_second_quantization_matrix(L: int, g: float)-> np.ndarray:
 
 tb_second_quantization = Model("tight_binding_second_quantization", tight_binding_second_quantization_matrix)
 
-def anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)-> np.ndarray:
+def hamiltonian_anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)-> np.ndarray:
     '''
     The Anderson impurity model in the language of second quantization. See equation 1
     of https://journals.aps.org/pr/pdf/10.1103/PhysRev.124.41. 
@@ -313,7 +312,6 @@ def anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)
     '''
     H = np.zeros((2**(L), 2**(L)), dtype='complex128')
     n_peri_locations = int((L-2)/2) # The number of peripheral locations
-
     creator_up_impurity = creator(0, L)
     annihilator_up_impurity = annihilator(0, L)
     creator_down_impurity = creator(1, L)
@@ -339,7 +337,7 @@ def anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)
     H += U * np.dot(number_opertor_up_impurity, number_opertor_down_impurity)
     return H
 
-anderson_impurity_model = Model("anderson_impurity_model", anderson_model)
+anderson_impurity_model = Model("anderson_impurity_model", hamiltonian_anderson_model)
 
 class State(object):
     '''

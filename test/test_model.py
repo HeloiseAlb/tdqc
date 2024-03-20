@@ -178,10 +178,10 @@ def test_tb_model():
 def test_anderson_model():
     anderson_instance = copy.deepcopy(anderson_impurity_model)
     L = 4 # L=2 <=> 2 impurity sites; L=4 <=> 2 impurity sites and 2 spin sites
-    E_k = np.array([1,1,1,1])
-    V_k = np.array([0,0,0,0])
-    E = 1
-    U = 1
+    E_k = np.array([0])
+    V_k = np.array([1])
+    E = 0
+    U = 0
     anderson_instance.parametrize_hamiltonian(*[L, E_k, V_k, E, U])
     gs_per_site_list = []
     site_list = [l for l in range(1, L, 1)]

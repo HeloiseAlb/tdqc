@@ -7393,7 +7393,7 @@ if (!__Pyx_RefNanny) {
  *     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
  *     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),             # <<<<<<<<<<<<<<
  *     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
- *     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+ *     "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')}
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -7456,7 +7456,7 @@ if (!__Pyx_RefNanny) {
  *     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
  *     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
  *     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),             # <<<<<<<<<<<<<<
- *     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+ *     "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')}
  * 
  */
   __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 12, __pyx_L1_error)
@@ -7519,7 +7519,7 @@ if (!__Pyx_RefNanny) {
   /* "tdqc/numerics/deep_q_learning/environments_cpp2.pyx":13
  *     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
  *     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
- *     "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}             # <<<<<<<<<<<<<<
+ *     "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')}             # <<<<<<<<<<<<<<
  * 
  * 
  */
@@ -7542,7 +7542,7 @@ if (!__Pyx_RefNanny) {
   PyList_SET_ITEM(__pyx_t_2, 1, __pyx_t_7);
   __pyx_t_3 = 0;
   __pyx_t_7 = 0;
-  __pyx_t_4 = __Pyx_c_sum_double(__pyx_t_double_complex_from_parts(-1L, 0), __pyx_t_double_complex_from_parts(0, 0.0));
+  __pyx_t_4 = __Pyx_c_sum_double(__pyx_t_double_complex_from_parts(1, 0), __pyx_t_double_complex_from_parts(0, 0.0));
   __pyx_t_7 = __pyx_PyComplex_FromComplex(__pyx_t_4); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __pyx_t_4 = __Pyx_c_sum_double(__pyx_t_double_complex_from_parts(0, 0), __pyx_t_double_complex_from_parts(0, 0.0));

@@ -10,7 +10,7 @@ spin_op= {
     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
-    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+    "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')}
 
 
 cpdef np.ndarray U_x(float theta):
