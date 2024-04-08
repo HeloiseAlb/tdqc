@@ -372,7 +372,7 @@ class DQLWithReplayMemory(DeepQLearning):
         #  target Q(s_t, a_t) = sum_{t'>=t} r_t = r_{t_final}
         #  NOTE: I use the fact that all rewards are 0.0 except the final one.
         #  More generally, one would have to do a cummulative sum of ys along the
-        #  axis=1 starting from the end
+        #  axis=1 starting from the end.
         final_rewards = ys[:, -1].reshape(-1, 1)
         ys[:, :-1] = np.tile(final_rewards, (1, ys.shape[1] - 1))
 

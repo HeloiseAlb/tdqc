@@ -55,12 +55,20 @@ def test_deep_q_learning_state_provider_solve_trans_ising():
 
 @pytest.mark.slow
 def test_deep_q_learning_state_provider_solve_tight_binding_model():
-    from tdqc.solver.deep_q_learning import DeepQLearning, DQLWithReplayMemory
-    from tdqc.numerics.ed.models_ed import State
+    from tdqc.solver.deep_q_learning import DQLWithReplayMemory
     from tdqc.numerics.ed.models_ed import tb_second_quantization
     from tdqc.numerics.state_provider.parameters_state_provider_tight_bindig_chain import parameters, parameters_replay_memory
     solver = DQLWithReplayMemory()
     solver.load_settings(settings=parameters)
     solver.load_seetings_replay_memory(**parameters_replay_memory)
     solver.solve()
-test_deep_q_learning_state_provider_solve_tight_binding_model()
+
+@pytest.mark.slow
+def test_deep_q_learning_state_provider_solve_anderson_model_square():
+    from tdqc.solver.deep_q_learning import DQLWithReplayMemory
+    from tdqc.numerics.state_provider.parameters_state_provider_anderson_model_square_lattice import parameters, parameters_replay_memory
+    solver = DQLWithReplayMemory()
+    solver.load_settings(settings=parameters)
+    solver.load_seetings_replay_memory(**parameters_replay_memory)
+    solver.solve()
+test_deep_q_learning_state_provider_solve_anderson_model_square()

@@ -65,6 +65,10 @@ class StateActionNeuralNetwork():
         self.architecture = architecture
         self.build_model()
 
+        # The K.gradients returns the gradients, that is a gradients tensor, of the first 
+        # argument, a scalar tensor to minimize (here, self.model.outputs), w.r.t. the 
+        # second argument, a list of variables (here, self.model.inputs). Then, it only 
+        # keeps the gradients w.r.t. the variables of the actions (that is the angles). 
         self.output_action_gradient = K.gradients(
             self.model.outputs, self.model.inputs
         )[0][0, -self.action_dim:]
@@ -411,7 +415,7 @@ class SingleDeepQNetwork():
         # One episode contains `n_steps` network inputs.
         real_batch_size = self.n_steps * batch_size
 
-        # no TD anymore, juste MC method:
+        # no TD anymore, just MC method:
         # for a given sample i, all ys[i, :] should be equal
 
         train = np.zeros(shape=(batch_size,

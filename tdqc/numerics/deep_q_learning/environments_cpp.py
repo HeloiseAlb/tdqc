@@ -30,7 +30,8 @@ spin_op= {
     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]], dtype = 'complex128'),
     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]], dtype = 'complex128'),
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]], dtype = 'complex128'),
-    "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]], dtype = 'complex128')}
+    "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]], dtype = 'complex128'),
+    "hadamard": sqrt(2)*np.array([[1,1],[1,-1]], dtype = 'complex128')}
 
 def globalize_op(local_op: np.ndarray, site: int, L: int)-> np.ndarray:
     """ Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
@@ -61,6 +62,7 @@ class QuantumEnv():
                  range_all: float,
                  entangling_gates_dir: str ='jx', # Useless
                  ferro_angle: Optional[float]=None,
+                 predefined_init_vec: Optional[np.ndarray]=None,
                  # periodic_boundary_conditions: bool =False,
                  **other_params)-> None:
         
@@ -98,6 +100,14 @@ class QuantumEnv():
             self.set_initial_state(seed_initial_state,
                                     initial_state,
                                     ferro_angle)
+        elif initial_state == "predefined_state":
+            if predefined_init_vec == None:
+                raise ValueError('For initial_state == predefined_state, the variable predefined_init_vec'
+                            'must be a np.ndarray not a None.')
+            self.set_initial_state(seed_initial_state,
+                        initial_state,
+                        ferro_angle=None,
+                        predefined_init_vec=predefined_init_vec)
         else:
             self.set_initial_state(seed_initial_state,
                                    initial_state)
@@ -152,7 +162,7 @@ class QuantumEnv():
     def get_n_sites(self)-> int:
         return self.n_sites
 
-    def set_initial_state(self, seed: Optional[int], initial_state: str, angle_ferro=None)-> None:
+    def set_initial_state(self, seed: Optional[int], initial_state: str, angle_ferro=None, predefined_init_vec: Optional[np.ndarray]=None)-> None:
         if initial_state == 'random_product_state':
             np.random.seed(seed)
             #  randomly directed vector on the unit sphere
@@ -208,6 +218,9 @@ class QuantumEnv():
             else:
                 raise ValueError('initial_state = ground_state is not implemented for'
                              'your system_class.')
+        elif initial_state == 'predefined_state':
+            # The state predefined_init_vec is defined in the dictionary of parameters as an np.array.  
+            self.initial_state = predefined_init_vec
         else:
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
