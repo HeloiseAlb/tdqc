@@ -171,6 +171,7 @@ class DeepQLearning(Solver):
         self.time_select_action_sum = 0
         self.time_compute_reward_sum = 0
         self.time_fit_network_sum = 0 
+        self.time_gradient_ascent = 0
         self.exploration_vs_exploitation = []
         for episode in range(self.n_episodes):
 
@@ -218,9 +219,11 @@ class DeepQLearning(Solver):
     
 
     def select_action(self, mode, state, step=0):
+        time_start_gradient_ascent = time.time()
         action, _ = self.model.get_max_output(step=step,
                                               state=state,
                                               use_target=False)
+        self.time_gradient_ascent += time.time() - time_start_gradient_ascent
         if mode == 'greedy':
             pass
         elif mode == 'explore':
@@ -374,6 +377,9 @@ class DQLWithReplayMemory(DeepQLearning):
         #  More generally, one would have to do a cummulative sum of ys along the
         #  axis=1 starting from the end.
         final_rewards = ys[:, -1].reshape(-1, 1)
+        
+        # ys becomes an array containing the final_reward (r_{t_final}) of the sampling for each steps of the episode
+        # that is for each of r_t.
         ys[:, :-1] = np.tile(final_rewards, (1, ys.shape[1] - 1))
 
         self.model.fit(action_sequences, ys, sampling_size, epochs)
@@ -421,6 +427,7 @@ class DQLWithReplayMemory(DeepQLearning):
             'time_compute_reward_sum': self.time_compute_reward_sum,
             'time_select_action_sum': self.time_select_action_sum,
             'time_reduced_density_matrix': self.env.time_reduced_density_matrix_iteration,
+            'time_gradient_ascent': self.time_gradient_ascent, 
             'initial_state': str(self.env.initial_state), 
             #  'ground_state_energy': ground_state_energy,
             #  'final_reward': rewards[-1],
