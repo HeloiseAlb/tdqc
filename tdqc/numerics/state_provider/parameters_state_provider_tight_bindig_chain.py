@@ -30,8 +30,10 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-# sys.argv = [name_of_the_program, L, g, ferro_angle, sim]
+# sys.argv = [name_of_the_program, L, g, ferro_angle, sim, epsilon_decay]
 print("sys.argv:{}".format(sys.argv))
+learning_rate = 0.01
+epsilon_decay = float(sys.argv[5])
 L = int(sys.argv[1])
 g = float(sys.argv[2])
 h = g
@@ -49,13 +51,13 @@ state_to_copy = State(vector_to_copy)
 
 # I put the followimg parameters outside of the dictionary because they also appear in 
 # the name_for_file entry. 
-n_episodes = 50000
+n_episodes = 350000
 t_final = 1.0 # This is the tau in the article.
 parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'tb_fermions_PD_N'+str(L)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
+    'name_for_file': 'tb_fermions_PD_N'+str(L)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
     'n_sites': L,
     'n_steps': 3,
     't_initial': 0.0,
@@ -103,7 +105,7 @@ parameters = {
     'epsilon_max': 1.0,
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
-    'epsilon_decay': 0.9999411315398542,
+    'epsilon_decay': epsilon_decay,# 0.9999411315398542,
     'n_epochs': 1,
     'model_update_spacing': 20, #20
     # =======================================================================
@@ -158,7 +160,7 @@ parameters = {
         # To perform backpropagation on Q_behavior.
         'algorithm': 'adam',
         # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
-        'learning_rate': 0.005,#005,#0.6,#005
+        'learning_rate': learning_rate,#0.005,#0.6,#005
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8, 

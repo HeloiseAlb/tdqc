@@ -101,7 +101,7 @@ class QuantumEnv():
                                     initial_state,
                                     ferro_angle)
         elif initial_state == "predefined_state":
-            if predefined_init_vec == None:
+            if predefined_init_vec is None:
                 raise ValueError('For initial_state == predefined_state, the variable predefined_init_vec'
                             'must be a np.ndarray not a None.')
             self.set_initial_state(seed_initial_state,
@@ -162,7 +162,7 @@ class QuantumEnv():
     def get_n_sites(self)-> int:
         return self.n_sites
 
-    def set_initial_state(self, seed: Optional[int], initial_state: str, angle_ferro=None, predefined_init_vec: Optional[np.ndarray]=None)-> None:
+    def set_initial_state(self, seed: Optional[int], initial_state: str, ferro_angle: Optional[np.ndarray]=None, predefined_init_vec: Optional[np.ndarray]=None)-> None:
         if initial_state == 'random_product_state':
             np.random.seed(seed)
             #  randomly directed vector on the unit sphere
@@ -191,7 +191,7 @@ class QuantumEnv():
             self.state_imag = np.zeros(2 ** self.n_sites)
             temporary_vec_state = self.state_real + 1j*self.state_imag
             state = State(temporary_vec_state)
-            state.rotate_parallel_spins(angle_ferro)
+            state.rotate_parallel_spins(ferro_angle)
             self.initial_state = state.get_vector_state()
             self.state_real = np.real(self.initial_state)
             self.state_imag = np.imag(self.initial_state)
@@ -221,6 +221,8 @@ class QuantumEnv():
         elif initial_state == 'predefined_state':
             # The state predefined_init_vec is defined in the dictionary of parameters as an np.array.  
             self.initial_state = predefined_init_vec
+            self.state_real = predefined_init_vec.real
+            self.state_imag = predefined_init_vec.imag
         else:
             raise NotImplementedError(f'Initial state of type {initial_state} '
                                       'not implemented.')
@@ -345,6 +347,8 @@ class DynamicalEvolution(QuantumEnv):
         
         # Normalizaton of the final state
         norm_final_state = np.linalg.norm(final_state)
+        print('norm_final_state:{}'.format(norm_final_state))
+        print('final_state:{}'.format(final_state))
         if norm_final_state != 0:
             final_state = final_state / norm_final_state
         
