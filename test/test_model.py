@@ -207,12 +207,34 @@ def test_anderson_model():
     #print("psi_t_1:{}".format(psi_t_n._density_mat))
     t_list = [t for t in np.arange(t_initial,t_final,step)]
     return eig_values
-    # pass
+ 
 
+def number_of_particle_anderson():
+    anderson_instance = copy.deepcopy(anderson_impurity_model_tridiagonal)
+    L = 8 # L=2 <=> 2 impurity sites; L=4 <=> 2 impurity sites and 2 spin sites
+    E_k = np.array([-1.353633082708697533,-3.886596945793371893e-02,1.237242218373216351])
+    V_k = np.array([9.518621810161435881e-2,1.109370682087390536e-1,9.833858307543467958e-2])
+    E = 0
+    U = 8
+    anderson_instance.parametrize_hamiltonian(*[L, E_k, V_k, E, U])
+    H = anderson_instance.hamiltonian
+    gs_per_site_list = []
+    site_list = [l for l in range(1, L, 1)]
+    # Build the particle number operator.
+    number_operator = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    for site in range(0, L):
+        number_operator += np.dot(creator(site, L), annihilator(site, L))
+    print("number_operator:{}".format(number_operator))
+    eig_values, eig_vectors = np.linalg.eigh(H)
+    #print("eig_values:{}".format(eig_values))
+    #print("eig_vectors:{}".format(eig_vectors))
+    for i, eif_v in enumerate(eig_vectors):
+        print("eigen_vector:{} with eigenval:{} ".format(eig_vectors[:, i],eig_values[i]))
+    ground_state = anderson_instance.ground_state
+    number_of_particle = np.dot(ground_state.conj().T, np.dot(number_operator, ground_state))
+    print(number_of_particle)
 
-    
-
-test_anderson_model()
+number_of_particle_anderson()
 '''
     #print("Eigenvectors:{}".format(eig_vectors))
     print(eig_values)

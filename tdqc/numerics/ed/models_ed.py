@@ -14,7 +14,7 @@ Ex: a system of 2 spins: spin site 0: |0> and spin site 1: |1> will be written |
 
 #!/usr/bin/env python
 # coding: utf-8
-from scipy.linalg import expm
+from scipy.linalg import expm, hessenberg
 import numpy as np
 from numpy import linalg
 import scipy as sci
@@ -43,12 +43,12 @@ def globalize_op(local_op: np.ndarray, site: int, L: int):
     elif L == 1:
         return local_op
     else:  
-        tensor_0 = np.identity(1,dtype = 'complex128')
+        tensor_0 = np.identity(1, dtype = 'complex128')
         for i in range(0,site,1):
-            tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-        tensor_0 = np.kron(tensor_0,local_op)
-        for i in range(site+1,L,1):
-            tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
+            tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
+        tensor_0 = np.kron(tensor_0, local_op)
+        for i in range(site+1, L, 1):
+            tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
         return tensor_0
 
 def f_dagger(site: int, L: int)-> np.ndarray:
@@ -98,10 +98,13 @@ def annihilator(site: int, L:int)-> np.ndarray:
 
 class Model(object):
     # Class attribute
-    
-    def __init__(self, name, model_hamiltonian):
+    def __init__(self, name, model_hamiltonian, tridiagonal=False):
         self.name = name
         self.model_hamiltonian = model_hamiltonian
+        if tridiagonal:
+            self.tridiagonalization = True
+        else: 
+            self.tridiagonalization = False
         self.__eig_values = None
         self.__eig_vectors = None
         self.__ground_states = None
@@ -120,7 +123,11 @@ class Model(object):
 
     def parametrize_hamiltonian(self, *parameter):
         fonction = self.model_hamiltonian
-        self.__hamiltonian = fonction(*parameter)
+        if self.tridiagonalization: 
+            self.__hamiltonian, self.hessenberg_unitary = hessenberg(fonction(*parameter), calc_q=True)
+        else:
+            self.__hamiltonian = fonction(*parameter)
+            self.hessenberg_unitary = None
         eig_values, eig_vectors = np.linalg.eigh(self.__hamiltonian) 
         self.__eig_values = eig_values
         self.__eig_vectors = eig_vectors
@@ -160,8 +167,6 @@ class Model(object):
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of Hamiltonian."
-
-
 
 # Models XXZ
 def hamiltonian_xxz(L, Jxy, Jzz, PDB=False):
@@ -338,6 +343,7 @@ def hamiltonian_anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: floa
     return H
 
 anderson_impurity_model = Model("anderson_impurity_model", hamiltonian_anderson_model)
+anderson_impurity_model_tridiagonal = Model("anderson_impurity_model", hamiltonian_anderson_model, tridiagonal=True)
 
 class State(object):
     '''

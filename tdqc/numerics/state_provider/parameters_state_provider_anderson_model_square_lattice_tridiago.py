@@ -10,10 +10,20 @@ from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
 from math import pi, sqrt
-from tdqc.numerics.ed.models_ed import Model, State, anderson_impurity_model
+from tdqc.numerics.ed.models_ed import Model, State, anderson_impurity_model, anderson_impurity_model_tridiagonal
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
+from scipy.linalg import hessenberg
 import sys 
+
+def is_tridiago(A):
+    n, m = A.shape
+    for i in range(0,n):
+        for j in range(0,m):
+            if i!=j and i!=j+1 and i!=j-1:
+                if abs(A[i,j])>10**(-8):
+                    return False
+    return True
 
 def tensor_prod(*arg):
     """
@@ -44,10 +54,10 @@ V_k = np.array([9.518621810161435881e-2,1.109370682087390536e-1,9.83385830754346
 E = 0
 U = 8
 h = g
-ferro_angle = float(sys.argv[2])
+ferro_angle = 0 # float(sys.argv[2])
 J = 1
 alpha = int(2)
-model_f = copy.deepcopy(anderson_impurity_model) # Change it also for system_class !!
+model_f = copy.deepcopy(anderson_impurity_model_tridiagonal) # Change it also for system_class !!
 model_f.parametrize_hamiltonian(*[L, E_k, V_k, E, U])
 ground_state = model_f.ground_state 
 # print("ground_state:{}".format(ground_state))
@@ -78,7 +88,7 @@ parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'Anderson_square_fermions_PD_N_initstate_ferro_'+str(L)+'learning_rate'+str(learning_rate)+'epsilon_decay'+str(epsilon_decay)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'E'+str(E)+'U'+str(U)+'ferro_angle'+str(ferro_angle)+'sim'+str(int(sys.argv[3])),
+    'name_for_file': 'Anderson_square_fermions_tridiago_PD_N_initstate_ferro_'+str(L)+'learning_rate'+str(learning_rate)+'epsilon_decay'+str(epsilon_decay)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'E'+str(E)+'U'+str(U)+'ferro_angle'+str(ferro_angle),#+'sim'+str(int(sys.argv[3])),
     'n_sites': L,
     'n_steps': 3,
     't_initial': 0.0,
