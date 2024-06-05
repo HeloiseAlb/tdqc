@@ -6,10 +6,11 @@ then before to use them not to use directly the instance which will then be modi
 State is a class of encoding the quantum states. 
 
 CONVENTIONS
-spin down: [1,0]
-spin up: [0,1]
-The spin sites are number from the left to the right. 
+spin down: |0> = [1,0]
+spin up: |1> = [0,1]
+The spin sites are number from the left to the right: |qubit_0, qubit_1, qubit_2, ...>. 
 Ex: a system of 2 spins: spin site 0: |0> and spin site 1: |1> will be written |01>.
+Once encoded in the basis 2, to access the 
 """
 
 #!/usr/bin/env python
@@ -44,7 +45,7 @@ def globalize_op(local_op: np.ndarray, site: int, L: int):
         return local_op
     else:  
         tensor_0 = np.identity(1, dtype = 'complex128')
-        for i in range(0,site,1):
+        for i in range(0, site, 1):
             tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
         tensor_0 = np.kron(tensor_0, local_op)
         for i in range(site+1, L, 1):
@@ -58,7 +59,7 @@ def f_dagger(site: int, L: int)-> np.ndarray:
     '''
     if site>=L:
         raise ValueError("We should have site<L, the site being numbered from 0.")
-    return globalize_op(spin_op["sigma_+"], site, L)
+    return globalize_op(spin_op["sigma_-"], site, L)
 
 def f(site: int, L: int)-> np.ndarray:
     '''
@@ -67,7 +68,7 @@ def f(site: int, L: int)-> np.ndarray:
     '''
     if site>=L:
         raise ValueError("We should have site<L, the site being numbered from 0.")
-    return globalize_op(spin_op["sigma_-"], site, L)    
+    return globalize_op(spin_op["sigma_+"], site, L)    
 
 def string(site: int, L: int, negative_sign: Optional[bool]=False)-> np.ndarray:
     '''
