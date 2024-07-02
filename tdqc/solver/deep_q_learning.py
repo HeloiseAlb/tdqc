@@ -279,8 +279,7 @@ class DeepQLearning(Solver):
         #target_params.pop('solver', None)
         solver_for_target.load_settings(target_params)
         solver_for_target.solve()
-        state_target = solver_for_target.get_state_target()
-        self.state_target = state_target
+        self.state_target = solver_for_target.get_state_target()
         rho_target = solver_for_target.get_rho_target()
         self.rho_target = rho_target
         return rho_target

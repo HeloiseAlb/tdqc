@@ -69,7 +69,7 @@ state_to_copy = State(vector_to_copy)
 # Build the initial state
 # It needs to be taken into account in the computation. 
 init_vec_state = np.zeros(2**L, dtype='complex128')
-init_vec_state[0] = 1.0
+init_vec_state[240] = 1.0
 # For 12 qubits
 # init_vec_state[2032] = 1.0/sqrt(2)
 # init_vec_state[3056] = 1.0/sqrt(2)
@@ -88,7 +88,7 @@ parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'Anderson_square_fermions_tridiago_PD_N_initstate_ferro_'+str(L)+'learning_rate'+str(learning_rate)+'epsilon_decay'+str(epsilon_decay)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'E'+str(E)+'U'+str(U)+'ferro_angle'+str(ferro_angle),#+'sim'+str(int(sys.argv[3])),
+    'name_for_file': 'Anderson_square_fermions_tridiago_PD_N_init240_'+str(L)+'learning_rate'+str(learning_rate)+'epsilon_decay'+str(epsilon_decay)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'E'+str(E)+'U'+str(U)+'ferro_angle'+str(ferro_angle),#+'sim'+str(int(sys.argv[3])),
     'n_sites': L,
     'n_steps': 3,
     't_initial': 0.0,

@@ -73,6 +73,8 @@ def f(site: int, L: int)-> np.ndarray:
 def string(site: int, L: int, negative_sign: Optional[bool]=False)-> np.ndarray:
     '''
     L is the total number of sites in the system.
+    Note that e^(iπn_j) = e^(−iπn_j) is a Hermitian operator so that the overall sign of the phase
+    factors can be reversed without changing the spin operator.
     '''
     if site == 0:
         return np.identity(2**L)
@@ -113,13 +115,12 @@ class Model(object):
 
     def calculate_ground_states(self, eig_values, eig_vectors):
         length_vector = eig_vectors.shape[0]
-        min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
+        min_indices = np.asarray( abs(eig_values-eig_values.min())<10**(-12) ).nonzero() #np.where(eig_values == eig_values.min())
+        # The .nonzero() method returns the indices of the elements that are True in the boolean array.
         min_indices = np.asarray(min_indices)[0]
-        ground_states = np.zeros([length_vector,min_indices.shape[0]],complex)
+        ground_states = np.zeros([length_vector,min_indices.shape[0]], complex)
         for idx, value in enumerate(min_indices):
-            eig_vector = eig_vectors[:,value]
-            eig_vector = eig_vector[:]
-            ground_states[:, idx] = eig_vector
+            ground_states[:, idx] = eig_vectors[:,value]
         return ground_states
 
     def parametrize_hamiltonian(self, *parameter):
@@ -396,10 +397,13 @@ class State(object):
         """
         Apply an X-axis rotation to each qubit with the specified angle rotation_angle.
         """
-        x_rotation_gate = np.array([[cos(rotation_angle/2), -1j*sin(rotation_angle/2)], [-1j*sin(rotation_angle/2), cos(rotation_angle/2)]])
-        for qubit in range(self.n_sites):
-            global_gate = globalize_op(x_rotation_gate, qubit, self.n_sites)
-            self.vec_state = np.dot(global_gate, self.vec_state) 
+        if rotation_angle == 0.0:
+            pass
+        else: 
+            x_rotation_gate = np.array([[cos(rotation_angle/2), -1j*sin(rotation_angle/2)], [-1j*sin(rotation_angle/2), cos(rotation_angle/2)]])
+            for qubit in range(self.n_sites):
+                global_gate = globalize_op(x_rotation_gate, qubit, self.n_sites)
+                self.vec_state = np.dot(global_gate, self.vec_state) 
 
     
     @classmethod

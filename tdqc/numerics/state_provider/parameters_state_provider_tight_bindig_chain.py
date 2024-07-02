@@ -45,21 +45,22 @@ model_f.parametrize_hamiltonian(*[L, g])
 ground_state = model_f.ground_state 
 # print("ground_state:{}".format(ground_state))
 vector_to_copy = np.array(ground_state, dtype='complex128')
-norm = np.linalg.norm(vector_to_copy)
-vector_to_copy = vector_to_copy / norm
+vector_to_copy /= np.linalg.norm(vector_to_copy)
 state_to_copy = State(vector_to_copy)
 
 # I put the followimg parameters outside of the dictionary because they also appear in 
 # the name_for_file entry. 
-n_episodes = 350000
+n_episodes = 200000
 t_final = 1.0 # This is the tau in the article.
+initial_state_class = 'antiferro'
+n_steps = 3
 parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'tb_fermions_PD_N'+str(L)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
+    'name_for_file': 'tb_fermions_PD_N'+str(L)+'n_steps'+str(n_steps)+'_Init_state'+str(initial_state_class)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
     'n_sites': L,
-    'n_steps': 3,
+    'n_steps': n_steps,
     't_initial': 0.0,
     't_final': t_final, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
@@ -74,7 +75,7 @@ parameters = {
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': 'ferro',#'ferro_with_angle', #'ferro',
+    'initial_state': initial_state_class,#'ferro_with_angle', #'ferro',
     'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 
@@ -188,4 +189,4 @@ parameters_replay_memory = {
     'NN_optimizer': 'adam',
     'n_epochs': 1
    }
-# %%
+

@@ -218,6 +218,7 @@ def number_of_particle_anderson():
     U = 8
     anderson_instance.parametrize_hamiltonian(*[L, E_k, V_k, E, U])
     H = anderson_instance.hamiltonian
+    Q = anderson_instance.hessenberg_unitary
     gs_per_site_list = []
     site_list = [l for l in range(1, L, 1)]
     # Build the particle number operator.
@@ -225,6 +226,7 @@ def number_of_particle_anderson():
     for site in range(0, L):
         number_operator += np.dot(creator(site, L), annihilator(site, L))
     print("number_operator:{}".format(number_operator))
+    number_operator = np.dot(Q.conj().T, np.dot(number_operator, Q))
     eig_values, eig_vectors = np.linalg.eigh(H)
     #print("eig_values:{}".format(eig_values))
     #print("eig_vectors:{}".format(eig_vectors))
@@ -233,8 +235,9 @@ def number_of_particle_anderson():
     ground_state = anderson_instance.ground_state
     number_of_particle = np.dot(ground_state.conj().T, np.dot(number_operator, ground_state))
     print(number_of_particle)
+    return number_of_particle
 
-number_of_particle_anderson()
+n = number_of_particle_anderson()
 '''
     #print("Eigenvectors:{}".format(eig_vectors))
     print(eig_values)
