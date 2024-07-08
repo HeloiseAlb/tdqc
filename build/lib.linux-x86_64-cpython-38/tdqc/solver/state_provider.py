@@ -10,7 +10,7 @@ spin_op= {
     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
-    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')}
+    "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')}
 
 def tensor_prod(*arg):
     """tensor_prod(a1, a2) = np.kron(a1, a2).

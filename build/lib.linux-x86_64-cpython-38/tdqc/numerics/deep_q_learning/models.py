@@ -65,6 +65,10 @@ class StateActionNeuralNetwork():
         self.architecture = architecture
         self.build_model()
 
+        # The K.gradients returns the gradients, that is a tensor of gradients, of the first 
+        # argument, a scalar tensor to minimize (here, self.model.outputs), w.r.t. the 
+        # second argument, a list of variables (here, self.model.inputs). Then, it only 
+        # keeps the gradients w.r.t. the variables of the actions (that is the angles). 
         self.output_action_gradient = K.gradients(
             self.model.outputs, self.model.inputs
         )[0][0, -self.action_dim:]
@@ -126,11 +130,21 @@ class StateActionNeuralNetwork():
                              f"state_dim=={self.state_dim}.")
 
         def evaluate_output(action):
-            # action should be np.float32?
+            """
+            This function returns the output of the neural network for a given 
+            state (here state is a onehot encoding the number of the layer) according 
+            to the action given as an argument of the function.
+            """
             network_input = np.concatenate([state, action]).reshape(1, -1)
             return self.model.predict(network_input)[0][0]
 
         def evaluate_gradient(action):
+            """
+            This function returns the gradients of the neural network - that is a tensor
+            of gradients - w.r.t. the parameter ACTION only. The output does not contain 
+            the gradients w.r.t. the state - here, state refers to the onehot encoding 
+            the steps.  
+            """
             network_input = np.concatenate([state, action]).reshape(1, -1)
             return self.evaluate_output_action_gradient(network_input)
 
@@ -411,7 +425,7 @@ class SingleDeepQNetwork():
         # One episode contains `n_steps` network inputs.
         real_batch_size = self.n_steps * batch_size
 
-        # no TD anymore, juste MC method:
+        # no TD anymore, just MC method:
         # for a given sample i, all ys[i, :] should be equal
 
         train = np.zeros(shape=(batch_size,

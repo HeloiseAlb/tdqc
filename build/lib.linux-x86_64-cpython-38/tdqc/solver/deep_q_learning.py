@@ -92,11 +92,26 @@ class DeepQLearning(Solver):
             self.seed = settings["seed"]
         if not "ham_params" in settings:
             raise ValueError("Error loading deep_q_learning-solver settings, 'ham_params' parameter not found")
-        self.ham_params = settings["ham_params"]
+        if not "name_for_file" in settings:
+            self.name_for_file = "lrti"
+        else: 
+            self.name_for_file = settings["name_for_file"]
         self.__target_params = settings["target_params"]
+
+        if not "hamiltonian_matrix" in settings:
+            self.do_you_compute_energy_difference = False
+        else:
+            target_state = self.__target_params['state_to_copy']
+            target_state_vector = target_state.get_vector_state()
+            self.hamiltonian_matrix = settings["hamiltonian_matrix"]
+            self.energy_target_state = self.compute_energy(target_state_vector)
+            self.do_you_compute_energy_difference = True
+            self.list_energy_difference = np.zeros(self.n_episodes)
+        self.ham_params = settings["ham_params"]        
         self.__target_params["t_initial"] = settings["t_initial"]
         self.__target_params["t_final"] = settings["t_final"]
         self.t_final = settings["t_final"]
+        
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
@@ -167,6 +182,7 @@ class DeepQLearning(Solver):
         self.time_select_action_sum = 0
         self.time_compute_reward_sum = 0
         self.time_fit_network_sum = 0 
+        self.time_gradient_ascent = 0
         self.exploration_vs_exploitation = []
         for episode in range(self.n_episodes):
 
@@ -193,6 +209,9 @@ class DeepQLearning(Solver):
                 self.best_final_state = final_state
             #print('rewards[episode, :]:{},reward_sequence:{}'.format(rewards[episode, :],reward_sequence))
             rewards[episode, :] = reward_sequence
+            if self.do_you_compute_energy_difference:
+                energy_current_state = self.compute_energy(final_state)
+                self.list_energy_difference[episode] = energy_current_state-self.energy_target_state
 
             if self.epsilon >= self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
@@ -214,9 +233,11 @@ class DeepQLearning(Solver):
     
 
     def select_action(self, mode, state, step=0):
+        time_start_gradient_ascent = time.time()
         action, _ = self.model.get_max_output(step=step,
                                               state=state,
                                               use_target=False)
+        self.time_gradient_ascent += time.time() - time_start_gradient_ascent
         if mode == 'greedy':
             pass
         elif mode == 'explore':
@@ -272,14 +293,31 @@ class DeepQLearning(Solver):
         #target_params.pop('solver', None)
         solver_for_target.load_settings(target_params)
         solver_for_target.solve()
-        state_target = solver_for_target.get_state_target()
-        self.state_target = state_target
+        self.state_target = solver_for_target.get_state_target()
         rho_target = solver_for_target.get_rho_target()
         self.rho_target = rho_target
         return rho_target
     
+    def compute_energy(self, state: np.ndarray)->float:
+        """
+        Compute the energy of a quantum state state for a given Hamiltonian H.
+        
+        Parameters:
+        state (numpy.ndarray): The state vector (1D array) representing the quantum state.
+        self.hamiltonian_matrix (numpy.ndarray): The Hamiltonian matrix (2D array) of the system.
+        
+        Returns:
+        float: The energy of the state w.r.t the Hamiltonian H.
+        """
+        # Ensure psi is a column vector
+        state = np.asarray(state).reshape(-1, 1)
+        # Normalize the state vector ψ
+        state = state / np.linalg.norm(state)
+        # Compute the expectation value of the Hamiltonian H
+        energy = np.dot(state.T.conj(), np.dot(self.hamiltonian_matrix, state)).real
+        return energy.item()
 
-    
+        
 
 class DQLWithReplayMemory(DeepQLearning):
     """DQN with the addition of a replay memory."""
@@ -319,8 +357,7 @@ class DQLWithReplayMemory(DeepQLearning):
             # env.step modifies env.current_state
             # (state is env.current_state)
             time_start_compute_reward = time.time()
-            # state, reward, done, _ = self.env.step(action,rho_target=self.rho_target)
-            state, reward, done, _ = self.env.step(action, state_target=self.state_target)
+            state, reward, done, _ = self.env.step(action,state_target=self.state_target)
             reward_sequence.append(reward)
             time_end_compute_reward = time.time()
             self.time_compute_reward_sum += time_end_compute_reward - time_start_compute_reward
@@ -369,8 +406,11 @@ class DQLWithReplayMemory(DeepQLearning):
         #  target Q(s_t, a_t) = sum_{t'>=t} r_t = r_{t_final}
         #  NOTE: I use the fact that all rewards are 0.0 except the final one.
         #  More generally, one would have to do a cummulative sum of ys along the
-        #  axis=1 starting from the end
+        #  axis=1 starting from the end.
         final_rewards = ys[:, -1].reshape(-1, 1)
+        
+        # ys becomes an array containing the final_reward (r_{t_final}) of the sampling for each steps of the episode
+        # that is for each of r_t.
         ys[:, :-1] = np.tile(final_rewards, (1, ys.shape[1] - 1))
 
         self.model.fit(action_sequences, ys, sampling_size, epochs)
@@ -386,10 +426,16 @@ class DQLWithReplayMemory(DeepQLearning):
 
         # note: when the initial actions are random, the seed is not the same.
         initial_action_sequence = self.env.initial_action_sequence(False)
-        initial_reward = self.env.reward(action_sequence=initial_action_sequence,state_target=self.state_target)
+        initial_reward = self.env.reward(action_sequence=initial_action_sequence,state_target=self.state_target)        
         rewards = self.run()
         end_time = time.time()
-        parametername = 'lrti_PD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
+        if self.name_for_file == "lrti":
+            # I need to change the previous parameter files to create that is the parameter file. 
+            # Here, I did a change to have it working despite the difference of structure between the 
+            # parameter files. 
+            parametername = self.name_for_file+'_PD_N'+str(self.env.n_sites)+'episode'+str(self.n_episodes)+'t_final'+str(self.t_final)+'alpha'+str(self.ham_params['alpha'])+'J'+str(self.ham_params['J'])+'h'+str(self.ham_params['h'])+'ferro_angle'+str(sys.argv[4])+'sim'+str(sys.argv[5])
+        else: 
+            parametername = self.name_for_file
         self.save_best_encountered_actions('json',
                                                 'best_gate_sequence'+parametername+'.json')
         try:
@@ -412,6 +458,7 @@ class DQLWithReplayMemory(DeepQLearning):
             'time_compute_reward_sum': self.time_compute_reward_sum,
             'time_select_action_sum': self.time_select_action_sum,
             'time_reduced_density_matrix': self.env.time_reduced_density_matrix_iteration,
+            'time_gradient_ascent': self.time_gradient_ascent, 
             'initial_state': str(self.env.initial_state), 
             #  'ground_state_energy': ground_state_energy,
             #  'final_reward': rewards[-1],
@@ -445,6 +492,15 @@ class DQLWithReplayMemory(DeepQLearning):
         except Exception as e:
             print(reward_filename+' could not be saved.')
             print('--->', e)
+
+        try:
+            difference_energy_filename = 'difference_energies' +parametername+'.npy'
+            with open(difference_energy_filename, 'wb') as f:
+                np.save(f, self.list_energy_difference)
+        except Exception as e:
+            print(reward_filename+' could not be saved.')
+            print('--->', e)
+
 
 
 Episode = namedtuple('Episode', ('action_sequence',

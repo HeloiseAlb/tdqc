@@ -1,11 +1,27 @@
+"""
+This script encodes the classes Model and State. 
+Model is a class of model of Hamiltonian, in this file is encoded several instance of this class 
+corresponding to several models of Hamiltonian. One have to take care when using these instance to copy 
+then before to use them not to use directly the instance which will then be modify. 
+State is a class of encoding the quantum states. 
+
+CONVENTIONS
+spin down: |0> = [1,0]
+spin up: |1> = [0,1]
+The spin sites are number from the left to the right: |qubit_0, qubit_1, qubit_2, ...>. 
+Ex: a system of 2 spins: spin site 0: |0> and spin site 1: |1> will be written |01>.
+Once encoded in the basis 2, to access the 
+"""
+
 #!/usr/bin/env python
 # coding: utf-8
-from scipy.linalg import expm
+from scipy.linalg import expm, hessenberg
 import numpy as np
 from numpy import linalg
 import scipy as sci
 import numpy as np
-from math import log2, cos, sin
+from typing import Optional
+from math import log2, cos, sin, pi
 import cmath
 
 h_bar = 1 # 1.054571817*10**(-34) # in J.s
@@ -16,28 +32,82 @@ spin_op= {
     "sigma_y": np.array([[0+0j,-1j],[1j,0+0j]],dtype = 'complex128'),
     "sigma_z": np.array([[1+0j,0+0j],[0+0j,-1+0j]],dtype = 'complex128'),
     "sigma_+": np.array([[0+0j,1+0j],[0+0j,0+0j]],dtype = 'complex128'),
-    "sigma_-": np.array([[0+0j,0+0j],[-1+0j,0+0j]],dtype = 'complex128')} 
+    "sigma_-": np.array([[0+0j,0+0j],[1+0j,0+0j]],dtype = 'complex128')} 
 
 def globalize_op(local_op: np.ndarray, site: int, L: int):
     '''
     Return the tensor product of the local operator and identity operators such that the local operator applies on site number site.
     L is the total number of sites in the system on which we want to apply the global operator.
     '''
-    tensor_0 = np.identity(1,dtype = 'complex128')
-    for i in range(0,site,1):
-        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-    tensor_0 = np.kron(tensor_0,local_op)
-    for i in range(site+1,L,1):
-        tensor_0 = np.kron(tensor_0,np.identity(2,dtype='complex128'))
-    return tensor_0
+    if L<=0:
+        raise ValueError("L must be a non negative integer.")
+    elif L == 1:
+        return local_op
+    else:  
+        tensor_0 = np.identity(1, dtype = 'complex128')
+        for i in range(0, site, 1):
+            tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
+        tensor_0 = np.kron(tensor_0, local_op)
+        for i in range(site+1, L, 1):
+            tensor_0 = np.kron(tensor_0,np.identity(2, dtype='complex128'))
+        return tensor_0
 
+def f_dagger(site: int, L: int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    The site are numbered from 0 so we should have site<L.
+    '''
+    if site>=L:
+        raise ValueError("We should have site<L, the site being numbered from 0.")
+    return globalize_op(spin_op["sigma_-"], site, L)
+
+def f(site: int, L: int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    The site are numbered from 0 so we should have site<L.
+    '''
+    if site>=L:
+        raise ValueError("We should have site<L, the site being numbered from 0.")
+    return globalize_op(spin_op["sigma_+"], site, L)    
+
+def string(site: int, L: int, negative_sign: Optional[bool]=False)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    Note that e^(iπn_j) = e^(−iπn_j) is a Hermitian operator so that the overall sign of the phase
+    factors can be reversed without changing the spin operator.
+    '''
+    if site == 0:
+        return np.identity(2**L)
+    else: #if site > 0: 
+        sum_operators = sum([np.dot(f_dagger(k,L), f(k,L)) for k in range(0, site, 1)])
+        if negative_sign:
+            return expm(-1j*pi*sum_operators)
+        else:
+            return expm(1j*pi*sum_operators)
+
+def creator(site: int, L:int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    Return the fermionic creator operator on the site site taking into account the string. 
+    '''
+    return np.dot(string(site, L, False), f_dagger(site, L))
+
+def annihilator(site: int, L:int)-> np.ndarray:
+    '''
+    L is the total number of sites in the system.
+    Return the fermionic annihilator operator on the site site taking into account the string. 
+    '''
+    return np.dot(string(site, L, True), f(site, L))
 
 class Model(object):
     # Class attribute
-    
-    def __init__(self, name, model_hamiltonian):
+    def __init__(self, name, model_hamiltonian, tridiagonal=False):
         self.name = name
         self.model_hamiltonian = model_hamiltonian
+        if tridiagonal:
+            self.tridiagonalization = True
+        else: 
+            self.tridiagonalization = False
         self.__eig_values = None
         self.__eig_vectors = None
         self.__ground_states = None
@@ -45,22 +115,25 @@ class Model(object):
 
     def calculate_ground_states(self, eig_values, eig_vectors):
         length_vector = eig_vectors.shape[0]
-        min_indices = np.asarray(abs(eig_values-eig_values.min())<10**(-12)).nonzero() #np.where(eig_values == eig_values.min())
+        min_indices = np.asarray( abs(eig_values-eig_values.min())<10**(-12) ).nonzero() #np.where(eig_values == eig_values.min())
+        # The .nonzero() method returns the indices of the elements that are True in the boolean array.
         min_indices = np.asarray(min_indices)[0]
-        ground_states = np.zeros([length_vector,min_indices.shape[0]],complex)
+        ground_states = np.zeros([length_vector,min_indices.shape[0]], complex)
         for idx, value in enumerate(min_indices):
-            eig_vector = eig_vectors[:,value]
-            eig_vector = eig_vector[:]
-            ground_states[:, idx] = eig_vector
+            ground_states[:, idx] = eig_vectors[:,value]
         return ground_states
 
     def parametrize_hamiltonian(self, *parameter):
         fonction = self.model_hamiltonian
-        self.__hamiltonian = fonction(*parameter)
+        if self.tridiagonalization: 
+            self.__hamiltonian, self.hessenberg_unitary = hessenberg(fonction(*parameter), calc_q=True)
+        else:
+            self.__hamiltonian = fonction(*parameter)
+            self.hessenberg_unitary = None
         eig_values, eig_vectors = np.linalg.eigh(self.__hamiltonian) 
         self.__eig_values = eig_values
         self.__eig_vectors = eig_vectors
-        self.__ground_states = self.calculate_ground_states(eig_values,eig_vectors)
+        self.__ground_states = self.calculate_ground_states(eig_values, eig_vectors)
         self.__ground_state = self.__ground_states[:,0]
 
     @property
@@ -96,8 +169,6 @@ class Model(object):
     @classmethod
     def class_method(cls):
         return cls, "is class of mathematical models of Hamiltonian."
-
-
 
 # Models XXZ
 def hamiltonian_xxz(L, Jxy, Jzz, PDB=False):
@@ -207,6 +278,75 @@ def hamiltonian_trans_field(L, h, ferro_angle):
 
 trans_field_model = Model("transverse_field", hamiltonian_trans_field)
 
+def tight_binding_second_quantization_matrix(L: int, g: float)-> np.ndarray:
+    '''
+    The tight-binding model in the language of second quantization. See equation 3.46 of the course 
+    Second quantization by Gabriel T. Landi, University of São Paulo. November 8, 2019
+    http://www.fmt.if.usp.br/~gtlandi/courses/second-quantization-4.pdf
+    L: the particle number,
+    g: the hopping integral, 
+    It is defined for open boundary conditions. 
+    '''
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    for k in range(0, L-1):
+        H+= np.dot(creator(k, L),annihilator(k+1, L))
+    H+=H.conj().T
+    return -g*H 
+
+tb_second_quantization = Model("tight_binding_second_quantization", tight_binding_second_quantization_matrix)
+
+def hamiltonian_anderson_model(L: int, E_k: np.ndarray, V_k: np.ndarray, E: float, U: float)-> np.ndarray:
+    '''
+    The Anderson impurity model in the language of second quantization. See equation 1
+    of https://journals.aps.org/pr/pdf/10.1103/PhysRev.124.41. 
+    L: the number of spin sites. It is even because the system has 2 spin sites for the impurity 
+    and 2 spin sites per electron pair of the d shell of the metal. A model with L spin sites 
+    has then (L-2)/2 peripheral locations.
+    They are ordered as follow:
+    (0,1) are the 2 spin-sites of the impurity. The pairs (i, i+1) for i even in [2,L] are 
+    the sites with 2 spins each.
+    The even numbers number the spin up, the odd numbers number the spin down. 
+    E_k: the array of the energies of the free-electron state of momentum k_{index} (the chemical
+        potential). The index is the index in the array. The array needs to be correctly 
+        ordered such as the values correspond to their spin site. The array is of size (L-2)/2.
+    V_k: the array of the hybridization potential between impurity orbitals and conduction electrons
+        of momentum k_{index}. The index is the index in the array. The array needs to be correctly 
+        ordered such as the values correspond to their spin site. The array is of size (L-2)/2. 
+        They can be computed in terms of Wannier functions belonging to the band (see Eq. (6) 
+        of https://journals.aps.org/pr/pdf/10.1103/PhysRev.124.41).
+    E: distance with the Fermi surface.
+    U: the repulsive d-d interaction (that is the on–site Coulomb repulsion).
+    '''
+    H = np.zeros((2**(L), 2**(L)), dtype='complex128')
+    n_peri_locations = int((L-2)/2) # The number of peripheral locations
+    creator_up_impurity = creator(0, L)
+    annihilator_up_impurity = annihilator(0, L)
+    creator_down_impurity = creator(1, L)
+    annihilator_down_impurity = annihilator(1, L)
+    for location in range(0, n_peri_locations, 1):
+        creator_loc_up = creator(2*location+2, L)
+        annihilator_loc_up = annihilator(2*location+2, L)
+        creator_loc_down = creator(2*location+3, L)
+        annihilator_loc_down = annihilator(2*location+3, L)
+        # Unperturbed energy of the free-electron system 
+        H += E_k[location] * ( np.dot(creator_loc_up, annihilator_loc_up) \
+            + np.dot(creator_loc_down, annihilator_loc_down))
+        # s-d interaction term
+        H += V_k[location] * (np.dot(creator_up_impurity, annihilator_loc_up) \
+            + np.dot(creator_down_impurity, annihilator_loc_down) \
+            + np.dot(creator_loc_up, annihilator_up_impurity) \
+            + np.dot(creator_loc_down, annihilator_down_impurity))     
+    number_opertor_up_impurity = np.matmul(creator_up_impurity, annihilator_up_impurity)
+    number_opertor_down_impurity = np.matmul(creator_down_impurity, annihilator_down_impurity)
+    # Unperturbed energy of the state of the impurity atom
+    H += E * (number_opertor_up_impurity + number_opertor_down_impurity)
+    # Replusive energy among the d functions
+    H += U * np.dot(number_opertor_up_impurity, number_opertor_down_impurity)
+    return H
+
+anderson_impurity_model = Model("anderson_impurity_model", hamiltonian_anderson_model)
+anderson_impurity_model_tridiagonal = Model("anderson_impurity_model", hamiltonian_anderson_model, tridiagonal=True)
+
 class State(object):
     '''
     init_vec_state: type <class 'numpy.ndarray'>
@@ -257,10 +397,13 @@ class State(object):
         """
         Apply an X-axis rotation to each qubit with the specified angle rotation_angle.
         """
-        x_rotation_gate = np.array([[cos(rotation_angle/2), -1j*sin(rotation_angle/2)], [-1j*sin(rotation_angle/2), cos(rotation_angle/2)]])
-        for qubit in range(self.n_sites):
-            global_gate = globalize_op(x_rotation_gate, qubit, self.n_sites)
-            self.vec_state = np.dot(global_gate, self.vec_state) 
+        if rotation_angle == 0.0:
+            pass
+        else: 
+            x_rotation_gate = np.array([[cos(rotation_angle/2), -1j*sin(rotation_angle/2)], [-1j*sin(rotation_angle/2), cos(rotation_angle/2)]])
+            for qubit in range(self.n_sites):
+                global_gate = globalize_op(x_rotation_gate, qubit, self.n_sites)
+                self.vec_state = np.dot(global_gate, self.vec_state) 
 
     
     @classmethod
