@@ -279,11 +279,11 @@ class QuantumEnv():
         outfile.write(f'Best final state: {best_final_state}\n')
         outfile.write('\n')
         
-    def step(self, action, rho_target):
+    def step(self, action, state_target):
         self.current_state, done = self.get_transition(self.current_state,
                                                        action)
         if done:
-            reward = self.reward(self.current_state,rho_target=rho_target)
+            reward = self.reward(self.current_state,state_target=state_target)
         else:
             reward = 0.0
         return (self.current_state, reward, done, {})
@@ -335,7 +335,7 @@ class DynamicalEvolution(QuantumEnv):
         super().__init__(calculate_target_state=True,
                          **other_params)
     
-    def reward(self, action_sequence: np.ndarray, rho_target: np.ndarray)-> float:  
+    def reward(self, action_sequence: np.ndarray, state_target: np.ndarray)-> float:  
         """
         Return the reward of the action_sequence computed according to rho_target.
         """       
@@ -353,8 +353,10 @@ class DynamicalEvolution(QuantumEnv):
             final_state = final_state / norm_final_state
         
         self.final_state = final_state
-        rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)     
-        return self.local_reward(rho_target, rho_DQS, n_qubits)
+        # rho_DQS = np.tensordot(np.conjugate(self.final_state), self.final_state, axes=0)     
+        # return self.local_reward(rho_target, rho_DQS, n_qubits)
+        return abs(np.vdot(np.conj(self.final_state), state_target))
+
 
     def get_ground_state_energy(self, return_eigenvectors: bool=False)-> float:
         """Return the ground state energy."""

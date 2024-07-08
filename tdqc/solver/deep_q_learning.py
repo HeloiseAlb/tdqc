@@ -357,7 +357,7 @@ class DQLWithReplayMemory(DeepQLearning):
             # env.step modifies env.current_state
             # (state is env.current_state)
             time_start_compute_reward = time.time()
-            state, reward, done, _ = self.env.step(action,rho_target=self.rho_target)
+            state, reward, done, _ = self.env.step(action,state_target=self.state_target)
             reward_sequence.append(reward)
             time_end_compute_reward = time.time()
             self.time_compute_reward_sum += time_end_compute_reward - time_start_compute_reward
