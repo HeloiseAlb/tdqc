@@ -174,7 +174,7 @@ class DeepQLearning(Solver):
                              'EnergyMinimizer_cpp']:
             self.best_encountered_rewards = (
                 [0]*(len(self.best_encountered_actions) - 1)
-                + [self.env.reward(self.best_encountered_actions,self.rho_target)]
+                + [self.env.reward(self.best_encountered_actions,state_target=self.state_target)]
             )
             
         print('Final reward of the initial action sequence'
@@ -426,7 +426,7 @@ class DQLWithReplayMemory(DeepQLearning):
 
         # note: when the initial actions are random, the seed is not the same.
         initial_action_sequence = self.env.initial_action_sequence(False)
-        initial_reward = self.env.reward(action_sequence=initial_action_sequence,rho_target=rho_target)        
+        initial_reward = self.env.reward(action_sequence=initial_action_sequence,state_target=self.state_target)        
         rewards = self.run()
         end_time = time.time()
         if self.name_for_file == "lrti":
