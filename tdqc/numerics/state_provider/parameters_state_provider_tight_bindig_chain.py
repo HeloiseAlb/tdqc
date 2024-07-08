@@ -10,8 +10,7 @@ from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
 from math import pi 
-from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model, tb_second_quantization
-from tdqc.numerics.ed.models_ed import State
+from tdqc.numerics.ed.models_ed import Model, State, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model, tb_second_quantization
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
 import sys 
@@ -43,6 +42,7 @@ alpha = int(2)
 model_f = copy.deepcopy(tb_second_quantization) # Change it also for system_class !!
 model_f.parametrize_hamiltonian(*[L, g])
 ground_state = model_f.ground_state 
+print("model_f.ground_state:{}".format(ground_state))
 # print("ground_state:{}".format(ground_state))
 vector_to_copy = np.array(ground_state, dtype='complex128')
 vector_to_copy /= np.linalg.norm(vector_to_copy)
@@ -72,6 +72,7 @@ parameters = {
         'h': h,
         'J': J
     },
+    'hamiltonian_matrix': model_f.hamiltonian,
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',

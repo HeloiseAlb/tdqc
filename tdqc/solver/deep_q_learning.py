@@ -96,11 +96,22 @@ class DeepQLearning(Solver):
             self.name_for_file = "lrti"
         else: 
             self.name_for_file = settings["name_for_file"]
-        self.ham_params = settings["ham_params"]
         self.__target_params = settings["target_params"]
+
+        if not "hamiltonian_matrix" in settings:
+            self.do_you_compute_energy_difference = False
+        else:
+            target_state = self.__target_params['state_to_copy']
+            target_state_vector = target_state.get_vector_state()
+            self.hamiltonian_matrix = settings["hamiltonian_matrix"]
+            self.energy_target_state = self.compute_energy(target_state_vector)
+            self.do_you_compute_energy_difference = True
+            self.list_energy_difference = np.zeros(self.n_episodes)
+        self.ham_params = settings["ham_params"]        
         self.__target_params["t_initial"] = settings["t_initial"]
         self.__target_params["t_final"] = settings["t_final"]
         self.t_final = settings["t_final"]
+        
 
         if self.env_type == 'DynamicalEvolution_cpp':
             self.env = envs_cpp.DynamicalEvolution(
@@ -198,6 +209,9 @@ class DeepQLearning(Solver):
                 self.best_final_state = final_state
             #print('rewards[episode, :]:{},reward_sequence:{}'.format(rewards[episode, :],reward_sequence))
             rewards[episode, :] = reward_sequence
+            if self.do_you_compute_energy_difference:
+                energy_current_state = self.compute_energy(final_state)
+                self.list_energy_difference[episode] = energy_current_state-self.energy_target_state
 
             if self.epsilon >= self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
@@ -284,8 +298,26 @@ class DeepQLearning(Solver):
         self.rho_target = rho_target
         return rho_target
     
+    def compute_energy(self, state: np.ndarray)->float:
+        """
+        Compute the energy of a quantum state state for a given Hamiltonian H.
+        
+        Parameters:
+        state (numpy.ndarray): The state vector (1D array) representing the quantum state.
+        self.hamiltonian_matrix (numpy.ndarray): The Hamiltonian matrix (2D array) of the system.
+        
+        Returns:
+        float: The energy of the state w.r.t the Hamiltonian H.
+        """
+        # Ensure psi is a column vector
+        state = np.asarray(state).reshape(-1, 1)
+        # Normalize the state vector ψ
+        state = state / np.linalg.norm(state)
+        # Compute the expectation value of the Hamiltonian H
+        energy = np.dot(state.T.conj(), np.dot(self.hamiltonian_matrix, state)).real
+        return energy.item()
 
-    
+        
 
 class DQLWithReplayMemory(DeepQLearning):
     """DQN with the addition of a replay memory."""
@@ -460,6 +492,15 @@ class DQLWithReplayMemory(DeepQLearning):
         except Exception as e:
             print(reward_filename+' could not be saved.')
             print('--->', e)
+
+        try:
+            difference_energy_filename = 'difference_energies' +parametername+'.npy'
+            with open(difference_energy_filename, 'wb') as f:
+                np.save(f, self.list_energy_difference)
+        except Exception as e:
+            print(reward_filename+' could not be saved.')
+            print('--->', e)
+
 
 
 Episode = namedtuple('Episode', ('action_sequence',
