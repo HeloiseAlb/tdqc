@@ -58,7 +58,7 @@ parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'tb_fermions_PD_N'+str(L)+'n_steps'+str(n_steps)+'_Init_state'+str(initial_state_class)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
+    'name_for_file': 'tb_fermions_PD_rewardfidelity_N'+str(L)+'n_steps'+str(n_steps)+'_Init_state'+str(initial_state_class)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
     'n_sites': L,
     'n_steps': n_steps,
     't_initial': 0.0,
