@@ -1,16 +1,9 @@
-"""
-Here, I will run the simulations to prepare the ground state of the tight binding model
-in the second quantification. However, the circuit is the one from the previous simulation 
-(long range transverse Ising model). That is the structure of the circuit is the 
-Trotterization of the long range Ising model. This is expressed in the system_class. 
-For that reason, we also need the parameters for the LRTI model.  
-"""
-#%%
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
 from math import pi 
-from tdqc.numerics.ed.models_ed import Model, State, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model, tb_second_quantization
+from tdqc.numerics.ed.models_ed import Model, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model
+from tdqc.numerics.ed.models_ed import State
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
 import sys 
@@ -29,54 +22,47 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-# sys.argv = [name_of_the_program, L, g, ferro_angle, sim, epsilon_decay]
+# sys.argv = [name_of_the_program, L, J, g]
 print("sys.argv:{}".format(sys.argv))
-learning_rate = 0.01
-epsilon_decay = float(sys.argv[5])
 L = int(sys.argv[1])
-g = float(sys.argv[2])
+J = float(sys.argv[2])
+g = float(sys.argv[3])
+ferro_angle = float(sys.argv[4])
 h = g
-ferro_angle = float(sys.argv[3])
-J = 1
 alpha = int(2)
-model_f = copy.deepcopy(tb_second_quantization) # Change it also for system_class !!
-model_f.parametrize_hamiltonian(*[L, g])
-ground_state = model_f.ground_state 
-print("model_f.ground_state:{}".format(ground_state))
-# print("ground_state:{}".format(ground_state))
+model_f = copy.deepcopy(lr_trans_ising_model) # Change it also for system_class !!
+model_f.parametrize_hamiltonian(*[L, J, alpha, g])
+ground_state = model_f.ground_state
 vector_to_copy = np.array(ground_state, dtype='complex128')
-vector_to_copy /= np.linalg.norm(vector_to_copy)
+norm = np.linalg.norm(vector_to_copy)
+vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
 
-# I put the followimg parameters outside of the dictionary because they also appear in 
-# the name_for_file entry. 
-n_episodes = 100
-t_final = 1.0 # This is the tau in the article.
-initial_state_class = 'antiferro'
-n_steps = 3
 parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'tb_fermions_PD_rewardfidelity_N'+str(L)+'n_steps'+str(n_steps)+'_Init_state'+str(initial_state_class)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
-    'n_sites': L,
-    'n_steps': n_steps,
+    'n_sites':  L,
+    'n_steps': 3,
     't_initial': 0.0,
-    't_final': t_final, # This is the tau in the article.
+    't_final': 1.0, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
     'system_class': 'LongRangeTransIsing',
     #  also sets entangling gate alpha
     'ham_params': {
+        'J': J,
+        #  #  g: x, h: z
         'g': g,
-        'alpha': int(2),
         'h': h,
-        'J': J
+        'alpha': alpha,#2.0
+        #'m_c': 0.5,
+        #'w_c': 1.0,
+        #'j_c': 1.0
     },
-    'hamiltonian_matrix': model_f.hamiltonian,
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': initial_state_class,#'ferro_with_angle', #'ferro',
+    'initial_state': 'ferro',#'ferro_with_angle', #'ferro',
     'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
 
@@ -101,13 +87,13 @@ parameters = {
     'average_exponent': 0.5, #useless
 
     # q_learning parameters:
-    'n_episodes': n_episodes,#50000,#int(5e4),
+    'n_episodes': 50000,#int(5e4),
     #  'n_episodes': 100,
 
     'epsilon_max': 1.0,
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
-    'epsilon_decay': epsilon_decay,# 0.9999411315398542,
+    'epsilon_decay': 0.9999411315398542,
     'n_epochs': 1,
     'model_update_spacing': 20, #20
     # =======================================================================
@@ -162,7 +148,7 @@ parameters = {
         # To perform backpropagation on Q_behavior.
         'algorithm': 'adam',
         # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
-        'learning_rate': learning_rate,#0.005,#0.6,#005
+        'learning_rate': 0.005,#005,#0.6,#005
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8, 
@@ -190,4 +176,3 @@ parameters_replay_memory = {
     'NN_optimizer': 'adam',
     'n_epochs': 1
    }
-

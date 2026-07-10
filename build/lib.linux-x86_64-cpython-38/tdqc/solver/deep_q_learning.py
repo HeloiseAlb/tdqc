@@ -98,15 +98,6 @@ class DeepQLearning(Solver):
             self.name_for_file = settings["name_for_file"]
         self.__target_params = settings["target_params"]
 
-        if not "hamiltonian_matrix" in settings:
-            self.do_you_compute_energy_difference = False
-        else:
-            target_state = self.__target_params['state_to_copy']
-            target_state_vector = target_state.get_vector_state()
-            self.hamiltonian_matrix = settings["hamiltonian_matrix"]
-            self.energy_target_state = self.compute_energy(target_state_vector)
-            self.do_you_compute_energy_difference = True
-            self.list_energy_difference = np.zeros(self.n_episodes)
         self.ham_params = settings["ham_params"]        
         self.__target_params["t_initial"] = settings["t_initial"]
         self.__target_params["t_final"] = settings["t_final"]
@@ -150,6 +141,16 @@ class DeepQLearning(Solver):
                                                   **settings)
         else:
             raise ValueError("network_type not recognized.")
+        
+        if not "hamiltonian_matrix" in settings:
+            self.do_you_compute_energy_difference = False
+        else:
+            target_state = self.__target_params['state_to_copy']
+            target_state_vector = target_state.get_vector_state()
+            self.hamiltonian_matrix = settings["hamiltonian_matrix"]
+            self.energy_target_state = self.compute_energy(target_state_vector)
+            self.do_you_compute_energy_difference = True
+            self.list_energy_difference = np.zeros((self.n_episodes, self.env.n_steps))
 
         # random is only used for mini_batch sampling
         # (np.random.choice does not like the list of Episode namedtuples)
@@ -210,8 +211,10 @@ class DeepQLearning(Solver):
             #print('rewards[episode, :]:{},reward_sequence:{}'.format(rewards[episode, :],reward_sequence))
             rewards[episode, :] = reward_sequence
             if self.do_you_compute_energy_difference:
-                energy_current_state = self.compute_energy(final_state)
-                self.list_energy_difference[episode] = energy_current_state-self.energy_target_state
+                intermediate_states = self.env.intermediate_states
+                for index, state in enumerate(intermediate_states):
+                    energy_current_state = self.compute_energy(state)
+                    self.list_energy_difference[episode,index] = energy_current_state-self.energy_target_state
 
             if self.epsilon >= self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
@@ -415,7 +418,7 @@ class DQLWithReplayMemory(DeepQLearning):
 
         self.model.fit(action_sequences, ys, sampling_size, epochs)
 
-    def solve(self):
+    def solve(self,):
         if not self.seetings_replay_memory_loaded:
             raise RuntimeError("The seetings of the replay memory need to be loaded: run self.load_seetings_replay_memory().")
         # This method runs the deep Q-learning algorithm with experience replay memory. 

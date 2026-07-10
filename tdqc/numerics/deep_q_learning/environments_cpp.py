@@ -300,9 +300,17 @@ class QuantumEnv():
     def random_action(self)-> np.ndarray:
         return np.random.uniform(-1, 1, size=self.action_dim)
     
-    def apply_gate_sequence(self):
-        """ Apply the sequence of gates onto the initial state and return the final state. """
+    def apply_gate_sequence(self,):
+        """ 
+        Apply the sequence of gates onto the initial state and return the final state. 
+        It also stores the intermediate states. An intermediate state is a state after 
+        a layer of gates. It stores the states from the state after the first layer
+        until the state after the last layer (the initial state is not stored).
+        self.intermediate_states has dimension (self.n_steps, 2**self.n_sites). 
+        """
         # Define the universal quantum gate set used in Markus' article. 
+        dim = int(2**self.n_sites)
+        self.__intermediate_states = np.zeros((self.n_steps, dim))
         U_x = lambda theta : expm(-1j*theta*spin_op['sigma_x'])
         U_z = lambda theta : expm(-1j*theta*spin_op['sigma_z'])
         sum_U_xx = self.coupling_matrix 
@@ -326,7 +334,15 @@ class QuantumEnv():
                     state = np.dot(U_z_site,state)
                     U_x_site = globalize_op(U_x(hx_angle_list[step][site]),site,self.n_sites)
                     state = np.dot(U_x_site,state)
+            self.__intermediate_states[step,:] = state
         return state
+    
+    @property
+    def intermediate_states(self,):
+        if self.__intermediate_states is None:
+            raise ValueError("The method apply_gate_sequence need to be run to get the intermediate_states.")
+        return self.__intermediate_states
+
 
 
 class DynamicalEvolution(QuantumEnv):

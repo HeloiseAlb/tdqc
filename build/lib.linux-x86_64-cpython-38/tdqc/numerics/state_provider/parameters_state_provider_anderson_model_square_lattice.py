@@ -9,8 +9,8 @@ For that reason, we also need the parameters for the LRTI model.
 from tkinter.ttk import LabeledScale
 import numpy as np
 import copy 
-from math import pi 
-from tdqc.numerics.ed.models_ed import Model, State, xxz_model, lri_model, trans_ising_model, lr_trans_ising_model, tb_second_quantization
+from math import pi, sqrt
+from tdqc.numerics.ed.models_ed import Model, State, anderson_impurity_model
 #from tdqc_project.tdqc.solver.state_provider import StateProvider
 from tdqc.solver.state_provider import StateProvider
 import sys 
@@ -29,38 +29,58 @@ def tensor_prod(*arg):
     return res
 
 # Preparation of the target state by taking the ground state of the target Hamiltonian.
-# sys.argv = [name_of_the_program, L, g, ferro_angle, sim, epsilon_decay]
+# sys.argv = [name_of_the_program, L, ferro_angle, sim, epsilon_decay]
 print("sys.argv:{}".format(sys.argv))
-learning_rate = 0.01
-epsilon_decay = float(sys.argv[5])
-L = int(sys.argv[1])
-g = float(sys.argv[2])
+L = int(sys.argv[1]) # L=2 <=> 2 impurity sites; L=4 <=> 2 impurity sites and 2 spin sites
+epsilon_decay = float(sys.argv[4])
+g = 1
+# For 12 qubits
+# E_k = np.array([-1.932842482271276863, -1.160297051002382007, -3.869015369842733199, 3.865109256039230834, 1.159906462954387374])
+# V_k = np.array([5.586605759559575696e-2, 1.001269500844226695e-1 ,1.098938938616941946e-1, 1.098960499514210210e-1,1.001355017292177296e-1])
+
+# For 8 qubits (I took the values number 16, 50 and 83.)
+E_k = np.array([-1.353633082708697533,-3.886596945793371893e-02,1.237242218373216351])
+V_k = np.array([9.518621810161435881e-2,1.109370682087390536e-1,9.833858307543467958e-2])
+E = 0
+U = 8
 h = g
-ferro_angle = float(sys.argv[3])
+ferro_angle = float(sys.argv[2])
 J = 1
 alpha = int(2)
-model_f = copy.deepcopy(tb_second_quantization) # Change it also for system_class !!
-model_f.parametrize_hamiltonian(*[L, g])
+model_f = copy.deepcopy(anderson_impurity_model) # Change it also for system_class !!
+model_f.parametrize_hamiltonian(*[L, E_k, V_k, E, U])
 ground_state = model_f.ground_state 
-print("model_f.ground_state:{}".format(ground_state))
 # print("ground_state:{}".format(ground_state))
 vector_to_copy = np.array(ground_state, dtype='complex128')
-vector_to_copy /= np.linalg.norm(vector_to_copy)
+norm = np.linalg.norm(vector_to_copy)
+vector_to_copy = vector_to_copy / norm
 state_to_copy = State(vector_to_copy)
+
+# Build the initial state
+# It needs to be taken into account in the computation. 
+init_vec_state = np.zeros(2**L, dtype='complex128')
+init_vec_state[0] = 1.0
+# For 12 qubits
+# init_vec_state[2032] = 1.0/sqrt(2)
+# init_vec_state[3056] = 1.0/sqrt(2)
+# For 8 qubits
+#init_vec_state[124] = 1.0/sqrt(2)
+#init_vec_state[188] = 1.0/sqrt(2)
+init_vec_state = init_vec_state / np.linalg.norm(init_vec_state)
+
 
 # I put the followimg parameters outside of the dictionary because they also appear in 
 # the name_for_file entry. 
-n_episodes = 100
+n_episodes = 300000
+learning_rate = 0.005
 t_final = 1.0 # This is the tau in the article.
-initial_state_class = 'antiferro'
-n_steps = 3
 parameters = {
     # =======================================================================
     # physical system (in deep_q_learning, it is for the initialization of the circuit).
     # =======================================================================
-    'name_for_file': 'tb_fermions_PD_rewardfidelity_N'+str(L)+'n_steps'+str(n_steps)+'_Init_state'+str(initial_state_class)+'epsilon_decay'+str(epsilon_decay)+'learning_rate'+str(learning_rate)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'alpha'+str(alpha)+'J'+str(J)+'h'+str(h)+'ferro_angle'+str(ferro_angle)+'sim'+str(sys.argv[4]),
+    'name_for_file': 'Anderson_square_fermions_PD_N_initstate_ferro_'+str(L)+'learning_rate'+str(learning_rate)+'epsilon_decay'+str(epsilon_decay)+'episode'+str(n_episodes)+'t_final'+str(t_final)+'E'+str(E)+'U'+str(U)+'ferro_angle'+str(ferro_angle)+'sim'+str(int(sys.argv[3])),
     'n_sites': L,
-    'n_steps': n_steps,
+    'n_steps': 3,
     't_initial': 0.0,
     't_final': t_final, # This is the tau in the article.
     #  'periodic_boundary_conditions': True,
@@ -71,14 +91,14 @@ parameters = {
         'alpha': int(2),
         'h': h,
         'J': J
-    },
-    'hamiltonian_matrix': model_f.hamiltonian,
+    }, 
     
     # 'initial_state': 'random_product_state', 
     # 'initial_state': 'antiferro',
-    'initial_state': initial_state_class,#'ferro_with_angle', #'ferro',
+    'initial_state': 'ferro',#'predefined_state',#'ferro',#'ferro_with_angle', #'ferro',
     'ferro_angle': ferro_angle*pi,
     'seed_initial_state': None, # 42,
+    'predefined_init_vec': init_vec_state,
 
     #  digital simulator:
     'n_directions': 2,  # also affect LRI Hamiltonian
@@ -107,7 +127,7 @@ parameters = {
     'epsilon_max': 1.0,
     'epsilon_min': 0.005,
     # corresponds to pp=0.9 with n_episode = 1e5
-    'epsilon_decay': epsilon_decay,# 0.9999411315398542,
+    'epsilon_decay': epsilon_decay,# Originate value: 0.9999411315398542,
     'n_epochs': 1,
     'model_update_spacing': 20, #20
     # =======================================================================
@@ -162,7 +182,7 @@ parameters = {
         # To perform backpropagation on Q_behavior.
         'algorithm': 'adam',
         # The parameters are the 'good default settings' recommended in arXiv:1412.6980.
-        'learning_rate': learning_rate,#0.005,#0.6,#005
+        'learning_rate': learning_rate,#005,#0.6,#005
         'beta_1': 0.9,
         'beta_2': 0.999,
         'epsilon': 1e-8, 
@@ -190,4 +210,4 @@ parameters_replay_memory = {
     'NN_optimizer': 'adam',
     'n_epochs': 1
    }
-
+# %%
