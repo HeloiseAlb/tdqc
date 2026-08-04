@@ -20,4 +20,4 @@ system_pybind
 
 # Specific untracked directories
 simulations/simulations_clean_before_july/
-test/*
+test/
