@@ -1,6 +1,18 @@
-*egg-info*
-Testing/*
-simulations/*
-test/*
-*.png
-__pycache__
+# Python build & distribution artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.so
+*.o
+
+# C++ compiled binaries
+system_pybind
+
+# Test & Pytest logs
+*.log
+
+# Simulation data files
+*.json
+*.npy
