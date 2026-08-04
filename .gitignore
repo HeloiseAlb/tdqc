@@ -1,4 +1,6 @@
 *egg-info*
 Testing/*
 simulations/*
+test/*
+*.png
 __pycache__
