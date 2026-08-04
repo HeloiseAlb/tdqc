@@ -16,3 +16,7 @@ system_pybind
 # Simulation data files
 *.json
 *.npy
+*.png
+
+# Specific untracked directories
+simulations/simulations_clean_before_july/
