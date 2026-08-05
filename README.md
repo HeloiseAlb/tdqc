@@ -1,6 +1,4 @@
-# tdqc
-
-
+# tdqc:  Temporal Difference Quantum Circuit
 
 ## Getting started
 
