@@ -15,12 +15,12 @@ clean:
 
 # Install package
 #############################################################################
-.PHONY: build 
+.PHONY: build
 
 build:
 	@echo "------------------------------------------------ building package ------------------------------------------------"
 	@echo ""
-	${TDQC_PYTHONBIN} -m pip install . -v
+	${TDQC_PYTHONBIN} -m pip install --no-build-isolation . -v
 
 
 # create documentation
