@@ -22,3 +22,6 @@ system_pybind
 simulations/simulations_clean_before_july/
 test/
 simulations/
+
+# Virtual environments
+venv/
