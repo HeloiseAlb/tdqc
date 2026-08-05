@@ -61,7 +61,7 @@ The core workflow of `tdqc` centers on state target generation via auxiliary sol
 ![Solver Workflow Architecture](Diagram_solver.png)
 
 ### 1. Target State Generation
-Any base solver exposes a standard interface (`load_settings()` and `solve()`) to compute or supply the target quantum state:
+Any base solver exposes a standard interface (`load_settings()` and `solve()`). To compute or supply the target quantum state, we use:
 
 | Solver | Description |
 | :--- | :--- |
@@ -77,9 +77,9 @@ The DQL solver accepts configuration parameters organized into three main catego
 
 #### Action Sequence & Environment Setup
 * `n_episodes`: Total number of training episodes.
-* `initial_state`: Initial quantum state passed to start simulation.
-* `system_class`: Underlying physics model class definition.
-* `ham_params`: System Hamiltonian parameters.
+* `initial_state`: Initial quantum state, input of the quantum circuit to optimize.
+* `system_class`: Model name of the Hamiltonian whose ground state is the target state.
+* `ham_params`: Hamiltonian parameters.
 
 #### Neural Network & Optimization (`NN parameters`)
 * `epsilon_max`, `epsilon_min`, `epsilon_decay`: Exploration schedule controls.
@@ -92,16 +92,14 @@ The DQL solver accepts configuration parameters organized into three main catego
 * `algorithm`: Underlying DQL variant/algorithm selection.
 
 #### Quantum Circuit Architecture
-* `n_directions`: Number of control parameter adjustment directions.
+* `n_directions`: Number of single gate rotations per qubit per layer.
 * `gate_order`: Order of quantum gates applied per circuit layer.
-* `entangling_gates_dir`: Directional mapping and connectivity for entangling gates.
+* `entangling_gates_dir`: Axis direction of the entangling gates.
 
 ## Authors and Acknowledgment
 
 * **Author:** Héloïse Albot
 * **Supervisor:** Sebastian Paeckel
-
-Special thanks to **Adrien Bolens**; parts of this codebase were adapted from the [adrienbolens/reinforcement-learning-and-quantum-simulations](https://github.com/adrienbolens/reinforcement-learning-and-quantum-simulations) repository.
 
 Part of the code in this repository builds upon and adapts work originally developed by **Adrien Bolens**, available in the repository [reinforcement-learning-and-quantum-simulations](https://github.com/adrienbolens/reinforcement-learning-and-quantum-simulations).
 
